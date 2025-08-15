@@ -111,7 +111,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $facility_id = ($_SESSION['user_role'] === 'bedrock_admin') ? $_POST['facility_id'] : $_SESSION['entity_id'];
         $created_by_user_id = $_SESSION['user_id'];
 
-        // Collect special equipment details into a single string
+        // --- ENCRYPT SENSITIVE DATA ---
+        // We will now check each encryption result immediately for a detailed error.
+        $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
+        if (strpos($encrypted_first_name, 'ENCRYPTION FAILURE') === 0) {
+            throw new Exception($encrypted_first_name);
+        }
+
+        $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
+        if (strpos($encrypted_last_name, 'ENCRYPTION FAILURE') === 0) {
+            throw new Exception($encrypted_last_name);
+        }
+
+        $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
+        if (strpos($encrypted_dob, 'ENCRYPTION FAILURE') === 0) {
+            throw new Exception($encrypted_dob);
+        }
+
+        $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
+        if (strpos($encrypted_ssn, 'ENCRYPTION FAILURE') === 0) {
+            throw new Exception($encrypted_ssn);
+        }
+
+        // --- Process other form data after we know encryption is working ---
         $special_equipment_details = [];
         if (!empty($_POST['special_equipment'])) {
             foreach ($_POST['special_equipment'] as $equipment) {
@@ -135,91 +157,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         $special_equipment_string = implode('; ', $special_equipment_details);
 
-        // Convert lbs to kg for patient weight
         $patient_weight_lbs = filter_var($_POST['patient_weight'], FILTER_VALIDATE_FLOAT);
         $patient_weight_kg = $patient_weight_lbs ? $patient_weight_lbs * 0.453592 : null;
 
-        // --- ENCRYPT SENSITIVE DATA ---
-        $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
-        $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
-        $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
-        $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
+        // Encrypt the rest of the data
         $encrypted_weight = encrypt_data((string)$patient_weight_kg, ENCRYPTION_KEY);
         $encrypted_height = encrypt_data($_POST['patient_height'], ENCRYPTION_KEY);
         $encrypted_diagnosis = encrypt_data($_POST['diagnosis'], ENCRYPTION_KEY);
         $encrypted_equipment = encrypt_data($special_equipment_string, ENCRYPTION_KEY);
         $encrypted_isolation = encrypt_data($_POST['isolation_precautions'], ENCRYPTION_KEY);
-        
-        // Check if any encryption failed
-        if (!$encrypted_first_name || !$encrypted_last_name || !$encrypted_dob || !$encrypted_ssn) {
-            throw new Exception("A critical error occurred while securing patient data. Please try again.");
-        }
 
         // --- INSERT INTO 'trips' TABLE ---
         $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?)";
 
         if ($stmt_trip = $mysqli->prepare($sql_trip)) {
-            // Combine date and time for appointments, handle ASAP case
             $asap = isset($_POST['asap_checkbox']) ? 1 : 0;
             $appointment_at = (!$asap && !empty($_POST['appointment_time'])) ? date('Y-m-d H:i:s', strtotime($_POST['appointment_time'])) : null;
             $requested_pickup_time = (!$asap && !empty($_POST['requested_pickup_time'])) ? $_POST['requested_pickup_time'] : null;
-
-            // Bidding closes 1 hour from now (can be adjusted)
             $bidding_closes_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
-            
-            // For origin/destination name, you might use facility name or a custom field. Here we use a generic placeholder.
             $origin_name = "Pickup Location"; 
             $destination_name = "Dropoff Location"; 
 
-            $stmt_trip->bind_param(
-                "iisssssssssssiss",
-                $facility_id,
-                $created_by_user_id,
-                $origin_name,
-                $_POST['pickup_address_street'],
-                $_POST['pickup_address_city'],
-                $_POST['pickup_address_state'],
-                $_POST['pickup_address_zip'],
-                $destination_name,
-                $_POST['dropoff_address_street'],
-                $_POST['dropoff_address_city'],
-                $_POST['dropoff_address_state'],
-                $_POST['dropoff_address_zip'],
-                $appointment_at,
-                $asap,
-                $requested_pickup_time,
-                $bidding_closes_at
-            );
+            $stmt_trip->bind_param("iisssssssssssiss", $facility_id, $created_by_user_id, $origin_name, $_POST['pickup_address_street'], $_POST['pickup_address_city'], $_POST['pickup_address_state'], $_POST['pickup_address_zip'], $destination_name, $_POST['dropoff_address_street'], $_POST['dropoff_address_city'], $_POST['dropoff_address_state'], $_POST['dropoff_address_zip'], $appointment_at, $asap, $requested_pickup_time, $bidding_closes_at);
 
             if (!$stmt_trip->execute()) {
                 throw new Exception("Failed to create the trip record: " . $stmt_trip->error);
             }
-
             $trip_id = $mysqli->insert_id;
             $stmt_trip->close();
-
         } else {
             throw new Exception("Database error preparing the trip record: " . $mysqli->error);
         }
 
         // --- INSERT INTO 'trip_patient_details' TABLE ---
-        $sql_patient = "INSERT INTO trip_patient_details (trip_id, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql_patient = "INSERT INTO trips_phi (trip_id, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         if ($stmt_patient = $mysqli->prepare($sql_patient)) {
-            $stmt_patient->bind_param(
-                "isssssssss",
-                $trip_id,
-                $encrypted_first_name,
-                $encrypted_last_name,
-                $encrypted_dob,
-                $encrypted_ssn,
-                $encrypted_weight,
-                $encrypted_height,
-                $encrypted_diagnosis,
-                $encrypted_equipment,
-                $encrypted_isolation
-            );
-
+            $stmt_patient->bind_param("isssssssss", $trip_id, $encrypted_first_name, $encrypted_last_name, $encrypted_dob, $encrypted_ssn, $encrypted_weight, $encrypted_height, $encrypted_diagnosis, $encrypted_equipment, $encrypted_isolation);
             if (!$stmt_patient->execute()) {
                 throw new Exception("Failed to save patient details: " . $stmt_patient->error);
             }
@@ -231,23 +205,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // --- LOG THE ACTIVITY ---
         $log_message = "User successfully created a new trip request (Trip ID: {$trip_id}) for Facility ID: {$facility_id}.";
         if (!log_activity($mysqli, $created_by_user_id, 'create_trip_success', $log_message)) {
-            // This is not a critical failure, but should be logged to a file
             error_log("CRITICAL: Failed to log successful trip creation for Trip ID: {$trip_id}.");
         }
         
-        // --- If all went well, commit the transaction ---
         $mysqli->commit();
         $trip_success = "Trip request created successfully! The trip ID is #{$trip_id}.";
 
     } catch (Exception $e) {
-        // --- Something went wrong, rollback the transaction ---
         $mysqli->rollback();
+        // The error message will now be the specific one from our encryption function
         $trip_error = "Error creating trip: " . $e->getMessage();
         
-        // Log the failure
+        // Log the failure with the detailed message
         log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', 'Error: ' . $e->getMessage());
     }
-
 }
 ?>
 
