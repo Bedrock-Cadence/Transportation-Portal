@@ -1,5 +1,11 @@
 <?php
+// Disable error display and reporting to ensure a clean JSON response.
+ini_set('display_errors', 0);
+error_reporting(0);
+
+// Clear any unexpected output before the JSON response
 ob_clean();
+
 header('Content-Type: application/json');
 
 // Get the raw POST data
