@@ -34,10 +34,10 @@ if (isset($_SESSION['user_role'])) {
             if ($stmt->execute()) {
                 $result = $stmt->get_result();
                 if ($row = $result->fetch_assoc()) {
-                    $facility_address['street'] = htmlspecialchars($row['street']);
-                    $facility_address['city'] = htmlspecialchars($row['city']);
-                    $facility_address['state'] = htmlspecialchars($row['state']);
-                    $facility_address['zip'] = htmlspecialchars($row['zip_code']);
+                    $facility_address['street'] = htmlspecialchars($row['address_street']);
+                    $facility_address['city'] = htmlspecialchars($row['address_city']);
+                    $facility_address['state'] = htmlspecialchars($row['address_state']);
+                    $facility_address['zip'] = htmlspecialchars($row['address_zip']);
                 }
             }
             $stmt->close();
