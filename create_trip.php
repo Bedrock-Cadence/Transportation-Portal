@@ -204,7 +204,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // --- INSERT INTO 'TRIPS_PHI' TABLE ---
         // 4. PHI TABLE UUID
-        $sql_patient = "INSERT INTO TRIPS_PHI (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $sql_patient = "INSERT INTO trips_phi (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         if ($stmt_patient = $mysqli->prepare($sql_patient)) {
             // Note the new bind_param string starts with 'i' for trip_id, then 10 's' strings for the encrypted data
