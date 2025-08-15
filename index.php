@@ -43,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dashboardContent = document.getElementById('dashboard-content');
     const userRole = '<?php echo $user_role; ?>';
     const userId = '<?php echo $user_id; ?>';
-    const db_conn = '<?php echo __DIR__ . '/../../app/db_connect.php'; ?>';
 
     /**
      * Renders the HTML for the Carrier's dashboard.
@@ -222,18 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * Fetches data from the server and updates the dashboard.
      */
     async function updateDashboard() {
-        // NOTE: This assumes you have a separate API endpoint (e.g., api/dashboard-data.php)
-        // that handles the database queries and returns JSON data.
-        // The fetch call would look something like this:
         const payload = {
             role: userRole,
-            userId: userId,
-            conn: db_conn
+            userId: userId
         };
 
         try {
-            // Using a mock fetch for demonstration. You will need to replace this with a real endpoint.
-            const response = await fetch('./mock_api_dashboard_data.php', {
+            const response = await fetch('./api/dashboard_data.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
