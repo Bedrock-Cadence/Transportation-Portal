@@ -93,7 +93,7 @@ require_once __DIR__ . '/../../app/session_config.php';
             <li class="nav-item dropdown">
                 <a class="nav-link user-profile dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <!-- Assuming first_name, last_name, and company_name are set in the session after login -->
-                    <span><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
+                    <span><?php echo htmlspecialchars($_SESSION['user_first_name'] . ' ' . $_SESSION['user_last_name']); ?></span>
                     <span class="company-name"><?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
