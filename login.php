@@ -1,89 +1,95 @@
 <?php
+// FILE: login.php
+
 // 1. Start the session using our centralized configuration.
 require_once __DIR__ . '/../../app/session_config.php';
 
-// If the user is already logged in, send them straight to the dashboard.
+// 2. If the user is already logged in, send them straight to the dashboard.
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     header("location: index.php");
     exit;
 }
 
+// 3. Include the database connection and initialize variables.
 require_once __DIR__ . '/../../app/db_connect.php';
 $login_error = '';
+$email = ''; // Keep email in the form field on a failed attempt
 
+// 4. Handle the form submission.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-    $email = trim($_POST["email"]);
-    $password = $_POST["password"];
-    $user = null;
-
-    if (empty($email) || empty($password)) {
+    // Basic validation: Ensure fields are not empty.
+    if (empty(trim($_POST["email"])) || empty($_POST["password"])) {
         $login_error = "Email and password are required.";
     } else {
-        // --- FIX: The SQL query now selects first_name and entity_type ---
-        $sql = "SELECT id, uuid, email, password_hash, first_name, last_name, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
+        $email = trim($_POST["email"]);
+        $password = $_POST["password"];
+        $user = null;
+
+        // This single, powerful query gets everything we need in one shot.
+        // It joins the users table with carriers and facilities to get the
+        // entity name and verification status without a second database call.
+        $sql = "SELECT 
+                    u.id, u.uuid, u.email, u.password_hash, u.first_name, u.last_name, 
+                    u.role, u.is_active, u.entity_id, u.entity_type,
+                    c.verification_status,
+                    COALESCE(c.name, f.name) AS entity_name
+                FROM users u
+                LEFT JOIN carriers c ON u.entity_id = c.id AND u.entity_type = 'carrier'
+                LEFT JOIN facilities f ON u.entity_id = f.id AND u.entity_type = 'facility'
+                WHERE u.email = ?
+                LIMIT 1";
+
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("s", $email);
-            if ($stmt->execute()) {
-                $result = $stmt->get_result();
-                if ($result->num_rows == 1) {
-                    $user = $result->fetch_assoc();
-                } else {
-                    $login_error = "The email or password you entered is incorrect.";
-                }
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows === 1) {
+                $user = $result->fetch_assoc();
             }
             $stmt->close();
         }
-    }
 
-    // Step 2: If a user was found, run all checks in order
-    if ($user) {
-        // Check 2a: Is the account active?
-        if (!$user['is_active']) {
-            $login_error = "This account is inactive or pending activation.";
-        }
-        // Check 2b: Does the password match?
-        elseif (!password_verify($password, $user['password_hash'])) {
+        // --- VALIDATION CHECKS ---
+        // If any of these fail, we set an error and the script stops before the login section.
+
+        // Check 1: Was a user found and does the password match?
+        // We use a generic error for both cases to prevent email enumeration attacks.
+        if (!$user || !password_verify($password, $user['password_hash'])) {
             $login_error = "The email or password you entered is incorrect.";
+        
+        // Check 2: Is the user's account active? (Only runs if password was correct)
+        } elseif (!$user['is_active']) {
+            $login_error = "This account is inactive or pending activation.";
+        
+        // Check 3: If it's a carrier, are they verified?
+        } elseif ($user['entity_type'] === 'carrier' && $user['verification_status'] !== 'verified') {
+            $login_error = "Your company's account is pending verification by our staff.";
         }
-        // Check 2c: If it's a carrier, are they verified?
-        elseif ($user['entity_type'] === 'carrier') {
-            $sql_check_carrier = "SELECT verification_status FROM carriers WHERE id = ?";
-            if ($stmt_check_carrier = $mysqli->prepare($sql_check_carrier)) {
-                $stmt_check_carrier->bind_param("i", $user['entity_id']);
-                $stmt_check_carrier->execute();
-                $stmt_check_carrier->bind_result($verification_status);
-                $stmt_check_carrier->fetch();
-                $stmt_check_carrier->close();
 
-                if ($verification_status !== 'verified') {
-                    $login_error = "Your company's account is pending verification by our staff.";
-                }
-            }
+        // --- FINAL STEP: LOGIN ---
+        // If we got here with no errors, the user is valid and good to go.
+        if (empty($login_error) && $user) {
+            // Regenerate session ID for security
+            session_regenerate_id(true);
+
+            // Store user data in the session
+            $_SESSION["loggedin"] = true;
+            $_SESSION["user_id"] = $user['id'];
+            $_SESSION["user_uuid"] = $user['uuid'];
+            $_SESSION["first_name"] = $user['first_name'];
+            $_SESSION["last_name"] = $user['last_name'];
+            $_SESSION["email"] = $user['email'];
+            $_SESSION["user_role"] = $user['role'];
+            $_SESSION["entity_id"] = $user['entity_id'];
+            $_SESSION["entity_type"] = $user['entity_type'];
+            $_SESSION["entity_name"] = $user['entity_name'] ?: 'Bedrock Cadence'; // Use entity name or default
+
+            // Redirect to the dashboard
+            header("location: index.php");
+            exit;
         }
     }
-
-    // Step 3: If after all checks there are NO errors and we have a user, log them in.
-    if (empty($login_error) && $user) {
-        session_regenerate_id(true); // Security: Prevent session fixation
-
-        // --- FIX: Now we can correctly store all the needed data in the session ---
-        $_SESSION["loggedin"] = true;
-        $_SESSION["user_id"] = $user['id'];
-        $_SESSION["user_uuid"] = $user['uuid'];
-        $_SESSION["user_first_name"] = $user['first_name'];
-        $_SESSION["user_last_name"] = $user['last_name'];
-        $_SESSION["user_email"] = $user['email'];
-        $_SESSION["user_role"] = $user['role'];
-        $_SESSION["entity_id"] = $user['entity_id'];
-        $_SESSION["entity_type"] = $user['entity_type'];
-
-        // Redirect user to the dashboard page
-        header("location: index.php");
-        exit;
-    }
-    
-    $mysqli->close();
 }
 ?>
 <!DOCTYPE html>
@@ -92,7 +98,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <meta charset="UTF-8">
     <title>Login - Bedrock Cadence</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body class="bg-light">
 
@@ -107,7 +113,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if(!empty($login_error)){
                             echo '<div class="alert alert-danger">' . htmlspecialchars($login_error) . '</div>';
                         }
-
                         if (isset($_GET['status']) && $_GET['status'] == 'activation_success') {
                             echo '<div class="alert alert-success">Account activated! You can now log in.</div>';
                         }
@@ -116,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
                             <div class="mb-3">
                                 <label for="email" class="form-label">Email Address</label>
-                                <input type="email" name="email" id="email" class="form-control" required>
+                                <input type="email" name="email" id="email" class="form-control" value="<?php echo htmlspecialchars($email); ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label for="password" class="form-label">Password</label>
@@ -132,6 +137,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
