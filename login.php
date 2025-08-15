@@ -1,10 +1,10 @@
 <?php
-// 1. Start the session. This MUST be the very first thing.
+// 1. Start the session using our centralized configuration.
 require_once __DIR__ . '/../../app/session_config.php';
 
-// If the user is already logged in, redirect them to the dashboard
+// If the user is already logged in, send them straight to the dashboard.
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-    header("location: dashboard.php");
+    header("location: index.php");
     exit;
 }
 
@@ -12,8 +12,6 @@ require_once __DIR__ . '/../../app/db_connect.php';
 $login_error = '';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-
-    // --- Start of Cleaner Validation Flow ---
 
     $email = trim($_POST["email"]);
     $password = $_POST["password"];
@@ -23,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $login_error = "Email and password are required.";
     } else {
         // Step 1: Fetch the user from the database
-        $sql = "SELECT id, uuid, email, password_hash, role, is_active, entity_id FROM users WHERE email = ?";
+        $sql = "SELECT id, uuid, email, password_hash, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("s", $email);
             if ($stmt->execute()) {
@@ -49,16 +47,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $login_error = "The email or password you entered is incorrect.";
         }
         // Check 2c: If it's a carrier, are they verified?
-        elseif (strpos($user['role'], 'carrier') !== false) {
-            $sql_check_carrier = "SELECT is_verified FROM carriers WHERE id = ?";
+        elseif ($user['entity_type'] === 'carrier') {
+            // --- FIX: Query the correct 'verification_status' column instead of 'is_verified' ---
+            $sql_check_carrier = "SELECT verification_status FROM carriers WHERE id = ?";
             if ($stmt_check_carrier = $mysqli->prepare($sql_check_carrier)) {
                 $stmt_check_carrier->bind_param("i", $user['entity_id']);
                 $stmt_check_carrier->execute();
-                $stmt_check_carrier->bind_result($is_verified);
+                $stmt_check_carrier->bind_result($verification_status);
                 $stmt_check_carrier->fetch();
                 $stmt_check_carrier->close();
 
-                if (!$is_verified) {
+                // --- FIX: Check if the status is exactly 'verified' ---
+                if ($verification_status !== 'verified') {
                     $login_error = "Your company's account is pending verification by our staff.";
                 }
             }
@@ -76,7 +76,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["user_role"] = $user['role'];
         $_SESSION["entity_id"] = $user['entity_id'];
 
-        // Redirect user to dashboard page
+        // --- FIX: Redirect user directly to the dashboard page ---
         header("location: index.php");
         exit;
     }
