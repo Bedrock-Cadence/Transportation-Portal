@@ -102,7 +102,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <legend class="fs-5 border-bottom mb-3 pb-2">Patient Information</legend>
     <div class="alert alert-warning" role="alert">
         <p><strong>IMPORTANT: This form collects Protected Health Information (PHI).</strong></p>
-        <p>By filling out and submitting this form, you consent to Bedrock Cadence securely collecting, storing, and transmitting your information in a HIPAA-compliant manner. We are committed to protecting your privacy and security. Please ensure all information is accurate.</p>
     </div>
     <div class="row">
         <div class="col-md-6 mb-3">
