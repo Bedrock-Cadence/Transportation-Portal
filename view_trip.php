@@ -389,3 +389,6 @@ if ($trip['bidding_closes_at']) {
         <?php endif; ?>
     </div>
 </div>
+<?php
+require_once 'footer.php';
+?>
