@@ -171,8 +171,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <legend class="fs-5 border-bottom mb-3 pb-2">Pickup Details</legend>
                 <div class="row">
                     <div class="col-md-9 mb-3">
-                        <label for="pickup-autocomplete-input" class="form-label">Street Address</label>
-                        <input type="text" name="pickup_address_street" id="pickup-autocomplete-input" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
+                        <label for="pickup_address_street" class="form-label">Street Address</label>
+                        <gmp-place-autocomplete id="pickup-autocomplete" class="w-100" name="pickup_address_street" value="<?php echo $facility_address['street']; ?>" required></gmp-place-autocomplete>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_room" class="form-label">Room/Apt #</label>
@@ -257,7 +257,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-9 mb-3">
                         <label for="dropoff_address_street" class="form-label">Street Address</label>
-                        <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
+                        <gmp-place-autocomplete id="dropoff-autocomplete" class="w-100" name="dropoff_address_street" required></gmp-place-autocomplete>
                         <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
                             Based on past trips to this address, a room or apartment number is often needed.
                         </div>
@@ -358,46 +358,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <script async defer src="https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap"></script>
-
 <script>
     function initMap() {
         console.log("initMap called successfully. Autocomplete is ready to use.");
+        
+        const pickupInput = document.getElementById('pickup_address_street');
+        const dropoffInput = document.getElementById('dropoff_address_street');
 
-        const pickupStreetInput = document.getElementById('pickup_address_street');
-        const dropoffStreetInput = document.getElementById('dropoff_address_street');
-        const pickupRoomInput = document.getElementById('pickup_address_room');
-        const dropoffRoomInput = document.getElementById('dropoff_address_room');
-        const dropoffRoomAlert = document.getElementById('room-number-alert');
-
-        // Autocomplete for pickup address
-        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupStreetInput, {
+        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
             componentRestrictions: {
                 country: 'us'
             }
         });
         setupAutocomplete(pickupAutocomplete, 'pickup');
 
-        // Autocomplete for drop-off address
-        const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffStreetInput, {
+        const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, {
             componentRestrictions: {
                 country: 'us'
             }
         });
         setupAutocomplete(dropoffAutocomplete, 'dropoff');
-
+        
         function setupAutocomplete(autocomplete, prefix) {
             autocomplete.addListener('place_changed', function() {
                 const place = autocomplete.getPlace();
-                if (!place.geometry) {
+                if (!place.address_components) {
                     return;
                 }
-
+                
                 let streetNumber = '';
                 let streetName = '';
                 let city = '';
                 let state = '';
                 let zip = '';
-
+                
                 for (const component of place.address_components) {
                     const componentType = component.types[0];
                     switch (componentType) {
@@ -429,22 +423,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         break;
                     }
                 }
-                
+
                 if (prefix === 'dropoff') {
                     checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
                 }
             });
         }
-    
+        
         async function checkRoomNumberPrompt(address) {
+            const dropoffRoomInput = document.getElementById('dropoff_address_room');
+            const dropoffRoomAlert = document.getElementById('room-number-alert');
             const roomValue = dropoffRoomInput.value.trim();
+
             if (roomValue !== '') {
                 dropoffRoomAlert.classList.add('d-none');
                 return;
             }
-
+            
             try {
-                const response = await fetch('check_address.php', {
+                const response = await fetch('check_address_v2.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -468,12 +465,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 dropoffRoomAlert.classList.add('d-none');
             }
         }
-
+        
         const copyCheckbox = document.getElementById('copy_pickup_address');
         copyCheckbox.addEventListener('change', function() {
             const pickupStreetInput = document.getElementById('pickup_address_street');
             const pickupRoomInput = document.getElementById('pickup_address_room');
-
+            const dropoffRoomInput = document.getElementById('dropoff_address_room');
+            const dropoffRoomAlert = document.getElementById('room-number-alert');
+            
             if (this.checked) {
                 document.getElementById('dropoff_address_street').value = pickupStreetInput.value;
                 document.getElementById('dropoff_address_city').value = document.getElementById('pickup_address_city').value;
@@ -492,6 +491,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         });
         
         document.getElementById('dropoff_address_room').addEventListener('input', function() {
+            const dropoffRoomAlert = document.getElementById('room-number-alert');
             if (this.value.trim() !== '') {
                 dropoffRoomAlert.classList.add('d-none');
             }
