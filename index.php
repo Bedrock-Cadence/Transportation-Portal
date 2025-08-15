@@ -210,10 +210,17 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Fetches data from the server and updates the dashboard.
      */
-    async function updateDashboard() {
+async function updateDashboard() {
         try {
-            const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php');
-            // FIX: Removed unnecessary backslashes (\) before backticks
+            // FIX: The fetch call now explicitly uses the POST method
+            // and includes a standard header to identify it as an AJAX request.
+            const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
             const data = await response.json();
             
@@ -232,12 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         break;
                 }
             } else {
-                // FIX: Removed unnecessary backslashes (\) before backticks
                 dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: ${data.error}</div>`;
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
-            // FIX: Removed unnecessary backslashes (\) before backticks
             dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>`;
         } finally {
             // Schedule the next update
