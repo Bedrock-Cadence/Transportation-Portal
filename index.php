@@ -14,7 +14,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 $user_role = $_SESSION['user_role'];
 
 // --- START: Fetch Entity Name ---
-require_once __DIR__ . '/../app/db_connect.php'; // Ensures we have a database connection
+require_once __DIR__ . '/../../app/db_connect.php';
 
 $entity_name = ''; // Initialize the variable
 
