@@ -108,8 +108,34 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     try {
         // --- DATA COLLECTION AND VALIDATION ---
-        $facility_id = ($_SESSION['user_role'] === 'bedrock_admin') ? $_POST['facility_id'] : $_SESSION['entity_id'];
-        $created_by_user_id = $_SESSION['user_id'];
+        $facility_id = ($_SESSION['user_role'] === 'bedrock_admin') ? (int)$_POST['facility_id'] : (int)$_SESSION['entity_id'];
+        $created_by_user_id = (int)$_SESSION['user_id'];
+        $asap = isset($_POST['asap_checkbox']) ? 1 : 0;
+        
+        // 2. ASAP & TIME VALIDATION
+        if (!$asap && empty($_POST['requested_pickup_time']) && empty($_POST['appointment_time'])) {
+            throw new Exception("If the trip is not ASAP, you must provide either a requested pickup time or an appointment time.");
+        }
+
+        // 3. DYNAMIC BIDDING WINDOW
+        $bidding_minutes = 10; // Default value
+        $sql_config = "SELECT config_settings FROM facilities WHERE id = ?";
+        if ($stmt_config = $mysqli->prepare($sql_config)) {
+            $stmt_config->bind_param("i", $facility_id);
+            if ($stmt_config->execute()) {
+                $result_config = $stmt_config->get_result();
+                if ($row_config = $result_config->fetch_assoc()) {
+                    if (!empty($row_config['config_settings'])) {
+                        $config = json_decode($row_config['config_settings'], true);
+                        if (isset($config['bidding_window_minutes']) && is_numeric($config['bidding_window_minutes'])) {
+                            $bidding_minutes = (int)$config['bidding_window_minutes'];
+                        }
+                    }
+                }
+            }
+            $stmt_config->close();
+        }
+        $bidding_closes_at = date('Y-m-d H:i:s', strtotime("+{$bidding_minutes} minutes"));
 
         // Collect special equipment details into a single string
         $special_equipment_details = [];
@@ -150,19 +176,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $encrypted_equipment = encrypt_data($special_equipment_string, ENCRYPTION_KEY);
         $encrypted_isolation = encrypt_data($_POST['isolation_precautions'], ENCRYPTION_KEY);
         
-        // Check if any encryption failed
         if (!$encrypted_first_name || !$encrypted_last_name || !$encrypted_dob || !$encrypted_ssn) {
             throw new Exception("A critical error occurred while securing patient data. Please try again.");
         }
 
         // --- INSERT INTO 'trips' TABLE ---
+        $trip_uuid = null; // Initialize variable to hold the new UUID
         $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?)";
 
         if ($stmt_trip = $mysqli->prepare($sql_trip)) {
-            $asap = isset($_POST['asap_checkbox']) ? 1 : 0;
             $appointment_at = (!$asap && !empty($_POST['appointment_time'])) ? date('Y-m-d H:i:s', strtotime($_POST['appointment_time'])) : null;
             $requested_pickup_time = (!$asap && !empty($_POST['requested_pickup_time'])) ? $_POST['requested_pickup_time'] : null;
-            $bidding_closes_at = date('Y-m-d H:i:s', strtotime('+1 hour'));
             $origin_name = "Pickup Location"; 
             $destination_name = "Dropoff Location"; 
 
@@ -173,14 +197,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             $trip_id = $mysqli->insert_id;
             $stmt_trip->close();
+
         } else {
             throw new Exception("Database error preparing the trip record: " . $mysqli->error);
         }
 
         // --- INSERT INTO 'TRIPS_PHI' TABLE ---
-        $sql_patient = "INSERT INTO trips_phi (trip_id, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // 4. PHI TABLE UUID
+        $sql_patient = "INSERT INTO TRIPS_PHI (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         if ($stmt_patient = $mysqli->prepare($sql_patient)) {
+            // Note the new bind_param string starts with 'i' for trip_id, then 10 's' strings for the encrypted data
             $stmt_patient->bind_param("isssssssss", $trip_id, $encrypted_first_name, $encrypted_last_name, $encrypted_dob, $encrypted_ssn, $encrypted_weight, $encrypted_height, $encrypted_diagnosis, $encrypted_equipment, $encrypted_isolation);
             if (!$stmt_patient->execute()) {
                 throw new Exception("Failed to save patient details: " . $stmt_patient->error);
@@ -196,8 +223,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             error_log("CRITICAL: Failed to log successful trip creation for Trip ID: {$trip_id}.");
         }
         
+        // --- COMMIT AND REDIRECT ---
         $mysqli->commit();
+
+        // 1. REDIRECT LOGIC: Get the UUID of the trip we just created
+        $sql_get_uuid = "SELECT uuid FROM trips WHERE id = ? LIMIT 1";
+        if ($stmt_uuid = $mysqli->prepare($sql_get_uuid)) {
+            $stmt_uuid->bind_param("i", $trip_id);
+            $stmt_uuid->execute();
+            $result_uuid = $stmt_uuid->get_result();
+            if ($row_uuid = $result_uuid->fetch_assoc()) {
+                $trip_uuid = $row_uuid['uuid'];
+                // Redirect to the view trip page
+                header("Location: view_trip.php?uuid=" . urlencode($trip_uuid));
+                exit();
+            }
+            $stmt_uuid->close();
+        }
+        // Fallback in case UUID retrieval fails, show a success message on the current page
         $trip_success = "Trip request created successfully! The trip ID is #{$trip_id}.";
+
 
     } catch (Exception $e) {
         $mysqli->rollback();
@@ -358,7 +403,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <fieldset class="mb-4">
     <legend class="fs-5 border-bottom mb-3 pb-2">Time and Appointment</legend>
     <div class="form-check mb-3">
-        <input class="form-check-input" type="checkbox" id="asap_checkbox" checked>
+        <input class="form-check-input" type="checkbox" name="asap_checkbox" id="asap_checkbox" value="1" checked>
         <label class="form-check-label text-danger" for="asap_checkbox">ASAP</label>
     </div>
     <div class="row">
