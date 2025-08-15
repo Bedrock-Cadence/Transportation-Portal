@@ -8,15 +8,10 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Ensure the db_connect.php is included
-require_once __DIR__ . '/../../app/db_connect.php';
-
-// Get current user role and entity ID from the session for use in JavaScript
+// Get current user role for use in the display
 $user_role = $_SESSION['user_role'];
-$user_id = $_SESSION['entity_id'];
 ?>
 
-<!-- Main content container -->
 <div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
     <div class="container-fluid py-5">
         <h1 class="display-5 fw-bold">Howdy, Partner!</h1>
@@ -28,21 +23,24 @@ $user_id = $_SESSION['entity_id'];
 </div>
 
 <div class="row" id="dashboard-content">
-    <!-- This is where the user-specific content will be loaded -->
+    <div class="col-12 text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading your dashboard...</p>
+    </div>
 </div>
 
 <?php
-// Close the database connection
-$mysqli->close();
+// --- FIX: Removed the unnecessary $mysqli->close(); call ---
 require_once 'footer.php';
 ?>
 
-<!-- This script handles the real-time data fetching and display -->
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const dashboardContent = document.getElementById('dashboard-content');
+    // We get the user role from the session on the server, but the JS still needs to know which view to render.
     const userRole = '<?php echo $user_role; ?>';
-    const userId = '<?php echo $user_id; ?>';
 
     /**
      * Renders the HTML for the Carrier's dashboard.
@@ -69,15 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </tr>
                                 </thead>
                                 <tbody>`;
-        if (openTrips.length > 0) {
+        if (openTrips && openTrips.length > 0) {
             openTrips.forEach(trip => {
                 contentHtml += `
-                    <tr>
-                        <td>${trip.uuid.substring(0, 8)}...</td>
-                        <td>${trip.origin_name}</td>
-                        <td>${trip.destination_name}</td>
-                        <td><a href="trip_details.php?uuid=${trip.uuid}" class="btn btn-primary btn-sm">Bid Now</a></td>
-                    </tr>`;
+                        <tr>
+                            <td>${trip.uuid.substring(0, 8)}...</td>
+                            <td>${trip.origin_name}</td>
+                            <td>${trip.destination_name}</td>
+                            <td><a href="trip_details.php?uuid=${trip.uuid}" class="btn btn-primary btn-sm">Bid Now</a></td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="4" class="text-center">No open trips at this time.</td></tr>`;
@@ -108,17 +106,17 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </tr>
                                 </thead>
                                 <tbody>`;
-        if (awardedTrips.length > 0) {
+        if (awardedTrips && awardedTrips.length > 0) {
             awardedTrips.forEach(trip => {
                 const awarded_eta = new Date(trip.awarded_eta + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 contentHtml += `
-                    <tr>
-                        <td>${trip.uuid.substring(0, 8)}...</td>
-                        <td>${trip.origin_name}</td>
-                        <td>${trip.destination_name}</td>
-                        <td>${awarded_eta}</td>
-                        <td><a href="awarded_trip_details.php?uuid=${trip.uuid}" class="btn btn-success btn-sm">View Details</a></td>
-                    </tr>`;
+                        <tr>
+                            <td>${trip.uuid.substring(0, 8)}...</td>
+                            <td>${trip.origin_name}</td>
+                            <td>${trip.destination_name}</td>
+                            <td>${awarded_eta}</td>
+                            <td><a href="awarded_trip_details.php?uuid=${trip.uuid}" class="btn btn-success btn-sm">View Details</a></td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="5" class="text-center">No trips have been awarded to you yet.</td></tr>`;
@@ -159,16 +157,18 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </tr>
                                 </thead>
                                 <tbody>`;
-        if (recentTrips.length > 0) {
+        if (recentTrips && recentTrips.length > 0) {
             recentTrips.forEach(trip => {
+                // Capitalize the first letter of the status for better display
+                const status = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
                 contentHtml += `
-                    <tr>
-                        <td>${trip.uuid.substring(0, 8)}...</td>
-                        <td>${trip.status}</td>
-                        <td>${trip.origin_name}</td>
-                        <td>${trip.destination_name}</td>
-                        <td><a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info btn-sm">View</a></td>
-                    </tr>`;
+                        <tr>
+                            <td>${trip.uuid.substring(0, 8)}...</td>
+                            <td>${status}</td>
+                            <td>${trip.origin_name}</td>
+                            <td>${trip.destination_name}</td>
+                            <td><a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info btn-sm">View</a></td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="5" class="text-center">No trips created in the last 24 hours.</td></tr>`;
@@ -197,14 +197,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="card">
                     <div class="card-header fw-bold">Real-time Portal Activity</div>
                     <ul class="list-group list-group-flush" id="activity-feed">`;
-        if (activityFeed.length > 0) {
+        if (activityFeed && activityFeed.length > 0) {
             activityFeed.forEach(activity => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                const userIdentifier = activity.email ? activity.email : 'An unknown user';
                 contentHtml += `
-                    <li class="list-group-item">
-                        <small class="text-muted">${timestamp}</small><br>
-                        <strong>User ${activity.user_id}</strong>: ${activity.activity_description}
-                    </li>`;
+                        <li class="list-group-item">
+                            <small class="text-muted">${timestamp}</small><br>
+                            <strong>${userIdentifier}</strong>: ${activity.activity_description}
+                        </li>`;
             });
         } else {
             contentHtml += `<li class="list-group-item text-center">No recent activity.</li>`;
@@ -221,20 +222,19 @@ document.addEventListener('DOMContentLoaded', () => {
      * Fetches data from the server and updates the dashboard.
      */
     async function updateDashboard() {
-        const payload = {
-            role: userRole,
-            userId: userId
-        };
-
         try {
+            // --- CHANGE: Switched to GET and removed the body, as the server now uses the session ---
             const response = await fetch('api/dashboard_data.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                method: 'GET', // Or 'POST' with an empty body if you prefer
+                headers: { 'Accept': 'application/json' },
             });
+
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            
             const data = await response.json();
             
-            // Check for success or error from the server
             if (data.success) {
                 switch (userRole) {
                     case 'carrier_user':
@@ -250,21 +250,19 @@ document.addEventListener('DOMContentLoaded', () => {
                         break;
                 }
             } else {
-                // If the server returned an error, display it
                 dashboardContent.innerHTML = `<div class="alert alert-danger" role="alert">Error loading dashboard data: ${data.error}</div>`;
             }
 
         } catch (error) {
-            // Handle network or JSON parsing errors
             console.error('Failed to fetch dashboard data:', error);
             dashboardContent.innerHTML = '<div class="alert alert-danger" role="alert">A network error occurred or the server returned an invalid response.</div>';
+        } finally {
+             // --- IMPROVEMENT: Use setTimeout to schedule the next update after this one completes ---
+            setTimeout(updateDashboard, 10000); // Poll every 10 seconds
         }
     }
 
     // Call the function once on page load
     updateDashboard();
-
-    // Set an interval to update the dashboard every 10 seconds
-    setInterval(updateDashboard, 10000);
 });
 </script>
