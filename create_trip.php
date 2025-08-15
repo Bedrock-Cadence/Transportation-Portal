@@ -28,7 +28,7 @@ if (isset($_SESSION['user_role'])) {
 
     if (!empty($facility_id_to_fetch)) {
         // Prepare a SQL query to fetch the facility's address
-        $sql = "SELECT street, city, state, zip_code FROM facilities WHERE id = ?";
+        $sql = "SELECT address_street, address_city, address_state, address_zip FROM facilities WHERE id = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("i", $facility_id_to_fetch);
             if ($stmt->execute()) {
