@@ -1,9 +1,6 @@
 <?php
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../../app/db_connect.php';
-$api_key = GOOGLE_MAPS_API_KEY;
-
 // Get the raw POST data
 $json = file_get_contents('php://input');
 $data = json_decode($json);
@@ -12,6 +9,11 @@ $street = $data->street ?? '';
 $city = $data->city ?? '';
 $state = $data->state ?? '';
 $zip = $data->zip ?? '';
+
+// --- DEBUGGING LOGS ADDED HERE ---
+error_log("Received street: $street, city: $city, state: $state, zip: $zip");
+
+$api_key = GOOGLE_MAPS_API_KEY;
 
 if (empty($street) || empty($city) || empty($state) || empty($zip)) {
     echo json_encode(['error' => 'Missing address data.']);
@@ -41,7 +43,8 @@ if ($decoded_response['status'] == 'OK' && !empty($decoded_response['results']))
     $result = $decoded_response['results'][0];
     
     // Check if the location is a hospital, nursing home, or other relevant type
-    $facility_types = ['hospital', 'nursing_home', 'health', 'physiotherapist', 'doctor', 'clinic', 'assisted_living'];
+    // Added more general types to improve accuracy for a wider range of facilities.
+    $facility_types = ['hospital', 'nursing_home', 'health', 'physiotherapist', 'doctor', 'clinic', 'assisted_living', 'establishment', 'point_of_interest'];
     $types = $result['types'];
     
     foreach ($types as $type) {
@@ -65,6 +68,9 @@ if ($decoded_response['status'] == 'OK' && !empty($decoded_response['results']))
         }
     }
 }
+
+// --- DEBUGGING LOG ADDED HERE ---
+error_log("API response status: " . $decoded_response['status'] . ", Is Facility: " . ($is_facility ? 'true' : 'false') . ", Formatted Address: " . $standardized_address);
 
 echo json_encode([
     'is_facility' => $is_facility,
