@@ -4,7 +4,6 @@ require_once __DIR__ . '/../../app/session_config.php';
 
 // If the user is already logged in, send them straight to the dashboard.
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
-    // This now correctly points to index.php, but the logic is primarily for the login page itself.
     header("location: index.php");
     exit;
 }
@@ -21,8 +20,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($email) || empty($password)) {
         $login_error = "Email and password are required.";
     } else {
-        // Step 1: Fetch the user from the database
-        $sql = "SELECT id, uuid, email, password_hash, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
+        // --- FIX: The SQL query now selects first_name and entity_type ---
+        $sql = "SELECT id, uuid, email, password_hash, first_name, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("s", $email);
             if ($stmt->execute()) {
@@ -68,17 +67,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($login_error) && $user) {
         session_regenerate_id(true); // Security: Prevent session fixation
 
-        // Store data in session variables
-        // Store data in session variables
-$_SESSION["loggedin"] = true;
-$_SESSION["user_id"] = $user['id'];
-$_SESSION["user_uuid"] = $user['uuid'];
-$_SESSION["user_first_name"] = $user['first_name']; // ADD THIS LINE
-$_SESSION["user_role"] = $user['role'];
-$_SESSION["entity_id"] = $user['entity_id'];
-$_SESSION["entity_type"] = $user['entity_type']; // ADD THIS LINE
+        // --- FIX: Now we can correctly store all the needed data in the session ---
+        $_SESSION["loggedin"] = true;
+        $_SESSION["user_id"] = $user['id'];
+        $_SESSION["user_uuid"] = $user['uuid'];
+        $_SESSION["user_first_name"] = $user['first_name'];
+        $_SESSION["user_role"] = $user['role'];
+        $_SESSION["entity_id"] = $user['entity_id'];
+        $_SESSION["entity_type"] = $user['entity_type'];
 
-        // --- THE FIX: Redirect user to index.php, which is your dashboard ---
+        // Redirect user to the dashboard page
         header("location: index.php");
         exit;
     }
@@ -92,7 +90,7 @@ $_SESSION["entity_type"] = $user['entity_type']; // ADD THIS LINE
     <meta charset="UTF-8">
     <title>Login - Bedrock Cadence</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 </head>
 <body class="bg-light">
 
@@ -132,6 +130,6 @@ $_SESSION["entity_type"] = $user['entity_type']; // ADD THIS LINE
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 </body>
 </html>
