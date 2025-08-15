@@ -283,19 +283,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
             </fieldset>
 
-            <fieldset class="mb-4">
-                <legend class="fs-5 border-bottom mb-3 pb-2">Time and Appointment</legend>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="requested_pickup_time" class="form-label">Requested Pickup Time <small class="text-muted">(Optional)</small></label>
-                        <input type="time" name="requested_pickup_time" id="requested_pickup_time" class="form-control">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="appointment_time" class="form-label">Appointment Time <small class="text-muted">(Optional)</small></label>
-                        <input type="time" name="appointment_time" id="appointment_time" class="form-control">
-                    </div>
-                </div>
-            </fieldset>
+<fieldset class="mb-4">
+    <legend class="fs-5 border-bottom mb-3 pb-2">Time and Appointment</legend>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" id="asap_checkbox" checked>
+        <label class="form-check-label text-danger" for="asap_checkbox">ASAP</label>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="requested_pickup_time" class="form-label">Requested Pickup Time <small class="text-muted">(Optional)</small></label>
+            <input type="time" name="requested_pickup_time" id="requested_pickup_time" class="form-control" disabled>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="appointment_time" class="form-label">Appointment Time <small class="text-muted">(Optional)</small></label>
+            <input type="time" name="appointment_time" id="appointment_time" class="form-control" disabled>
+        </div>
+    </div>
+</fieldset>
 
 <!-- Medical Information Fieldset -->
 <fieldset class="mb-4">
@@ -443,6 +447,21 @@ document.addEventListener('DOMContentLoaded', function() {
             roomAlert.classList.add('d-none');
         }
     });
+});
+
+// Function to handle the ASAP checkbox
+const asapCheckbox = document.getElementById('asap_checkbox');
+const pickupTimeInput = document.getElementById('requested_pickup_time');
+const appointmentTimeInput = document.getElementById('appointment_time');
+
+asapCheckbox.addEventListener('change', function() {
+    if (this.checked) {
+        pickupTimeInput.disabled = true;
+        appointmentTimeInput.disabled = true;
+    } else {
+        pickupTimeInput.disabled = false;
+        appointmentTimeInput.disabled = false;
+    }
 });
 
 // --- Special Equipment Conditional Logic ---
