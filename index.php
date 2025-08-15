@@ -52,29 +52,29 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCarrierDashboard(openTrips, awardedTrips) {
         let contentHtml = `
             <div class="grid grid-cols-1 gap-8">
-                <div class="bg-white shadow-md rounded-lg overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-xl font-semibold text-gray-800">Open Trips for Bidding</h2>
+                <div class="card-container">
+                    <div class="card-header">
+                        <h2>Open Trips for Bidding</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                        <table class="custom-table divide-y divide-gray-200">
+                            <thead class="custom-table-header">
                                 <tr>
-                                    <th class="table-th">Trip ID</th>
-                                    <th class="table-th">Origin</th>
-                                    <th class="table-th">Destination</th>
-                                    <th class="table-th">Actions</th>
+                                    <th class="custom-table-header th">Trip ID</th>
+                                    <th class="custom-table-header th">Origin</th>
+                                    <th class="custom-table-header th">Destination</th>
+                                    <th class="custom-table-header th">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">`;
         if (openTrips && openTrips.length > 0) {
             openTrips.forEach(trip => {
                 contentHtml += `
-                    <tr class="table-row-hover">
-                        <td class="table-td font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="table-td">${trip.origin_name}</td>
-                        <td class="table-td">${trip.destination_name}</td>
-                        <td class="table-td">
+                    <tr class="custom-table-row">
+                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="custom-table-cell">${trip.origin_name}</td>
+                        <td class="custom-table-cell">${trip.destination_name}</td>
+                        <td class="custom-table-cell">
                             <a href="trip_details.php?uuid=${trip.uuid}" class="btn btn-primary">Bid Now</a>
                         </td>
                     </tr>`;
@@ -88,19 +88,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div class="bg-white shadow-md rounded-lg overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-xl font-semibold text-gray-800">My Awarded Trips</h2>
+                <div class="card-container">
+                    <div class="card-header">
+                        <h2>My Awarded Trips</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
+                        <table class="custom-table divide-y divide-gray-200">
+                            <thead class="custom-table-header">
                                 <tr>
-                                    <th class="table-th">Trip ID</th>
-                                    <th class="table-th">Origin</th>
-                                    <th class="table-th">Destination</th>
-                                    <th class="table-th">ETA</th>
-                                    <th class="table-th">Actions</th>
+                                    <th class="custom-table-header th">Trip ID</th>
+                                    <th class="custom-table-header th">Origin</th>
+                                    <th class="custom-table-header th">Destination</th>
+                                    <th class="custom-table-header th">ETA</th>
+                                    <th class="custom-table-header th">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">`;
@@ -108,12 +108,12 @@ document.addEventListener('DOMContentLoaded', () => {
             awardedTrips.forEach(trip => {
                 const awarded_eta = new Date(trip.awarded_eta + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 contentHtml += `
-                    <tr class="table-row-hover">
-                        <td class="table-td font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="table-td">${trip.origin_name}</td>
-                        <td class="table-td">${trip.destination_name}</td>
-                        <td class="table-td">${awarded_eta}</td>
-                        <td class="table-td">
+                    <tr class="custom-table-row">
+                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="custom-table-cell">${trip.origin_name}</td>
+                        <td class="custom-table-cell">${trip.destination_name}</td>
+                        <td class="custom-table-cell">${awarded_eta}</td>
+                        <td class="custom-table-cell">
                             <a href="awarded_trip_details.php?uuid=${trip.uuid}" class="btn btn-success">View Details</a>
                         </td>
                     </tr>`;
@@ -135,19 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function renderFacilityDashboard(recentTrips) {
         let contentHtml = `
-            <div class="bg-white shadow-md rounded-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-800">My Trips (Last 24 Hours)</h2>
+            <div class="card-container">
+                <div class="card-header">
+                    <h2>My Trips (Last 24 Hours)</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="custom-table divide-y divide-gray-200">
+                        <thead class="custom-table-header">
                             <tr>
-                                <th class="table-th">Trip ID</th>
-                                <th class="table-th">Status</th>
-                                <th class="table-th">Origin</th>
-                                <th class="table-th">Destination</th>
-                                <th class="table-th">Actions</th>
+                                <th class="custom-table-header th">Trip ID</th>
+                                <th class="custom-table-header th">Status</th>
+                                <th class="custom-table-header th">Origin</th>
+                                <th class="custom-table-header th">Destination</th>
+                                <th class="custom-table-header th">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">`;
@@ -155,12 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
             recentTrips.forEach(trip => {
                 const status = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
                 contentHtml += `
-                    <tr class="table-row-hover">
-                        <td class="table-td font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="table-td">${status}</td>
-                        <td class="table-td">${trip.origin_name}</td>
-                        <td class="table-td">${trip.destination_name}</td>
-                        <td class="table-td">
+                    <tr class="custom-table-row">
+                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="custom-table-cell">${status}</td>
+                        <td class="custom-table-cell">${trip.origin_name}</td>
+                        <td class="custom-table-cell">${trip.destination_name}</td>
+                        <td class="custom-table-cell">
                             <a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info">View</a>
                         </td>
                     </tr>`;
@@ -181,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function renderAdminDashboard(activityFeed) {
         let contentHtml = `
-            <div class="bg-white shadow-md rounded-lg overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-semibold text-gray-800">Real-time Portal Activity</h2>
+            <div class="card-container">
+                <div class="card-header">
+                    <h2>Real-time Portal Activity</h2>
                 </div>
                 <div>
                     <ul class="divide-y divide-gray-200">`;
@@ -192,10 +192,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 const userIdentifier = activity.email ? activity.email : 'An unknown user';
                 contentHtml += `
-                        <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                            <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
-                            <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
-                        </li>`;
+                            <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                                <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
+                                <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
+                            </li>`;
             });
         } else {
             contentHtml += `<li class="text-center py-6 text-gray-500">No recent activity.</li>`;
