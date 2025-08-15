@@ -4,96 +4,56 @@ ob_start();
 
 header('Content-Type: application/json');
 
-// Disable error display and reporting to ensure a clean JSON response.
-// This is a safety measure in addition to output buffering.
-ini_set('display_errors', 0);
-error_reporting(0);
-
 require_once __DIR__ . '/../../app/db_connect.php';
 
 // Get the raw POST data
 $json = file_get_contents('php://input');
 $data = json_decode($json);
+$address = $data->address ?? '';
 
-$street = $data->street ?? '';
-$city = $data->city ?? '';
-$state = $data->state ?? '';
-$zip = $data->zip ?? '';
-
-// --- DEBUGGING LOGS ADDED HERE ---
-error_log("Received street: $street, city: $city, state: $state, zip: $zip");
-
-$api_key = GOOGLE_MAPS_API_KEY;
-
-if (empty($street) || empty($city) || empty($state) || empty($zip)) {
-    // End output buffering and discard its contents.
+if (empty($address)) {
     ob_end_clean();
     echo json_encode(['error' => 'Missing address data.']);
     exit;
 }
 
-$address = urlencode("$street, $city, $state $zip");
-$url = "https://maps.googleapis.com/maps/api/geocode/json?address=$address&key=$api_key";
+// Prepare the address for the database query.
+$address_for_db = '%' . $address . '%';
 
-// Use cURL for a more robust request than file_get_contents
-$ch = curl_init();
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-$response = curl_exec($ch);
-curl_close($ch);
+// Use a prepared statement for security to query the database.
+$sql = "SELECT dropoff_room, pickup_room FROM trips WHERE origin_address LIKE ? OR destination_address LIKE ?";
+$total_records = 0;
+$records_with_room = 0;
 
-$decoded_response = json_decode($response, true);
+if ($stmt = $mysqli->prepare($sql)) {
+    $stmt->bind_param("ss", $address_for_db, $address_for_db);
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-$is_facility = false;
-$standardized_address = '';
-$standardized_city = '';
-$standardized_state = '';
-$standardized_zip = '';
-$standardized_street = '';
-
-if ($decoded_response['status'] == 'OK' && !empty($decoded_response['results'])) {
-    $result = $decoded_response['results'][0];
-    
-    // Check if the location is a hospital, nursing home, or other relevant type
-    // Added more general types to improve accuracy for a wider range of facilities.
-    $facility_types = ['hospital', 'nursing_home', 'health', 'physiotherapist', 'doctor', 'clinic', 'assisted_living', 'establishment', 'point_of_interest'];
-    $types = $result['types'];
-    
-    foreach ($types as $type) {
-        if (in_array($type, $facility_types)) {
-            $is_facility = true;
-            break;
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $total_records++;
+            if (!empty($row['dropoff_room']) || !empty($row['pickup_room'])) {
+                $records_with_room++;
+            }
         }
     }
-    
-    // Extract standardized address components
-    $standardized_address = $result['formatted_address'];
-    foreach ($result['address_components'] as $component) {
-        if (in_array('street_number', $component['types']) && in_array('route', $component['types'])) {
-            $standardized_street = $component['long_name'];
-        } elseif (in_array('locality', $component['types'])) {
-            $standardized_city = $component['long_name'];
-        } elseif (in_array('administrative_area_level_1', $component['types'])) {
-            $standardized_state = $component['short_name'];
-        } elseif (in_array('postal_code', $component['types'])) {
-            $standardized_zip = $component['long_name'];
-        }
+    $stmt->close();
+}
+
+$prompt_room_number = false;
+if ($total_records > 0) {
+    $percentage = ($records_with_room / $total_records) * 100;
+    if ($percentage > 80) {
+        $prompt_room_number = true;
     }
 }
 
-// End output buffering, discard the buffer contents.
+// End output buffering and discard its contents.
 ob_end_clean();
 
-// --- DEBUGGING LOG ADDED HERE ---
-error_log("API response status: " . $decoded_response['status'] . ", Is Facility: " . ($is_facility ? 'true' : 'false') . ", Formatted Address: " . $standardized_address);
-
 echo json_encode([
-    'is_facility' => $is_facility,
-    'standardized_address' => $standardized_address,
-    'standardized_street' => $standardized_street,
-    'standardized_city' => $standardized_city,
-    'standardized_state' => $standardized_state,
-    'standardized_zip' => $standardized_zip
+    'prompt_room_number' => $prompt_room_number
 ]);
 
 // Ensure no other output is sent after the JSON.

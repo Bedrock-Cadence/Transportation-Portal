@@ -28,16 +28,16 @@ if (isset($_SESSION['user_role'])) {
 
     if (!empty($facility_id_to_fetch)) {
         // Prepare a SQL query to fetch the facility's address
-        $sql = "SELECT address_street, address_city, address_state, address_zip FROM facilities WHERE id = ?";
+        $sql = "SELECT street, city, state, zip_code FROM facilities WHERE id = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("i", $facility_id_to_fetch);
             if ($stmt->execute()) {
                 $result = $stmt->get_result();
                 if ($row = $result->fetch_assoc()) {
-                    $facility_address['street'] = htmlspecialchars($row['address_street']);
-                    $facility_address['city'] = htmlspecialchars($row['address_city']);
-                    $facility_address['state'] = htmlspecialchars($row['address_state']);
-                    $facility_address['zip'] = htmlspecialchars($row['address_zip']);
+                    $facility_address['street'] = htmlspecialchars($row['street']);
+                    $facility_address['city'] = htmlspecialchars($row['city']);
+                    $facility_address['state'] = htmlspecialchars($row['state']);
+                    $facility_address['zip'] = htmlspecialchars($row['zip_code']);
                 }
             }
             $stmt->close();
@@ -172,7 +172,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-9 mb-3">
                         <label for="pickup_address_street" class="form-label">Street Address</label>
-                        <!-- Pre-populate from PHP variable -->
                         <input type="text" name="pickup_address_street" id="pickup_address_street" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -183,16 +182,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="pickup_address_city" class="form-label">City</label>
-                        <!-- Pre-populate from PHP variable -->
                         <input type="text" name="pickup_address_city" id="pickup_address_city" class="form-control" value="<?php echo $facility_address['city']; ?>" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_state" class="form-label">State</label>
-                        <!-- Pre-populate and select the correct option -->
                         <select name="pickup_address_state" id="pickup_address_state" class="form-select" required>
                             <option selected disabled value="">Choose...</option>
                             <option value="TX" <?php echo ($facility_address['state'] == 'TX') ? 'selected' : ''; ?>>Texas</option>
-                            <!-- Add all other US states here to match previous version -->
                             <option value="AL" <?php echo ($facility_address['state'] == 'AL') ? 'selected' : ''; ?>>Alabama</option>
                             <option value="AK" <?php echo ($facility_address['state'] == 'AK') ? 'selected' : ''; ?>>Alaska</option>
                             <option value="AZ" <?php echo ($facility_address['state'] == 'AZ') ? 'selected' : ''; ?>>Arizona</option>
@@ -246,7 +242,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_zip" class="form-label">Zip Code</label>
-                        <!-- Pre-populate from PHP variable -->
                         <input type="number" name="pickup_address_zip" id="pickup_address_zip" class="form-control" value="<?php echo $facility_address['zip']; ?>" required>
                     </div>
                 </div>
@@ -264,7 +259,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <label for="dropoff_address_street" class="form-label">Street Address</label>
                         <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
                         <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
-                            Looks like this might be a facility. Remember to enter a room or apartment number if applicable.
+                            Based on past trips to this address, a room or apartment number is often needed.
                         </div>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -281,7 +276,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <label for="dropoff_address_state" class="form-label">State</label>
                         <select name="dropoff_address_state" id="dropoff_address_state" class="form-select" required>
                             <option selected disabled value="">Choose...</option>
-                            <!-- Add all US states here -->
                             <option value="TX">Texas</option>
                             <option value="AL">Alabama</option>
                             <option value="AK">Alaska</option>
@@ -364,116 +358,154 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const copyCheckbox = document.getElementById('copy_pickup_address');
-        const pickupStreet = document.getElementById('pickup_address_street');
-        const pickupCity = document.getElementById('pickup_address_city');
-        const pickupState = document.getElementById('pickup_address_state');
-        const pickupZip = document.getElementById('pickup_address_zip');
-        const pickupRoom = document.getElementById('pickup_address_room');
+    // Load the Google Maps API with the Autocomplete library
+    const googleMapsApiKey = "<?php echo GOOGLE_MAPS_API_KEY; ?>";
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
 
-        const dropoffStreet = document.getElementById('dropoff_address_street');
-        const dropoffCity = document.getElementById('dropoff_address_city');
-        const dropoffState = document.getElementById('dropoff_address_state');
-        const dropoffZip = document.getElementById('dropoff_address_zip');
-        const dropoffRoom = document.getElementById('dropoff_address_room');
+    // This function will be called once the Google Maps API is loaded
+    window.initMap = function() {
+        const pickupStreetInput = document.getElementById('pickup_address_street');
+        const dropoffStreetInput = document.getElementById('dropoff_address_street');
+        const pickupRoomInput = document.getElementById('pickup_address_room');
+        const dropoffRoomInput = document.getElementById('dropoff_address_room');
+        const dropoffRoomAlert = document.getElementById('room-number-alert');
 
-        const roomAlert = document.getElementById('room-number-alert');
+        // Autocomplete for pickup address
+        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupStreetInput, {
+            componentRestrictions: {
+                country: 'us'
+            }
+        });
+        setupAutocomplete(pickupAutocomplete, 'pickup');
+
+        // Autocomplete for drop-off address
+        const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffStreetInput, {
+            componentRestrictions: {
+                country: 'us'
+            }
+        });
+        setupAutocomplete(dropoffAutocomplete, 'dropoff');
+
+        function setupAutocomplete(autocomplete, prefix) {
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+                if (!place.geometry) {
+                    // User did not select a predictable place, just a text query
+                    return;
+                }
+
+                // Fill form fields with data from the place object
+                let streetNumber = '';
+                let streetName = '';
+                let city = '';
+                let state = '';
+                let zip = '';
+
+                for (const component of place.address_components) {
+                    const componentType = component.types[0];
+                    switch (componentType) {
+                        case 'street_number':
+                            streetNumber = component.long_name;
+                            break;
+                        case 'route':
+                            streetName = component.long_name;
+                            break;
+                        case 'locality':
+                            city = component.long_name;
+                            break;
+                        case 'administrative_area_level_1':
+                            state = component.short_name;
+                            break;
+                        case 'postal_code':
+                            zip = component.long_name;
+                            break;
+                    }
+                }
+                document.getElementById(`${prefix}_address_street`).value = `${streetNumber} ${streetName}`;
+                document.getElementById(`${prefix}_address_city`).value = city;
+                document.getElementById(`${prefix}_address_zip`).value = zip;
+                
+                const stateSelect = document.getElementById(`${prefix}_address_state`);
+                for (let i = 0; i < stateSelect.options.length; i++) {
+                    if (stateSelect.options[i].value === state) {
+                        stateSelect.options[i].selected = true;
+                        break;
+                    }
+                }
+                
+                // After filling the drop-off address, check for a room number prompt
+                if (prefix === 'dropoff') {
+                    checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
+                }
+            });
+        }
+    
+        // Function to check if a room number prompt is needed
+        async function checkRoomNumberPrompt(address) {
+            const roomValue = dropoffRoomInput.value.trim();
+            if (roomValue !== '') {
+                dropoffRoomAlert.classList.add('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('check_address.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address: address })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.prompt_room_number) {
+                    dropoffRoomAlert.classList.remove('d-none');
+                } else {
+                    dropoffRoomAlert.classList.add('d-none');
+                }
+            } catch (error) {
+                console.error('Error checking address for room number prompt:', error);
+                // Optionally hide the alert on error
+                dropoffRoomAlert.classList.add('d-none');
+            }
+        }
 
         // Checkbox to copy address
+        const copyCheckbox = document.getElementById('copy_pickup_address');
         copyCheckbox.addEventListener('change', function() {
             if (this.checked) {
-                dropoffStreet.value = pickupStreet.value;
-                dropoffCity.value = pickupCity.value;
-                dropoffState.value = pickupState.value;
-                dropoffZip.value = pickupZip.value;
-                dropoffRoom.value = pickupRoom.value;
+                document.getElementById('dropoff_address_street').value = pickupStreetInput.value;
+                document.getElementById('dropoff_address_city').value = document.getElementById('pickup_address_city').value;
+                document.getElementById('dropoff_address_state').value = document.getElementById('pickup_address_state').value;
+                document.getElementById('dropoff_address_zip').value = document.getElementById('pickup_address_zip').value;
+                dropoffRoomInput.value = pickupRoomInput.value;
+                checkRoomNumberPrompt(dropoffStreetInput.value);
             } else {
-                dropoffStreet.value = '';
-                dropoffCity.value = '';
-                dropoffState.value = '';
-                dropoffZip.value = '';
-                dropoffRoom.value = '';
+                document.getElementById('dropoff_address_street').value = '';
+                document.getElementById('dropoff_address_city').value = '';
+                document.getElementById('dropoff_address_state').value = '';
+                document.getElementById('dropoff_address_zip').value = '';
+                dropoffRoomInput.value = '';
+                dropoffRoomAlert.classList.add('d-none');
             }
         });
-
-        // Backend check for drop-off address type
-        const debounce = (func, delay) => {
-            let timeoutId;
-            return (...args) => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(() => {
-                    func.apply(this, args);
-                }, delay);
-            };
-        };
         
-        const checkAddressType = async () => {
-            const street = dropoffStreet.value;
-            const city = dropoffCity.value;
-            const state = dropoffState.value;
-            const zip = dropoffZip.value;
-
-            // Only proceed if all required fields are filled out
-            if (street && city && state && zip) {
-                try {
-                    const response = await fetch('check_address.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ street, city, state, zip }),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    
-                    // --- DEBUGGING LOGS ADDED HERE ---
-                    console.log('API response data:', data);
-                    console.log('Dropoff Room value:', dropoffRoom.value.trim());
-
-                    // Standardize the addresses using the API response
-                    if (data.standardized_street) {
-                        dropoffStreet.value = data.standardized_street;
-                    }
-                    if (data.standardized_city) {
-                        dropoffCity.value = data.standardized_city;
-                    }
-                    if (data.standardized_state) {
-                        dropoffState.value = data.standardized_state;
-                    }
-                    if (data.standardized_zip) {
-                        dropoffZip.value = data.standardized_zip;
-                    }
-
-                    // Show the alert if it's a facility and no room number is entered
-                    if (data.is_facility && dropoffRoom.value.trim() === '') {
-                        roomAlert.classList.remove('d-none');
-                    } else {
-                        roomAlert.classList.add('d-none');
-                    }
-                } catch (error) {
-                    console.error('Error checking address:', error);
-                    // You might want to add a visible alert for the user here
-                }
-            }
-        };
-
-        // Listen for changes on all drop-off address fields to trigger the check
-        [dropoffStreet, dropoffCity, dropoffState, dropoffZip].forEach(input => {
-            input.addEventListener('blur', debounce(checkAddressType, 500));
-        });
-
         // Hide the alert if the user starts typing in the room number field
-        dropoffRoom.addEventListener('input', function() {
+        dropoffRoomInput.addEventListener('input', function() {
             if (this.value.trim() !== '') {
-                roomAlert.classList.add('d-none');
+                dropoffRoomAlert.classList.add('d-none');
             }
         });
-    });
+    }
 </script>
 
 <?php
