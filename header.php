@@ -5,7 +5,41 @@
 // It sets the domain-wide cookie and starts the session.
 require_once __DIR__ . '/../../app/session_config.php';
 
-// That's it! No other session code is needed here.
+// We need a database connection to get the company name.
+require_once __DIR__ . '/../../app/db_connect.php';
+
+$company_name = 'Bedrock Cadence'; // Default to the portal name
+
+// If the user is logged in, grab their company name from the database.
+if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    $entity_type = $_SESSION['entity_type'];
+    $entity_id = $_SESSION['entity_id'];
+    $table_name = '';
+
+    // Determine which table to query based on the entity type
+    if ($entity_type === 'carrier') {
+        $table_name = 'carriers';
+    } elseif ($entity_type === 'facility') {
+        $table_name = 'facilities';
+    }
+
+    if ($table_name !== '') {
+        $sql = "SELECT name FROM {$table_name} WHERE id = ? LIMIT 1";
+        if ($stmt = $mysqli->prepare($sql)) {
+            $stmt->bind_param("i", $entity_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                $row = $result->fetch_assoc();
+                $company_name = $row['name'];
+            }
+            $stmt->close();
+        }
+    }
+}
+
+// Close the database connection to free up resources.
+$mysqli->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -92,9 +126,8 @@ require_once __DIR__ . '/../../app/session_config.php';
             <!-- User Profile Dropdown -->
             <li class="nav-item dropdown">
                 <a class="nav-link user-profile dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <!-- Assuming first_name, last_name, and company_name are set in the session after login -->
                     <span><?php echo htmlspecialchars($_SESSION['user_first_name'] . ' ' . $_SESSION['user_last_name']); ?></span>
-                    <span class="company-name"><?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
+                    <span class="company-name"><?php echo htmlspecialchars($company_name); ?></span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                     <?php if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
