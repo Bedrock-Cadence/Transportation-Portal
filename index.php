@@ -212,10 +212,10 @@ document.addEventListener('DOMContentLoaded', () => {
      */
 async function updateDashboard() {
         try {
-            // FIX: The fetch call now explicitly uses the POST method
-            // and includes a standard header to identify it as an AJAX request.
             const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php', {
                 method: 'POST',
+                // FIX: This crucial line tells the browser to send cookies with the request.
+                credentials: 'include', 
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
