@@ -36,7 +36,7 @@ if (isset($_SESSION['user_role'])) {
                 if ($row = $result->fetch_assoc()) {
                     $facility_address['street'] = htmlspecialchars($row['address_street']);
                     $facility_address['city'] = htmlspecialchars($row['address_city']);
-                    $facility_address['state'] = htmlspecialchars($row['address_state']);
+                    $facility_address['address_state'] = htmlspecialchars($row['state']);
                     $facility_address['zip'] = htmlspecialchars($row['address_zip']);
                 }
             }
@@ -358,9 +358,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <script>
+    // This function dynamically injects the Google Maps script to ensure it loads correctly.
+    // It's a more reliable method that avoids race conditions and conflicts.
+    function loadGoogleMapsScript() {
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+        console.log("Attempting to load Google Maps API script...");
+    }
+
+    // Call the function to start the process as soon as the document is ready.
+    document.addEventListener('DOMContentLoaded', loadGoogleMapsScript);
+
     // This function will be called once the Google Maps API is loaded
     function initMap() {
-        console.log("initMap called successfully.");
+        console.log("initMap called successfully. Autocomplete is ready to use.");
         const pickupStreetInput = document.getElementById('pickup_address_street');
         const dropoffStreetInput = document.getElementById('dropoff_address_street');
         const pickupRoomInput = document.getElementById('pickup_address_room');
