@@ -1,4 +1,5 @@
 <?php
+ob_clean();
 header('Content-Type: application/json');
 
 // Get the raw POST data
