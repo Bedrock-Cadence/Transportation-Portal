@@ -22,15 +22,6 @@ require_once __DIR__ . '/../../app/session_config.php';
         .nav-link.logout-link:hover {
             color: #bd2130 !important; /* A slightly darker red for hover state */
         }
-            /* Reduce the size of the main greeting */
-    #dynamic-greeting {
-        font-size: 2.5rem; /* This is about the size of a standard h2 heading */
-    }
-
-    /* Reduce the size of the Texas saying */
-    #dynamic-saying {
-        font-size: 1.25rem; /* This is a bit larger than normal text, but not huge */
-    }
     </style>
 </head>
 <body class="bg-light">

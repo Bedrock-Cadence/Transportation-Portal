@@ -10,8 +10,11 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Get current user role for use in the display
+// Get user data from the session for display
 $user_role = $_SESSION['user_role'];
+// Get the user's first name from the session, with a fallback
+$user_first_name = !empty($_SESSION['user_first_name']) ? $_SESSION['user_first_name'] : 'Partner';
+
 
 // --- START: Fetch Entity Name ---
 require_once __DIR__ . '/../../app/db_connect.php';
@@ -51,10 +54,10 @@ if (!empty($_SESSION['entity_id']) && !empty($_SESSION['entity_type'])) {
 <!-- New Dynamic Texan Greeting Block -->
 <div class="p-5 mb-4 bg-white rounded-3 shadow-sm">
     <div class="container-fluid py-5">
-        <!-- The Greeting will be dynamically inserted here -->
-        <h1 id="dynamic-greeting" class="display-5 fw-bold">Howdy!</h1>
+        <!-- The Greeting will be dynamically inserted here with a smaller header -->
+        <h2 id="dynamic-greeting" class="fw-bold">Howdy, <?php echo htmlspecialchars($user_first_name); ?>!</h2>
         <!-- The Joke/Saying will be dynamically inserted here -->
-        <p id="dynamic-saying" class="col-md-8 fs-4">Hang tight while we fetch a good one for ya...</p>
+        <p id="dynamic-saying" class="col-md-8 fs-5">Hang tight while we fetch a good one for ya...</p>
         
         <?php // This block will only display if we successfully found a company name
         if (!empty($entity_name)): ?>
@@ -89,14 +92,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const greetingElement = document.getElementById('dynamic-greeting');
     const sayingElement = document.getElementById('dynamic-saying');
+    // Pass the user's first name from PHP to JavaScript
+    const userFirstName = "<?php echo htmlspecialchars($user_first_name); ?>";
 
     const texanGreetings = [
-        "Howdy, y'all!", "Well, hey there!", "Mornin'!", "How's it hangin'?", "What's kickin', little chicken?",
-        "Howdy, partner!", "Look what the cat dragged in!", "Good to see ya!", "Come on in!", "Well, hey there, stranger!",
-        "How y'all doin'?", "What's the good word?", "How have you been?", "Pull up a chair!", "Long time no see!",
-        "Howdy-doody!", "Hey, good lookin'!", "What's cookin'?", "How's tricks?", "How's life treatin' ya?",
-        "Well, shut my mouth!", "Hey now!", "How's your mom an' 'em?", "What's the rumpus?", "How's every little thing?",
-        "Greetings!", "Howdy folks!", "Pleased to meet ya!", "Top of the mornin' to ya!", "What's shakin'?"
+        "Howdy", "Well, hey there", "Mornin'", "How's it hangin'", "What's kickin'",
+        "Howdy, partner", "Look what the cat dragged in", "Good to see ya", "Come on in", "Well, hey there",
+        "How y'all doin'", "What's the good word", "How have you been", "Pull up a chair", "Long time no see",
+        "Howdy-doody", "Hey, good lookin'", "What's cookin'", "How's tricks", "How's life treatin' ya",
+        "Well, shut my mouth", "Hey now", "How's your mom an' 'em", "What's the rumpus", "How's every little thing'",
+        "Greetings", "Howdy folks", "Pleased to meet ya", "Top of the mornin' to ya", "What's shakin'"
     ];
 
     const texanSayings = [
@@ -122,7 +127,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateGreeting() {
         const randomGreeting = texanGreetings[Math.floor(Math.random() * texanGreetings.length)];
         const randomSaying = texanSayings[Math.floor(Math.random() * texanSayings.length)];
-        greetingElement.textContent = randomGreeting;
+        
+        // Update the greeting to include the user's name
+        greetingElement.textContent = `${randomGreeting}, ${userFirstName}!`;
         sayingElement.textContent = randomSaying;
     }
 
