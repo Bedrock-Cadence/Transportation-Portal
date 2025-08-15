@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../app/session_config.php';
 
 // If the user is already logged in, send them straight to the dashboard.
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+    // This now correctly points to index.php, but the logic is primarily for the login page itself.
     header("location: index.php");
     exit;
 }
@@ -48,7 +49,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         // Check 2c: If it's a carrier, are they verified?
         elseif ($user['entity_type'] === 'carrier') {
-            // --- FIX: Query the correct 'verification_status' column instead of 'is_verified' ---
             $sql_check_carrier = "SELECT verification_status FROM carriers WHERE id = ?";
             if ($stmt_check_carrier = $mysqli->prepare($sql_check_carrier)) {
                 $stmt_check_carrier->bind_param("i", $user['entity_id']);
@@ -57,7 +57,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt_check_carrier->fetch();
                 $stmt_check_carrier->close();
 
-                // --- FIX: Check if the status is exactly 'verified' ---
                 if ($verification_status !== 'verified') {
                     $login_error = "Your company's account is pending verification by our staff.";
                 }
@@ -76,7 +75,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["user_role"] = $user['role'];
         $_SESSION["entity_id"] = $user['entity_id'];
 
-        // --- FIX: Redirect user directly to the dashboard page ---
+        // --- THE FIX: Redirect user to index.php, which is your dashboard ---
         header("location: index.php");
         exit;
     }
