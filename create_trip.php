@@ -297,6 +297,83 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </div>
             </fieldset>
 
+<!-- Medical Information Fieldset -->
+<fieldset class="mb-4">
+    <legend class="fs-5 border-bottom mb-3 pb-2">Medical Information</legend>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="diagnosis" class="form-label">Primary Diagnosis</label>
+            <input type="text" name="diagnosis" id="diagnosis" class="form-control" placeholder="E.g., Congestive Heart Failure, COPD Exacerbation" required>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="special_equipment" class="form-label">Special Equipment Needed</label>
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Oxygen" id="equipment_oxygen" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_oxygen">Oxygen</label>
+            </div>
+            <div id="oxygen_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="oxygen_notes" class="form-label">Oxygen Details</label>
+                <input type="text" name="oxygen_notes" id="oxygen_notes" class="form-control" placeholder="E.g., 2L via NC">
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Cardiac Monitor" id="equipment_monitor" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_monitor">Cardiac Monitor</label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="IV" id="equipment_iv" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_iv">IV</label>
+            </div>
+            <div id="iv_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="iv_notes" id="iv_locked" value="Saline locked">
+                    <label class="form-check-label" for="iv_locked">Saline locked</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="iv_notes" id="iv_flowing" value="Flowing medications">
+                    <label class="form-check-label" for="iv_flowing">Flowing medication(s)</label>
+                </div>
+                <div id="iv_meds_container" class="ms-4 mt-2" style="display: none;">
+                    <label for="iv_meds" class="form-label">Medication(s)</label>
+                    <input type="text" name="iv_meds" id="iv_meds" class="form-control" placeholder="E.g., Dopamine, Norepinephrine">
+                </div>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Ventilator" id="equipment_ventilator" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_ventilator">Ventilator</label>
+            </div>
+            <div id="ventilator_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="ventilator_notes" class="form-label">Vent Settings</label>
+                <input type="text" name="ventilator_notes" id="ventilator_notes" class="form-control" placeholder="E.g., A/C 12, PEEP 5, FiO2 40%">
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="ECMO" id="equipment_ecmo" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_ecmo">ECMO</label>
+            </div>
+            
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Other" id="equipment_other" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_other">Other</label>
+            </div>
+            <div id="other_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="other_notes" class="form-label">Other Equipment Notes</label>
+                <input type="text" name="other_notes" id="other_notes" class="form-control" placeholder="Please specify other equipment">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="isolation_precautions" class="form-label">Medical Isolation Precautions</label>
+            <input type="text" name="isolation_precautions" id="isolation_precautions" class="form-control" placeholder="E.g., Airborne, Droplet, Contact, None">
+        </div>
+    </div>
+</fieldset>
+
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">Submit Trip Request</button>
             </div>
