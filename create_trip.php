@@ -28,16 +28,16 @@ if (isset($_SESSION['user_role'])) {
 
     if (!empty($facility_id_to_fetch)) {
         // Prepare a SQL query to fetch the facility's address
-        $sql = "SELECT address_street, address_city, address_state, address_zip FROM facilities WHERE id = ?";
+        $sql = "SELECT street, city, state, zip_code FROM facilities WHERE id = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("i", $facility_id_to_fetch);
             if ($stmt->execute()) {
                 $result = $stmt->get_result();
                 if ($row = $result->fetch_assoc()) {
-                    $facility_address['street'] = htmlspecialchars($row['address_street']);
-                    $facility_address['city'] = htmlspecialchars($row['address_city']);
-                    $facility_address['state'] = htmlspecialchars($row['address_state']);
-                    $facility_address['zip'] = htmlspecialchars($row['address_zip']);
+                    $facility_address['street'] = htmlspecialchars($row['street']);
+                    $facility_address['city'] = htmlspecialchars($row['city']);
+                    $facility_address['state'] = htmlspecialchars($row['state']);
+                    $facility_address['zip'] = htmlspecialchars($row['zip_code']);
                 }
             }
             $stmt->close();
@@ -358,16 +358,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </div>
 
 <script>
-    // Load the Google Maps API with the Autocomplete library
-    const googleMapsApiKey = "<?php echo GOOGLE_MAPS_API_KEY; ?>";
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
-
     // This function will be called once the Google Maps API is loaded
-    window.initMap = function() {
+    function initMap() {
+        console.log("initMap called successfully.");
         const pickupStreetInput = document.getElementById('pickup_address_street');
         const dropoffStreetInput = document.getElementById('dropoff_address_street');
         const pickupRoomInput = document.getElementById('pickup_address_room');
@@ -453,7 +446,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             try {
-                const response = await fetch('check_address.php', {
+                const response = await fetch('check_address_v2.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
