@@ -77,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["entity_id"] = $user['entity_id'];
 
         // Redirect user to dashboard page
-        header("location: dashboard.php");
+        header("location: index.php");
         exit;
     }
     
