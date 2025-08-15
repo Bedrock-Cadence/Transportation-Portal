@@ -32,14 +32,12 @@ $user_role = $_SESSION['user_role'];
 </div>
 
 <?php
-// --- FIX: Removed the unnecessary $mysqli->close(); call ---
 require_once 'footer.php';
 ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const dashboardContent = document.getElementById('dashboard-content');
-    // We get the user role from the session on the server, but the JS still needs to know which view to render.
     const userRole = '<?php echo $user_role; ?>';
 
     /**
@@ -159,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <tbody>`;
         if (recentTrips && recentTrips.length > 0) {
             recentTrips.forEach(trip => {
-                // Capitalize the first letter of the status for better display
                 const status = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
                 contentHtml += `
                         <tr>
@@ -201,10 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
             activityFeed.forEach(activity => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 const userIdentifier = activity.email ? activity.email : 'An unknown user';
+                // --- FIX: Changed activity.activity_description to activity.message ---
                 contentHtml += `
                         <li class="list-group-item">
                             <small class="text-muted">${timestamp}</small><br>
-                            <strong>${userIdentifier}</strong>: ${activity.activity_description}
+                            <strong>${userIdentifier}</strong>: ${activity.message}
                         </li>`;
             });
         } else {
@@ -223,14 +221,16 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function updateDashboard() {
         try {
-            // --- CHANGE: Switched to GET and removed the body, as the server now uses the session ---
             const response = await fetch('api/dashboard_data.php', {
-                method: 'GET', // Or 'POST' with an empty body if you prefer
+                method: 'GET',
                 headers: { 'Accept': 'application/json' },
             });
 
             if (!response.ok) {
-                throw new Error(`Server responded with status: ${response.status}`);
+                // Try to get a more specific error message from the server if possible
+                const errorText = await response.text();
+                console.error('Server responded with an error:', response.status, errorText);
+                throw new Error(`The server responded with status: ${response.status}`);
             }
             
             const data = await response.json();
@@ -254,15 +254,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (error) {
-            console.error('Failed to fetch dashboard data:', error);
-            dashboardContent.innerHTML = '<div class="alert alert-danger" role="alert">A network error occurred or the server returned an invalid response.</div>';
+            console.error('Failed to fetch or parse dashboard data:', error);
+            dashboardContent.innerHTML = '<div class="alert alert-danger" role="alert">A network error occurred or the server returned an invalid response. Please check the browser console for more details.</div>';
         } finally {
-             // --- IMPROVEMENT: Use setTimeout to schedule the next update after this one completes ---
-            setTimeout(updateDashboard, 10000); // Poll every 10 seconds
+            setTimeout(updateDashboard, 10000);
         }
     }
 
-    // Call the function once on page load
-    updateDashboard();
+    // Call the function once on page load, but don't schedule the next one inside the initial call
+    // to avoid a potential double-call with the finally block.
+    (async () => {
+        try {
+            await updateDashboard();
+        } catch (e) {
+            // The error is already handled and displayed by updateDashboard
+        }
+    })();
 });
 </script>
