@@ -171,8 +171,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     header("Location: " . htmlspecialchars($_SERVER["REQUEST_URI"]) . "&status=eta_updated");
                     exit;
                 } else {
-                     $page_error = 'Could not update the ETA. Please try again.';
-                     log_activity($mysqli, $user_id, 'eta_update_failure', "Database error for Trip ID: {$trip['id']}. Error: " . $stmt_update->error);
+                       $page_error = 'Could not update the ETA. Please try again.';
+                       log_activity($mysqli, $user_id, 'eta_update_failure', "Database error for Trip ID: {$trip['id']}. Error: " . $stmt_update->error);
                 }
                 $stmt_update->close();
             }
@@ -214,13 +214,16 @@ $updated_at_formatted = format_utc_to_user_time($trip['updated_at']);
 $appointment_at_formatted = $trip['appointment_at'] ? format_utc_to_user_time($trip['appointment_at']) : 'ASAP';
 $awarded_eta_for_form = $trip['awarded_eta'] ? format_utc_to_user_time($trip['awarded_eta'], 'Y-m-d\TH:i') : '';
 
+// UPDATED: This function now returns Tailwind CSS classes for status badges.
 function format_status($status) {
+    $status_text = htmlspecialchars(ucfirst($status));
+    $base_classes = 'text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full';
     switch ($status) {
-        case 'bidding': return '<span class="status status-bidding">Open for Bids</span>';
-        case 'awarded': return '<span class="status status-awarded">Awarded</span>';
-        case 'completed': return '<span class="status status-completed">Completed</span>';
-        case 'cancelled': return '<span class="status status-cancelled">Cancelled</span>';
-        default: return '<span class="status">' . htmlspecialchars(ucfirst($status)) . '</span>';
+        case 'bidding': return "<span class='bg-green-100 text-green-800 {$base_classes}'>Open for Bids</span>";
+        case 'awarded': return "<span class='bg-yellow-100 text-yellow-800 {$base_classes}'>Awarded</span>";
+        case 'completed': return "<span class='bg-gray-100 text-gray-800 {$base_classes}'>Completed</span>";
+        case 'cancelled': return "<span class='bg-red-100 text-red-800 {$base_classes}'>Cancelled</span>";
+        default: return "<span class='bg-blue-100 text-blue-800 {$base_classes}'>{$status_text}</span>";
     }
 }
 
@@ -231,168 +234,158 @@ if ($trip['bidding_closes_at']) {
     $bidding_closes_utc = new DateTime($trip['bidding_closes_at'], new DateTimeZone('UTC'));
     $bidding_is_open = $now_utc < $bidding_closes_utc;
 }
-
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Trip Details</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="path/to/your/styles.css"> <style>
-        /* Your CSS remains the same */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 2em; }
-        .container { max-width: 800px; margin: 0 auto; background-color: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background-color: #0056b3; color: white; padding: 1.5em; border-top-left-radius: 8px; border-top-right-radius: 8px; }
-        .header h2 { margin: 0; }
-        .header .status { float: right; font-weight: bold; padding: 0.3em 0.8em; border-radius: 15px; font-size: 0.9em; }
-        .status-bidding { background-color: #28a745; }
-        .status-awarded { background-color: #ffc107; color: #333; }
-        .status-completed { background-color: #6c757d; }
-        .status-cancelled { background-color: #dc3545; }
-        .content { padding: 2em; }
-        .trip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2em; }
-        .trip-section { border-top: 3px solid #0056b3; padding-top: 1em; }
-        .trip-section h3 { margin-top: 0; color: #0056b3; }
-        dl { margin: 0; }
-        dt { font-weight: bold; color: #555; margin-top: 1em; }
-        dd { margin-left: 0; margin-bottom: 1em; font-size: 1.1em; }
-        .message { padding: 1em; margin-bottom: 1em; border-radius: 5px; text-align: center; }
-        .error { background-color: #f8d7da; color: #721c24; }
-        .success { background-color: #d4edda; color: #155724; }
-        .actions { margin-top: 2em; padding: 2em; background-color: #f8f9fa; border-top: 1px solid #ddd; }
-        .actions h3 { margin-top: 0; }
-        .button, button { display: inline-block; text-align: center; font-size: 1em; padding: 12px 20px; border-radius: 5px; text-decoration: none; color: white; border: none; cursor: pointer; margin-right: 10px; }
-        .button-primary { background-color: #007bff; }
-        .button-secondary { background-color: #6c757d; }
-        .button-danger { background-color: #dc3545; }
-        .button-info { background-color: #17a2b8; }
-        .button-success { background-color: #28a745; }
-        .form-group { margin-bottom: 1em; }
-        .form-group label { display: block; margin-bottom: .5em; font-weight: bold; }
-        .form-group input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        .disabled-overlay { text-align: center; padding: 2em; background-color: #e9ecef; border-radius: 5px; }
-        .admin-notice { text-align:center; background-color: #ffc107; color: #333; padding: 0.5em; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <?= format_status($trip['status']); ?>
-            <h2>Trip #<?= htmlspecialchars($trip['uuid']); ?></h2>
+
+<div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div>
+            <h2 class="text-xl font-semibold text-gray-800">Trip Details</h2>
+            <p class="text-sm text-gray-500 font-mono"><?= htmlspecialchars($trip['uuid']); ?></p>
         </div>
+        <?= format_status($trip['status']); ?>
+    </div>
 
-        <div class="content">
-            <?php if (!empty($page_message)): ?><p class="message success"><?= htmlspecialchars($page_message); ?></p><?php endif; ?>
-            <?php if (!empty($page_error)): ?><p class="message error"><?= htmlspecialchars($page_error); ?></p><?php endif; ?>
-            
-            <?php if ($view_mode === 'admin'): ?>
-                <p class="admin-notice">Admin Read-Only View</p>
-            <?php endif; ?>
+    <div class="p-6 space-y-8">
+        <?php if (!empty($page_message)): ?>
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4" role="alert">
+                <p class="font-bold">Success</p>
+                <p><?= htmlspecialchars($page_message); ?></p>
+            </div>
+        <?php endif; ?>
+        <?php if (!empty($page_error)): ?>
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+                <p class="font-bold">Error</p>
+                <p><?= htmlspecialchars($page_error); ?></p>
+            </div>
+        <?php endif; ?>
+        
+        <?php if ($view_mode === 'admin'): ?>
+            <div class="bg-yellow-100 text-yellow-800 p-3 rounded-md text-sm text-center font-semibold">
+                Admin Read-Only View
+            </div>
+        <?php endif; ?>
 
-            <div class="trip-grid">
-                <div class="trip-section">
-                    <h3>Route Details</h3>
-                    <dl>
-                        <dt>Pick-up Address</dt>
-                        <dd>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-6">
+                <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Route Details</h3>
+                <dl class="space-y-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Pick-up Address</dt>
+                        <dd class="mt-1 text-base text-gray-900">
                             <?= htmlspecialchars($trip['origin_name']); ?><br>
                             <?= htmlspecialchars($trip['origin_street']); ?><br>
                             <?= htmlspecialchars($trip['origin_city']); ?>, <?= htmlspecialchars($trip['origin_state']); ?> <?= htmlspecialchars($trip['origin_zip']); ?>
                         </dd>
-                        
-                        <dt>Drop-off Address</dt>
-                        <dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Drop-off Address</dt>
+                        <dd class="mt-1 text-base text-gray-900">
                             <?= htmlspecialchars($trip['destination_name']); ?><br>
                             <?= htmlspecialchars($trip['destination_street']); ?><br>
                             <?= htmlspecialchars($trip['destination_city']); ?>, <?= htmlspecialchars($trip['destination_state']); ?> <?= htmlspecialchars($trip['destination_zip']); ?>
                         </dd>
-                    </dl>
-                </div>
-
-                <div class="trip-section">
-                    <h3>Patient & Trip Information</h3>
-                    <dl>
-                        <?php if ($view_mode === 'facility' || $view_mode === 'carrier_awarded' || $view_mode === 'admin'): ?>
-                            <dt>Patient Last Name</dt>
-                            <dd><?= htmlspecialchars($patient_last_name ?: '[Encrypted]'); ?></dd>
-                            
-                            <dt>Patient Year of Birth</dt>
-                            <dd><?= htmlspecialchars($patient_birth_year); ?></dd>
-                        <?php endif; ?>
-
-                        <dt>Appointment Time</dt>
-                        <dd><?= htmlspecialchars($appointment_at_formatted); ?></dd>
-                        
-                        <dt>Special Equipment</dt>
-                        <dd><?= htmlspecialchars($special_equipment ?: 'None specified'); ?></dd>
-                        
-                        <dt>Isolation Precautions</dt>
-                        <dd><?= htmlspecialchars($isolation_precautions ?: 'None specified'); ?></dd>
-
-                        <?php if ($view_mode !== 'facility'): ?>
-                            <dt>Diagnosis</dt>
-                            <dd><?= htmlspecialchars($patient_diagnosis ?: 'Not provided'); ?></dd>
-                        <?php endif; ?>
-                    </dl>
-                </div>
+                    </div>
+                </dl>
             </div>
-            
-            <div class="trip-section" style="grid-column: 1 / -1;">
-                <h3>Timeline</h3>
-                <dl>
-                    <dt>Trip Created</dt>
-                    <dd><?= $created_at_formatted; ?></dd>
-                    <dt>Last Update</dt>
-                    <dd><?= $updated_at_formatted; ?></dd>
+
+            <div class="space-y-6">
+                <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Patient & Trip Information</h3>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                    <?php if ($view_mode === 'facility' || $view_mode === 'carrier_awarded' || $view_mode === 'admin'): ?>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Patient Last Name</dt>
+                            <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($patient_last_name ?: '[Encrypted]'); ?></dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Patient Year of Birth</dt>
+                            <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($patient_birth_year); ?></dd>
+                        </div>
+                    <?php endif; ?>
+                     <div>
+                        <dt class="text-sm font-medium text-gray-500">Appointment Time</dt>
+                        <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($appointment_at_formatted); ?></dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Isolation Precautions</dt>
+                        <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($isolation_precautions ?: 'None specified'); ?></dd>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <dt class="text-sm font-medium text-gray-500">Special Equipment</dt>
+                        <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($special_equipment ?: 'None specified'); ?></dd>
+                    </div>
+                    <?php if ($view_mode !== 'facility'): ?>
+                        <div class="sm:col-span-2">
+                            <dt class="text-sm font-medium text-gray-500">Diagnosis</dt>
+                            <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($patient_diagnosis ?: 'Not provided'); ?></dd>
+                        </div>
+                    <?php endif; ?>
                 </dl>
             </div>
         </div>
 
-        <div class="actions">
-            <?php if ($view_mode === 'facility' && $trip['status'] !== 'cancelled' && $trip['status'] !== 'completed'): ?>
-                <h3>Actions</h3>
-                <a href="modify_trip.php?uuid=<?= htmlspecialchars($trip['uuid']); ?>" class="button button-primary">Modify Trip</a>
-                <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post" style="display: inline;" onsubmit="return confirm('Are you absolutely sure you want to cancel this trip? This action cannot be undone.');">
-                    <input type="hidden" name="action" value="cancel_trip">
-                    <button type="submit" class="button button-danger">Cancel Trip</button>
-                </form>
-            <?php endif; ?>
-
-            <?php if ($view_mode === 'carrier_unawarded' && $trip['status'] === 'bidding'): ?>
-                <?php if ($bidding_is_open): ?>
-                    <h3>Actions</h3>
-                    <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post">
-                        <div class="form-group">
-                            <label for="eta">Submit Your ETA to Bid</label>
-                            <input type="datetime-local" id="eta" name="eta" required>
-                        </div>
-                        <input type="hidden" name="action" value="place_bid">
-                        <button type="submit" class="button button-success">Submit Bid</button>
-                        <a href="#" class="button button-secondary">Calculate Mileage</a>
-                        <a href="#" class="button button-info">Request Insurance Scan</a>
-                    </form>
-                <?php else: ?>
-                    <div class="disabled-overlay">
-                        <h3>Bidding Closed</h3>
-                        <p>The bidding window for this trip has closed. No further actions can be taken.</p>
-                    </div>
-                <?php endif; ?>
-            <?php endif; ?>
-
-            <?php if ($view_mode === 'carrier_awarded' && $trip['status'] !== 'cancelled' && $trip['status'] !== 'completed'): ?>
-                <h3>Manage Trip</h3>
-                <a href="#" class="button button-primary">View Full PHI</a>
-                <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post">
-                    <div class="form-group">
-                        <label for="awarded_eta">Amend Your ETA</label>
-                        <input type="datetime-local" id="awarded_eta" name="awarded_eta" value="<?= $awarded_eta_for_form; ?>" required>
-                    </div>
-                    <input type="hidden" name="action" value="update_eta">
-                    <button type="submit" class="button button-success">Update ETA</button>
-                </form>
-            <?php endif; ?>
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Timeline</h3>
+            <dl class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Trip Created</dt>
+                    <dd class="mt-1 text-base text-gray-900"><?= $created_at_formatted; ?></dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Last Update</dt>
+                    <dd class="mt-1 text-base text-gray-900"><?= $updated_at_formatted; ?></dd>
+                </div>
+            </dl>
         </div>
     </div>
-</body>
-</html>
+
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+        <?php if ($view_mode === 'facility' && $trip['status'] !== 'cancelled' && $trip['status'] !== 'completed'): ?>
+            <div class="flex justify-end items-center space-x-3">
+                <h3 class="text-lg font-medium text-gray-900 flex-grow">Actions</h3>
+                <a href="modify_trip.php?uuid=<?= htmlspecialchars($trip['uuid']); ?>" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Modify Trip</a>
+                <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post" class="inline" onsubmit="return confirm('Are you absolutely sure you want to cancel this trip? This action cannot be undone.');">
+                    <input type="hidden" name="action" value="cancel_trip">
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Cancel Trip</button>
+                </form>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($view_mode === 'carrier_unawarded' && $trip['status'] === 'bidding'): ?>
+            <?php if ($bidding_is_open): ?>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Place Your Bid</h3>
+                    <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post" class="sm:flex sm:items-end sm:space-x-3">
+                        <div class="w-full sm:w-auto flex-grow">
+                            <label for="eta" class="block text-sm font-medium text-gray-700">Submit Your ETA</label>
+                            <input type="datetime-local" id="eta" name="eta" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                        <input type="hidden" name="action" value="place_bid">
+                        <button type="submit" class="mt-2 sm:mt-0 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Submit Bid</button>
+                    </form>
+                </div>
+            <?php else: ?>
+                <div class="text-center bg-gray-100 p-4 rounded-md">
+                    <h3 class="text-lg font-medium text-gray-900">Bidding Closed</h3>
+                    <p class="mt-1 text-sm text-gray-600">The bidding window for this trip has closed.</p>
+                </div>
+            <?php endif; ?>
+        <?php endif; ?>
+
+        <?php if ($view_mode === 'carrier_awarded' && $trip['status'] !== 'cancelled' && $trip['status'] !== 'completed'): ?>
+             <div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Manage Trip</h3>
+                 <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post" class="sm:flex sm:items-end sm:space-x-3">
+                    <div class="w-full sm:w-auto flex-grow">
+                        <label for="awarded_eta" class="block text-sm font-medium text-gray-700">Amend Your ETA</label>
+                        <input type="datetime-local" id="awarded_eta" name="awarded_eta" value="<?= $awarded_eta_for_form; ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <input type="hidden" name="action" value="update_eta">
+                    <div class="mt-2 sm:mt-0 flex space-x-3">
+                        <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Update ETA</button>
+                        <a href="#" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">View Full PHI</a>
+                    </div>
+                </form>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
