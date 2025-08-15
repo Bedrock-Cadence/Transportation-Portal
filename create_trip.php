@@ -446,7 +446,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             try {
-                const response = await fetch('check_address_v2.php', {
+                const response = await fetch('check_address.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
