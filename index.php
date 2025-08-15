@@ -52,30 +52,30 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderCarrierDashboard(openTrips, awardedTrips) {
         let contentHtml = `
             <div class="grid grid-cols-1 gap-8">
-                <div class="card-container">
-                    <div class="card-header">
-                        <h2>Open Trips for Bidding</h2>
+                <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                    <div class="px-6 py-4 border-b bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800">Open Trips for Bidding</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="custom-table divide-y divide-gray-200">
-                            <thead class="custom-table-header">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="custom-table-header th">Trip ID</th>
-                                    <th class="custom-table-header th">Origin</th>
-                                    <th class="custom-table-header th">Destination</th>
-                                    <th class="custom-table-header th">Actions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">`;
         if (openTrips && openTrips.length > 0) {
             openTrips.forEach(trip => {
                 contentHtml += `
-                    <tr class="custom-table-row">
-                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="custom-table-cell">${trip.origin_name}</td>
-                        <td class="custom-table-cell">${trip.destination_name}</td>
-                        <td class="custom-table-cell">
-                            <a href="trip_details.php?uuid=${trip.uuid}" class="btn btn-primary">Bid Now</a>
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                            <a href="trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Bid Now</a>
                         </td>
                     </tr>`;
             });
@@ -88,19 +88,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div class="card-container">
-                    <div class="card-header">
-                        <h2>My Awarded Trips</h2>
+                <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                    <div class="px-6 py-4 border-b bg-gray-50">
+                        <h2 class="text-xl font-semibold text-gray-800">My Awarded Trips</h2>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="custom-table divide-y divide-gray-200">
-                            <thead class="custom-table-header">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100">
                                 <tr>
-                                    <th class="custom-table-header th">Trip ID</th>
-                                    <th class="custom-table-header th">Origin</th>
-                                    <th class="custom-table-header th">Destination</th>
-                                    <th class="custom-table-header th">ETA</th>
-                                    <th class="custom-table-header th">Actions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ETA</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">`;
@@ -108,13 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             awardedTrips.forEach(trip => {
                 const awarded_eta = new Date(trip.awarded_eta + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 contentHtml += `
-                    <tr class="custom-table-row">
-                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="custom-table-cell">${trip.origin_name}</td>
-                        <td class="custom-table-cell">${trip.destination_name}</td>
-                        <td class="custom-table-cell">${awarded_eta}</td>
-                        <td class="custom-table-cell">
-                            <a href="awarded_trip_details.php?uuid=${trip.uuid}" class="btn btn-success">View Details</a>
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${awarded_eta}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                            <a href="awarded_trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-green-600 hover:bg-green-700 focus:ring-green-500">View Details</a>
                         </td>
                     </tr>`;
             });
@@ -135,19 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function renderFacilityDashboard(recentTrips) {
         let contentHtml = `
-            <div class="card-container">
-                <div class="card-header">
-                    <h2>My Trips (Last 24 Hours)</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-800">My Trips (Last 24 Hours)</h2>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="custom-table divide-y divide-gray-200">
-                        <thead class="custom-table-header">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
                             <tr>
-                                <th class="custom-table-header th">Trip ID</th>
-                                <th class="custom-table-header th">Status</th>
-                                <th class="custom-table-header th">Origin</th>
-                                <th class="custom-table-header th">Destination</th>
-                                <th class="custom-table-header th">Actions</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">`;
@@ -155,13 +155,13 @@ document.addEventListener('DOMContentLoaded', () => {
             recentTrips.forEach(trip => {
                 const status = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
                 contentHtml += `
-                    <tr class="custom-table-row">
-                        <td class="custom-table-cell font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="custom-table-cell">${status}</td>
-                        <td class="custom-table-cell">${trip.origin_name}</td>
-                        <td class="custom-table-cell">${trip.destination_name}</td>
-                        <td class="custom-table-cell">
-                            <a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info">View</a>
+                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${status}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                            <a href="view_trip.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-500 hover:bg-teal-600 focus:ring-teal-400">View</a>
                         </td>
                     </tr>`;
             });
@@ -181,9 +181,9 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function renderAdminDashboard(activityFeed) {
         let contentHtml = `
-            <div class="card-container">
-                <div class="card-header">
-                    <h2>Real-time Portal Activity</h2>
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-800">Real-time Portal Activity</h2>
                 </div>
                 <div>
                     <ul class="divide-y divide-gray-200">`;
