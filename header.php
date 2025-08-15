@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../app/session_config.php';
     <meta charset="UTF-8">
     <title><?php echo isset($page_title) ? htmlspecialchars($page_title) : 'Bedrock Cadence Portal'; ?></title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" xintegrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <style>
         /* Custom styles for the navigation bar */
         .nav-link.logout-link {
@@ -21,6 +21,20 @@ require_once __DIR__ . '/../../app/session_config.php';
         }
         .nav-link.logout-link:hover {
             color: #bd2130 !important; /* A slightly darker red for hover state */
+        }
+        .nav-link.user-profile {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.2;
+            padding: 0.5rem 1rem; /* Adjust padding for better spacing */
+        }
+        .nav-link.user-profile .company-name {
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.75);
+        }
+        .dropdown-menu {
+            right: 0;
+            left: auto;
         }
     </style>
 </head>
@@ -42,13 +56,11 @@ require_once __DIR__ . '/../../app/session_config.php';
             if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
                 <li class="nav-item"><a class="nav-link" href="view_open_trips.php">View Open Trips</a></li>
                 <li class="nav-item"><a class="nav-link" href="view_our_trips.php">View Our Trips</a></li>
-                <li class="nav-item"><a class="nav-link" href="carrier_profile.php">My Profile</a></li>
             <?php endif; ?>
             <?php // Facility User Navigation
             if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
                 <li class="nav-item"><a class="nav-link" href="create_trip.php">Create Trip</a></li>
                 <li class="nav-item"><a class="nav-link" href="view_our_trips.php">Our Trips</a></li>
-                <li class="nav-item"><a class="nav-link" href="facility_profile.php">My Profile</a></li>
             <?php endif; ?>
 
             <?php // Admin and Superuser Navigation
@@ -77,8 +89,23 @@ require_once __DIR__ . '/../../app/session_config.php';
             <span class="nav-link text-white" id="liveClock"></span>
         </li>
         <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
-            <li class="nav-item">
-                <a class="nav-link logout-link" href="logout.php">Log Out</a>
+            <!-- User Profile Dropdown -->
+            <li class="nav-item dropdown">
+                <a class="nav-link user-profile dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <!-- Assuming first_name, last_name, and company_name are set in the session after login -->
+                    <span><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
+                    <span class="company-name"><?php echo htmlspecialchars($_SESSION['company_name']); ?></span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <?php if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
+                        <li><a class="dropdown-item" href="carrier_profile.php">My Profile</a></li>
+                    <?php endif; ?>
+                    <?php if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
+                        <li><a class="dropdown-item" href="facility_profile.php">My Profile</a></li>
+                    <?php endif; ?>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item logout-link" href="logout.php">Log Out</a></li>
+                </ul>
             </li>
         <?php else: ?>
             <li class="nav-item">
@@ -91,7 +118,7 @@ require_once __DIR__ . '/../../app/session_config.php';
 </nav>
 
 <main class="container mt-4">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {

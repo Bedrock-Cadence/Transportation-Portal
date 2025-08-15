@@ -21,7 +21,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $login_error = "Email and password are required.";
     } else {
         // --- FIX: The SQL query now selects first_name and entity_type ---
-        $sql = "SELECT id, uuid, email, password_hash, first_name, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
+        $sql = "SELECT id, uuid, email, password_hash, first_name, last_name, role, is_active, entity_id, entity_type FROM users WHERE email = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("s", $email);
             if ($stmt->execute()) {
@@ -72,6 +72,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION["user_id"] = $user['id'];
         $_SESSION["user_uuid"] = $user['uuid'];
         $_SESSION["user_first_name"] = $user['first_name'];
+        $_SESSION["user_last_name"] = $user['last_name'];
+        $_SESSION["user_email"] = $user['email'];
         $_SESSION["user_role"] = $user['role'];
         $_SESSION["entity_id"] = $user['entity_id'];
         $_SESSION["entity_type"] = $user['entity_type'];
