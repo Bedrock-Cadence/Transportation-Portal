@@ -129,25 +129,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // If there are no errors, proceed with creating the trip
     if (empty($trip_error)) {
         // --- PROCEED WITH FORM SUBMISSION ---
-
-        // You would now use the standardized data to save to your database
         $pickup_address_formatted = $pickup_standardized['formatted_address'];
-        $pickup_lat = $pickup_standardized['latitude'];
-        $pickup_lng = $pickup_standardized['longitude'];
-        $pickup_place_id = $pickup_standardized['place_id'];
-        
         $dropoff_address_formatted = $dropoff_standardized['formatted_address'];
-        $dropoff_lat = $dropoff_standardized['latitude'];
-        $dropoff_lng = $dropoff_standardized['longitude'];
-        $dropoff_place_id = $dropoff_standardized['place_id'];
-
-        // Example of how you'd use this in your INSERT statement:
-        // $sql = "INSERT INTO trips (..., origin_address_formatted, origin_lat, origin_lng, destination_address_formatted, ...) VALUES (...)";
-        
-        // The rest of your form processing logic would go here...
-        // For now, we will just simulate success:
-        // header("location: dashboard.php?status=trip_created_successfully");
-        // exit;
+        // ... rest of your submission logic ...
     }
 }
 ?>
@@ -162,10 +146,67 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } ?>
 
             <?php if ($_SESSION['user_role'] === 'bedrock_admin') : ?>
-               <?php endif; ?>
+                <?php
+                $facilities = [];
+                $sql_facilities = "SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC";
+                if ($result = $mysqli->query($sql_facilities)) {
+                    while ($row = $result->fetch_assoc()) {
+                        $facilities[] = $row;
+                    }
+                }
+                ?>
+                <div class="alert alert-warning">
+                    <h5 class="alert-heading">Admin Mode</h5>
+                    <p class="mb-0">You are creating this trip on behalf of a facility. Please select one from the list below.</p>
+                </div>
+                <div class="mb-4">
+                    <label for="facility_id" class="form-label fw-bold">Create Trip For Facility:</label>
+                    <select name="facility_id" id="facility_id" class="form-select" required>
+                        <option value="">-- Select a Facility --</option>
+                        <?php foreach ($facilities as $facility) : ?>
+                            <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <hr class="mb-4">
+            <?php endif; ?>
 
             <fieldset class="mb-4">
-                </fieldset>
+                <legend class="fs-5 border-bottom mb-3 pb-2">Patient Information</legend>
+                <div class="alert alert-info" role="alert">
+                    <p class="mb-0"><strong>IMPORTANT:</strong> This form collects Protected Health Information (PHI) and will be encrypted.</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_first_name" class="form-label">First Name</label>
+                        <input type="text" name="patient_first_name" id="patient_first_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_last_name" class="form-label">Last Name</label>
+                        <input type="text" name="patient_last_name" id="patient_last_name" class="form-control" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_dob" class="form-label">Date of Birth</label>
+                        <input type="date" name="patient_dob" id="patient_dob" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_ssn" class="form-label">Social Security Number (Last 4 Digits)</label>
+                        <input type="text" name="patient_ssn" id="patient_ssn" class="form-control" pattern="\d{4}" maxlength="4" required>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_weight" class="form-label">Weight (in lbs)</label>
+                        <input type="number" name="patient_weight" id="patient_weight" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_height" class="form-label">Height (in inches)</label>
+                        <input type="number" name="patient_height" id="patient_height" class="form-control" required>
+                    </div>
+                </div>
+            </fieldset>
 
             <fieldset class="mb-4">
                 <legend class="fs-5 border-bottom mb-3 pb-2">Pickup Details</legend>
@@ -243,7 +284,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             </fieldset>
 
             <fieldset class="mb-4">
-                </fieldset>
+                <legend class="fs-5 border-bottom mb-3 pb-2">Time and Appointment</legend>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="requested_pickup_time" class="form-label">Requested Pickup Time <small class="text-muted">(Optional)</small></label>
+                        <input type="time" name="requested_pickup_time" id="requested_pickup_time" class="form-control">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="appointment_time" class="form-label">Appointment Time <small class="text-muted">(Optional)</small></label>
+                        <input type="time" name="appointment_time" id="appointment_time" class="form-control">
+                    </div>
+                </div>
+            </fieldset>
 
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary btn-lg">Submit Trip Request</button>
@@ -254,12 +306,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-
     const roomAlert = document.getElementById('room-number-alert');
 
     async function checkRoomNumberPrompt(address) {
         if (!address) return;
-
         const roomInput = document.getElementById('dropoff_address_room');
         if (roomInput.value.trim() !== '') {
             roomAlert.classList.add('d-none');
@@ -285,20 +335,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const city = document.getElementById('dropoff_address_city').value.trim();
         const state = document.getElementById('dropoff_address_state').value.trim();
         const zip = document.getElementById('dropoff_address_zip').value.trim();
-
         if (street && city && state) {
             const fullAddress = `${street}, ${city}, ${state} ${zip}`;
             checkRoomNumberPrompt(fullAddress);
         }
     }
 
-    // Add event listeners to check address when user leaves a field
     const dropoffFields = ['dropoff_address_street', 'dropoff_address_city', 'dropoff_address_state', 'dropoff_address_zip'];
     dropoffFields.forEach(id => {
         document.getElementById(id).addEventListener('blur', triggerDropoffAddressCheck);
     });
 
-    // Handle "Same as Pickup" checkbox
     document.getElementById('copy_pickup_address').addEventListener('change', function() {
         const isChecked = this.checked;
         const fields = ['street', 'city', 'state', 'zip', 'room'];
@@ -314,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Hide alert if user starts typing in the room field
     document.getElementById('dropoff_address_room').addEventListener('input', function() {
         if (this.value.trim() !== '') {
             roomAlert.classList.add('d-none');
