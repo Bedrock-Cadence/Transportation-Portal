@@ -1,12 +1,15 @@
 <?php
+// Start output buffering to capture and discard any stray output or errors.
+ob_start();
+
+header('Content-Type: application/json');
+
 // Disable error display and reporting to ensure a clean JSON response.
+// This is a safety measure in addition to output buffering.
 ini_set('display_errors', 0);
 error_reporting(0);
 
-// Clear any unexpected output before the JSON response
-ob_clean();
-
-header('Content-Type: application/json');
+require_once __DIR__ . '/../../app/db_connect.php';
 
 // Get the raw POST data
 $json = file_get_contents('php://input');
@@ -23,6 +26,8 @@ error_log("Received street: $street, city: $city, state: $state, zip: $zip");
 $api_key = GOOGLE_MAPS_API_KEY;
 
 if (empty($street) || empty($city) || empty($state) || empty($zip)) {
+    // End output buffering and discard its contents.
+    ob_end_clean();
     echo json_encode(['error' => 'Missing address data.']);
     exit;
 }
@@ -76,6 +81,9 @@ if ($decoded_response['status'] == 'OK' && !empty($decoded_response['results']))
     }
 }
 
+// End output buffering, discard the buffer contents.
+ob_end_clean();
+
 // --- DEBUGGING LOG ADDED HERE ---
 error_log("API response status: " . $decoded_response['status'] . ", Is Facility: " . ($is_facility ? 'true' : 'false') . ", Formatted Address: " . $standardized_address);
 
@@ -87,5 +95,8 @@ echo json_encode([
     'standardized_state' => $standardized_state,
     'standardized_zip' => $standardized_zip
 ]);
+
+// Ensure no other output is sent after the JSON.
+die();
 
 ?>
