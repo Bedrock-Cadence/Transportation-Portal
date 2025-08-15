@@ -198,7 +198,6 @@ document.addEventListener('DOMContentLoaded', () => {
             activityFeed.forEach(activity => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 const userIdentifier = activity.email ? activity.email : 'An unknown user';
-                // --- FIX: Changed activity.activity_description to activity.message ---
                 contentHtml += `
                         <li class="list-group-item">
                             <small class="text-muted">${timestamp}</small><br>
@@ -221,13 +220,13 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function updateDashboard() {
         try {
-            const response = await fetch('api/dashboard_data.php', {
+            // --- FIX: Using an absolute path starting with "/" to ensure it's always correct ---
+            const response = await fetch('/api/dashboard_data.php', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
             });
 
             if (!response.ok) {
-                // Try to get a more specific error message from the server if possible
                 const errorText = await response.text();
                 console.error('Server responded with an error:', response.status, errorText);
                 throw new Error(`The server responded with status: ${response.status}`);
@@ -261,13 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Call the function once on page load, but don't schedule the next one inside the initial call
-    // to avoid a potential double-call with the finally block.
     (async () => {
         try {
+            // Using a single call to kick things off. The 'finally' block will handle subsequent calls.
             await updateDashboard();
         } catch (e) {
-            // The error is already handled and displayed by updateDashboard
+            // Error is already handled by the updateDashboard function
         }
     })();
 });
