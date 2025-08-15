@@ -41,63 +41,43 @@ body {
 
 /* FILE: public/assets/css/custom.css */
 
-/* --- Card and Container Styling --- */
-.card-container {
-    @apply bg-white shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:shadow-xl;
-}
-
-.card-header {
-    @apply px-6 py-4 border-b border-gray-200 bg-gray-50;
-}
-
-.card-header h2 {
-    @apply text-xl font-semibold text-gray-800;
-}
-
 /* --- Table Styling --- */
-.custom-table {
-    @apply w-full;
-}
-
-.custom-table-header {
-    @apply bg-gray-100;
-}
-
-.custom-table-header th {
+.table-th {
     @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
 }
 
-.custom-table-row:hover {
-    @apply bg-gray-100;
-}
-
-.custom-table-cell {
+.table-td {
     @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800;
 }
 
-.custom-table-cell.font-mono {
-    @apply font-mono;
+.table-row-hover {
+    @apply transition-colors duration-150 ease-in-out;
 }
+
+.table-row-hover:hover {
+    @apply bg-gray-100;
+}
+
 
 /* --- Button Styling --- */
 .btn {
-    @apply inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-colors duration-300 transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2;
 }
 
 .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 focus:ring-blue-500;
+    @apply bg-blue-600 hover:bg-black focus:ring-blue-500;
 }
 
 .btn-success {
-    @apply bg-green-600 hover:bg-green-700 focus:ring-green-500;
+    @apply bg-green-600 hover:bg-black focus:ring-green-500;
 }
 
 .btn-info {
-    @apply bg-teal-500 hover:bg-teal-600 focus:ring-teal-400;
+    @apply bg-amber-500 hover:bg-black focus:ring-amber-400;
 }
 
 .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 focus:ring-red-500;
+    @apply bg-red-600 hover:bg-black focus:ring-red-500;
 }
 
 
