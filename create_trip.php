@@ -111,29 +111,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $facility_id = ($_SESSION['user_role'] === 'bedrock_admin') ? $_POST['facility_id'] : $_SESSION['entity_id'];
         $created_by_user_id = $_SESSION['user_id'];
 
-        // --- ENCRYPT SENSITIVE DATA ---
-        // We will now check each encryption result immediately for a detailed error.
-        $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
-        if (strpos($encrypted_first_name, 'ENCRYPTION FAILURE') === 0) {
-            throw new Exception($encrypted_first_name);
-        }
-
-        $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
-        if (strpos($encrypted_last_name, 'ENCRYPTION FAILURE') === 0) {
-            throw new Exception($encrypted_last_name);
-        }
-
-        $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
-        if (strpos($encrypted_dob, 'ENCRYPTION FAILURE') === 0) {
-            throw new Exception($encrypted_dob);
-        }
-
-        $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
-        if (strpos($encrypted_ssn, 'ENCRYPTION FAILURE') === 0) {
-            throw new Exception($encrypted_ssn);
-        }
-
-        // --- Process other form data after we know encryption is working ---
+        // Collect special equipment details into a single string
         $special_equipment_details = [];
         if (!empty($_POST['special_equipment'])) {
             foreach ($_POST['special_equipment'] as $equipment) {
@@ -157,15 +135,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         $special_equipment_string = implode('; ', $special_equipment_details);
 
+        // Convert lbs to kg for patient weight
         $patient_weight_lbs = filter_var($_POST['patient_weight'], FILTER_VALIDATE_FLOAT);
         $patient_weight_kg = $patient_weight_lbs ? $patient_weight_lbs * 0.453592 : null;
 
-        // Encrypt the rest of the data
+        // --- ENCRYPT SENSITIVE DATA ---
+        $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
+        $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
+        $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
+        $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
         $encrypted_weight = encrypt_data((string)$patient_weight_kg, ENCRYPTION_KEY);
         $encrypted_height = encrypt_data($_POST['patient_height'], ENCRYPTION_KEY);
         $encrypted_diagnosis = encrypt_data($_POST['diagnosis'], ENCRYPTION_KEY);
         $encrypted_equipment = encrypt_data($special_equipment_string, ENCRYPTION_KEY);
         $encrypted_isolation = encrypt_data($_POST['isolation_precautions'], ENCRYPTION_KEY);
+        
+        // Check if any encryption failed
+        if (!$encrypted_first_name || !$encrypted_last_name || !$encrypted_dob || !$encrypted_ssn) {
+            throw new Exception("A critical error occurred while securing patient data. Please try again.");
+        }
 
         // --- INSERT INTO 'trips' TABLE ---
         $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?)";
@@ -189,7 +177,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             throw new Exception("Database error preparing the trip record: " . $mysqli->error);
         }
 
-        // --- INSERT INTO 'trip_patient_details' TABLE ---
+        // --- INSERT INTO 'TRIPS_PHI' TABLE ---
         $sql_patient = "INSERT INTO trips_phi (trip_id, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         if ($stmt_patient = $mysqli->prepare($sql_patient)) {
@@ -213,10 +201,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     } catch (Exception $e) {
         $mysqli->rollback();
-        // The error message will now be the specific one from our encryption function
         $trip_error = "Error creating trip: " . $e->getMessage();
         
-        // Log the failure with the detailed message
         log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', 'Error: ' . $e->getMessage());
     }
 }
