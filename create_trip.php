@@ -253,250 +253,253 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 ?>
 
-<h2 class="mb-4 text-gradient">Create a New Transport Request</h2>
+<h2 class="mb-4">Create a New Transport Request</h2>
 
-<div class="bg-dark-gradient text-white p-4 p-md-5 rounded-3 shadow-lg">
-    <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" id="create-trip-form">
-        <?php if (!empty($trip_error)) {
-            echo '<div class="alert alert-custom-danger">' . trim($trip_error) . '</div>';
-        } ?>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post" id="create-trip-form">
+            <?php if (!empty($trip_error)) {
+                echo '<div class="alert alert-danger">' . trim($trip_error) . '</div>';
+            } ?>
 
-        <?php if ($_SESSION['user_role'] === 'bedrock_admin') : ?>
-            <?php
-            $facilities = [];
-            $sql_facilities = "SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC";
-            if ($result = $mysqli->query($sql_facilities)) {
-                while ($row = $result->fetch_assoc()) {
-                    $facilities[] = $row;
+            <?php if ($_SESSION['user_role'] === 'bedrock_admin') : ?>
+                <?php
+                $facilities = [];
+                $sql_facilities = "SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC";
+                if ($result = $mysqli->query($sql_facilities)) {
+                    while ($row = $result->fetch_assoc()) {
+                        $facilities[] = $row;
+                    }
                 }
-            }
-            ?>
-            <div class="alert alert-custom-warning mb-4">
-                <h5 class="alert-heading">Admin Mode</h5>
-                <p class="mb-0">You are creating this trip on behalf of a facility. Please select one from the list below.</p>
-            </div>
-            <div class="mb-4">
-                <label for="facility_id" class="form-label fw-bold">Create Trip For Facility:</label>
-                <select name="facility_id" id="facility_id" class="form-select form-select-dark" required>
-                    <option value="">-- Select a Facility --</option>
-                    <?php foreach ($facilities as $facility) : ?>
-                        <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['name']); ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <hr class="mb-4 border-secondary">
-        <?php endif; ?>
-
-        <fieldset class="mb-4">
-            <legend class="fs-4 fw-bold text-gradient mb-3 pb-2 border-bottom border-secondary">Patient Information</legend>
-            <div class="alert alert-custom-info" role="alert">
-                <p class="mb-0"><strong>IMPORTANT:</strong> This form collects Protected Health Information (PHI) and will be encrypted.</p>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="patient_first_name" class="form-label">First Name</label>
-                    <input type="text" name="patient_first_name" id="patient_first_name" class="form-control form-control-dark" required>
+                ?>
+                <div class="alert alert-warning">
+                    <h5 class="alert-heading">Admin Mode</h5>
+                    <p class="mb-0">You are creating this trip on behalf of a facility. Please select one from the list below.</p>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="patient_last_name" class="form-label">Last Name</label>
-                    <input type="text" name="patient_last_name" id="patient_last_name" class="form-control form-control-dark" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="patient_dob" class="form-label">Date of Birth</label>
-                    <input type="date" name="patient_dob" id="patient_dob" class="form-control form-control-dark" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="patient_ssn" class="form-label">Social Security Number (Last 4 Digits)</label>
-                    <input type="text" name="patient_ssn" id="patient_ssn" class="form-control form-control-dark" pattern="\d{4}" maxlength="4" required>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="patient_weight" class="form-label">Weight (in lbs)</label>
-                    <input type="number" name="patient_weight" id="patient_weight" class="form-control form-control-dark" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="patient_height" class="form-label">Height (in inches)</label>
-                    <input type="number" name="patient_height" id="patient_height" class="form-control form-control-dark" required>
-                </div>
-            </div>
-        </fieldset>
-
-        <fieldset class="mb-4">
-            <legend class="fs-4 fw-bold text-gradient mb-3 pb-2 border-bottom border-secondary">Pickup Details</legend>
-            <div class="row">
-                <div class="col-md-9 mb-3">
-                    <label for="pickup_address_street" class="form-label">Street Address</label>
-                    <input type="text" id="pickup_address_street" name="pickup_address_street" class="form-control form-control-dark" value="<?php echo $facility_address['address_street']; ?>" required>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label for="pickup_address_room" class="form-label">Room/Apt #</label>
-                    <input type="text" name="pickup_address_room" id="pickup_address_room" class="form-control form-control-dark">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="pickup_address_city" class="form-label">City</label>
-                    <input type="text" name="pickup_address_city" id="pickup_address_city" class="form-control form-control-dark" value="<?php echo $facility_address['address_city']; ?>" required>
-                </div>
-                <div class="col-md-3 mb-3">
-                    <label for="pickup_address_state" class="form-label">State</label>
-                    <select name="pickup_address_state" id="pickup_address_state" class="form-select form-select-dark" required>
-                        <option value="">Choose...</option>
-                        <?php foreach ($states as $abbreviation => $name) : ?>
-                            <option value="<?php echo $abbreviation; ?>" <?php echo ($facility_address['address_state'] == $abbreviation) ? 'selected' : ''; ?>>
-                                <?php echo htmlspecialchars($name); ?>
-                            </option>
+                <div class="mb-4">
+                    <label for="facility_id" class="form-label fw-bold">Create Trip For Facility:</label>
+                    <select name="facility_id" id="facility_id" class="form-select" required>
+                        <option value="">-- Select a Facility --</option>
+                        <?php foreach ($facilities as $facility) : ?>
+                            <option value="<?php echo $facility['id']; ?>"><?php echo htmlspecialchars($facility['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <label for="pickup_address_zip" class="form-label">Zip Code</label>
-                    <input type="text" name="pickup_address_zip" id="pickup_address_zip" class="form-control form-control-dark" value="<?php echo $facility_address['address_zip']; ?>" required>
-                </div>
-            </div>
-        </fieldset>
+                <hr class="mb-4">
+            <?php endif; ?>
 
-        <fieldset class="mb-4">
-            <legend class="fs-4 fw-bold text-gradient mb-3 pb-2 border-bottom border-secondary">Drop-off Details</legend>
-            <div class="form-check mb-3">
-                <input class="form-check-input" type="checkbox" id="copy_pickup_address">
-                <label class="form-check-label" for="copy_pickup_address">Same as Pickup Address</label>
-            </div>
-            <div class="row">
-                <div class="col-md-9 mb-3">
-                    <label for="dropoff_address_street" class="form-label">Street Address</label>
-                    <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control form-control-dark" required>
-                    <div id="room-number-alert" class="alert alert-custom-warning mt-2 d-none" role="alert">
-                        Based on past trips to this address, a room or apartment number is often needed.
+            <fieldset class="mb-4">
+                <legend class="fs-5 border-bottom mb-3 pb-2">Patient Information</legend>
+                <div class="alert alert-info" role="alert">
+                    <p class="mb-0"><strong>IMPORTANT:</strong> This form collects Protected Health Information (PHI) and will be encrypted.</p>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_first_name" class="form-label">First Name</label>
+                        <input type="text" name="patient_first_name" id="patient_first_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_last_name" class="form-label">Last Name</label>
+                        <input type="text" name="patient_last_name" id="patient_last_name" class="form-control" required>
                     </div>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <label for="dropoff_address_room" class="form-label">Room/Apt #</label>
-                    <input type="text" name="dropoff_address_room" id="dropoff_address_room" class="form-control form-control-dark">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_dob" class="form-label">Date of Birth</label>
+                        <input type="date" name="patient_dob" id="patient_dob" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_ssn" class="form-label">Social Security Number (Last 4 Digits)</label>
+                        <input type="text" name="patient_ssn" id="patient_ssn" class="form-control" pattern="\d{4}" maxlength="4" required>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="dropoff_address_city" class="form-label">City</label>
-                    <input type="text" name="dropoff_address_city" id="dropoff_address_city" class="form-control form-control-dark" required>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_weight" class="form-label">Weight (in lbs)</label>
+                        <input type="number" name="patient_weight" id="patient_weight" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="patient_height" class="form-label">Height (in inches)</label>
+                        <input type="number" name="patient_height" id="patient_height" class="form-control" required>
+                    </div>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <label for="dropoff_address_state" class="form-label">State</label>
-                    <select name="dropoff_address_state" id="dropoff_address_state" class="form-select form-select-dark" required>
-                        <option value="">Choose...</option>
-                        <?php foreach ($states as $abbreviation => $name) : ?>
-                            <option value="<?php echo $abbreviation; ?>"><?php echo htmlspecialchars($name); ?></option>
-                        <?php endforeach; ?>
-                    </select>
+            </fieldset>
+
+            <fieldset class="mb-4">
+                <legend class="fs-5 border-bottom mb-3 pb-2">Pickup Details</legend>
+                <div class="row">
+                    <div class="col-md-9 mb-3">
+                        <label for="pickup_address_street" class="form-label">Street Address</label>
+                        <input type="text" id="pickup_address_street" name="pickup_address_street" class="form-control" value="<?php echo $facility_address['address_street']; ?>" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="pickup_address_room" class="form-label">Room/Apt #</label>
+                        <input type="text" name="pickup_address_room" id="pickup_address_room" class="form-control">
+                    </div>
                 </div>
-                <div class="col-md-3 mb-3">
-                    <label for="dropoff_address_zip" class="form-label">Zip Code</label>
-                    <input type="text" name="dropoff_address_zip" id="dropoff_address_zip" class="form-control form-control-dark" required>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="pickup_address_city" class="form-label">City</label>
+                        <input type="text" name="pickup_address_city" id="pickup_address_city" class="form-control" value="<?php echo $facility_address['address_city']; ?>" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="pickup_address_state" class="form-label">State</label>
+                        <select name="pickup_address_state" id="pickup_address_state" class="form-select" required>
+                            <option value="">Choose...</option>
+                            <?php foreach ($states as $abbreviation => $name) : ?>
+                                <option value="<?php echo $abbreviation; ?>" <?php echo ($facility_address['address_state'] == $abbreviation) ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($name); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="pickup_address_zip" class="form-label">Zip Code</label>
+                        <input type="text" name="pickup_address_zip" id="pickup_address_zip" class="form-control" value="<?php echo $facility_address['address_zip']; ?>" required>
+                    </div>
                 </div>
-            </div>
-        </fieldset>
+            </fieldset>
 
-		<fieldset class="mb-4">
-			<legend class="fs-4 fw-bold text-gradient mb-3 pb-2 border-bottom border-secondary">Time and Appointment</legend>
-			<div class="form-check form-switch mb-3">
-				<input class="form-check-input" type="checkbox" role="switch" name="asap_checkbox" id="asap_checkbox" value="1" checked>
-				<label class="form-check-label fw-bold text-danger" for="asap_checkbox">ASAP</label>
-			</div>
-			<div class="row">
-				<div class="col-md-6 mb-3">
-					<label for="requested_pickup_time" class="form-label">Requested Pickup Time <small class="text-white-50">(Optional)</small></label>
-					<input type="time" name="requested_pickup_time" id="requested_pickup_time" class="form-control form-control-dark" disabled>
-				</div>
-				<div class="col-md-6 mb-3">
-					<label for="appointment_time" class="form-label">Appointment Time <small class="text-white-50">(Optional)</small></label>
-					<input type="time" name="appointment_time" id="appointment_time" class="form-control form-control-dark" disabled>
-				</div>
-			</div>
-		</fieldset>
+            <fieldset class="mb-4">
+                <legend class="fs-5 border-bottom mb-3 pb-2">Drop-off Details</legend>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="copy_pickup_address">
+                    <label class="form-check-label" for="copy_pickup_address">Same as Pickup Address</label>
+                </div>
+                <div class="row">
+                    <div class="col-md-9 mb-3">
+                        <label for="dropoff_address_street" class="form-label">Street Address</label>
+                        <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
+                        <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
+                            Based on past trips to this address, a room or apartment number is often needed.
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="dropoff_address_room" class="form-label">Room/Apt #</label>
+                        <input type="text" name="dropoff_address_room" id="dropoff_address_room" class="form-control">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="dropoff_address_city" class="form-label">City</label>
+                        <input type="text" name="dropoff_address_city" id="dropoff_address_city" class="form-control" required>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="dropoff_address_state" class="form-label">State</label>
+                        <select name="dropoff_address_state" id="dropoff_address_state" class="form-select" required>
+                            <option value="">Choose...</option>
+                            <?php foreach ($states as $abbreviation => $name) : ?>
+                                <option value="<?php echo $abbreviation; ?>"><?php echo htmlspecialchars($name); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="dropoff_address_zip" class="form-label">Zip Code</label>
+                        <input type="text" name="dropoff_address_zip" id="dropoff_address_zip" class="form-control" required>
+                    </div>
+                </div>
+            </fieldset>
 
-		<fieldset class="mb-4">
-			<legend class="fs-4 fw-bold text-gradient mb-3 pb-2 border-bottom border-secondary">Medical Information</legend>
-			<div class="row">
-				<div class="col-md-12 mb-3">
-					<label for="diagnosis" class="form-label">Primary Diagnosis</label>
-					<input type="text" name="diagnosis" id="diagnosis" class="form-control form-control-dark" placeholder="E.g., Congestive Heart Failure, COPD Exacerbation" required>
-				</div>
-			</div>
-			<div class="row">
-				<div class="col-md-12 mb-3">
-					<label class="form-label">Special Equipment Needed</label>
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="Oxygen" id="equipment_oxygen" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_oxygen">Oxygen</label>
-					</div>
-					<div id="oxygen_details" class="ms-4 mt-2 mb-3" style="display: none;">
-						<label for="oxygen_notes" class="form-label">Oxygen Details</label>
-						<input type="text" name="oxygen_notes" id="oxygen_notes" class="form-control form-control-dark" placeholder="E.g., 2L via NC">
-					</div>
-
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="Cardiac Monitor" id="equipment_monitor" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_monitor">Cardiac Monitor</label>
-					</div>
-
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="IV" id="equipment_iv" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_iv">IV</label>
-					</div>
-					<div id="iv_details" class="ms-4 mt-2 mb-3" style="display: none;">
-						<div class="form-check">
-							<input class="form-check-input" type="radio" name="iv_notes" id="iv_locked" value="Saline locked">
-							<label class="form-check-label" for="iv_locked">Saline locked</label>
-						</div>
-						<div class="form-check">
-							<input class="form-check-input" type="radio" name="iv_notes" id="iv_flowing" value="Flowing medications">
-							<label class="form-check-label" for="iv_flowing">Flowing medication(s)</label>
-						</div>
-						<div id="iv_meds_container" class="ms-4 mt-2" style="display: none;">
-							<label for="iv_meds" class="form-label">Medication(s)</label>
-							<input type="text" name="iv_meds" id="iv_meds" class="form-control form-control-dark" placeholder="E.g., Dopamine, Norepinephrine">
-						</div>
-					</div>
-
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="Ventilator" id="equipment_ventilator" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_ventilator">Ventilator</label>
-					</div>
-					<div id="ventilator_details" class="ms-4 mt-2 mb-3" style="display: none;">
-						<label for="ventilator_notes" class="form-label">Vent Settings</label>
-						<input type="text" name="ventilator_notes" id="ventilator_notes" class="form-control form-control-dark" placeholder="E.g., A/C 12, PEEP 5, FiO2 40%">
-					</div>
-
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="ECMO" id="equipment_ecmo" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_ecmo">ECMO</label>
-					</div>
-					
-					<div class="form-check">
-						<input class="form-check-input special-equipment" type="checkbox" value="Other" id="equipment_other" name="special_equipment[]">
-						<label class="form-check-label" for="equipment_other">Other</label>
-					</div>
-					<div id="other_details" class="ms-4 mt-2 mb-3" style="display: none;">
-						<label for="other_notes" class="form-label">Other Equipment Notes</label>
-						<input type="text" name="other_notes" id="other_notes" class="form-control form-control-dark" placeholder="Please specify other equipment">
-					</div>
-				</div>
-			</div>
-			<div class="row">
-				<div class="col-md-12 mb-3">
-					<label for="isolation_precautions" class="form-label">Medical Isolation Precautions</label>
-					<input type="text" name="isolation_precautions" id="isolation_precautions" class="form-control form-control-dark" placeholder="E.g., Airborne, Droplet, Contact, None">
-				</div>
-			</div>
-		</fieldset>
-
-        <div class="d-grid">
-            <button type="submit" class="btn btn-primary btn-lg">Submit Trip Request</button>
+<fieldset class="mb-4">
+    <legend class="fs-5 border-bottom mb-3 pb-2">Time and Appointment</legend>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="asap_checkbox" id="asap_checkbox" value="1" checked>
+        <label class="form-check-label text-danger" for="asap_checkbox">ASAP</label>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="requested_pickup_time" class="form-label">Requested Pickup Time <small class="text-muted">(Optional)</small></label>
+            <input type="time" name="requested_pickup_time" id="requested_pickup_time" class="form-control" disabled>
         </div>
-    </form>
+        <div class="col-md-6 mb-3">
+            <label for="appointment_time" class="form-label">Appointment Time <small class="text-muted">(Optional)</small></label>
+            <input type="time" name="appointment_time" id="appointment_time" class="form-control" disabled>
+        </div>
+    </div>
+</fieldset>
+
+<!-- Medical Information Fieldset -->
+<fieldset class="mb-4">
+    <legend class="fs-5 border-bottom mb-3 pb-2">Medical Information</legend>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="diagnosis" class="form-label">Primary Diagnosis</label>
+            <input type="text" name="diagnosis" id="diagnosis" class="form-control" placeholder="E.g., Congestive Heart Failure, COPD Exacerbation" required>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="special_equipment" class="form-label">Special Equipment Needed</label>
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Oxygen" id="equipment_oxygen" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_oxygen">Oxygen</label>
+            </div>
+            <div id="oxygen_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="oxygen_notes" class="form-label">Oxygen Details</label>
+                <input type="text" name="oxygen_notes" id="oxygen_notes" class="form-control" placeholder="E.g., 2L via NC">
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Cardiac Monitor" id="equipment_monitor" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_monitor">Cardiac Monitor</label>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="IV" id="equipment_iv" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_iv">IV</label>
+            </div>
+            <div id="iv_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="iv_notes" id="iv_locked" value="Saline locked">
+                    <label class="form-check-label" for="iv_locked">Saline locked</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="iv_notes" id="iv_flowing" value="Flowing medications">
+                    <label class="form-check-label" for="iv_flowing">Flowing medication(s)</label>
+                </div>
+                <div id="iv_meds_container" class="ms-4 mt-2" style="display: none;">
+                    <label for="iv_meds" class="form-label">Medication(s)</label>
+                    <input type="text" name="iv_meds" id="iv_meds" class="form-control" placeholder="E.g., Dopamine, Norepinephrine">
+                </div>
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Ventilator" id="equipment_ventilator" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_ventilator">Ventilator</label>
+            </div>
+            <div id="ventilator_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="ventilator_notes" class="form-label">Vent Settings</label>
+                <input type="text" name="ventilator_notes" id="ventilator_notes" class="form-control" placeholder="E.g., A/C 12, PEEP 5, FiO2 40%">
+            </div>
+
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="ECMO" id="equipment_ecmo" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_ecmo">ECMO</label>
+            </div>
+            
+            <div class="form-check">
+                <input class="form-check-input special-equipment" type="checkbox" value="Other" id="equipment_other" name="special_equipment[]">
+                <label class="form-check-label" for="equipment_other">Other</label>
+            </div>
+            <div id="other_details" class="ms-4 mt-2 mb-3" style="display: none;">
+                <label for="other_notes" class="form-label">Other Equipment Notes</label>
+                <input type="text" name="other_notes" id="other_notes" class="form-control" placeholder="Please specify other equipment">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12 mb-3">
+            <label for="isolation_precautions" class="form-label">Medical Isolation Precautions</label>
+            <input type="text" name="isolation_precautions" id="isolation_precautions" class="form-control" placeholder="E.g., Airborne, Droplet, Contact, None">
+        </div>
+    </div>
+</fieldset>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary btn-lg">Submit Trip Request</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
