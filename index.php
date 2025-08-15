@@ -176,7 +176,38 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboardContent.innerHTML = contentHtml;
     }
 
-    // NOTE: renderAdminDashboard would be updated similarly...
+    /**
+     * --- FIXED: Admin dashboard function is now fully implemented ---
+     * Renders the HTML for the Admin's dashboard.
+     * @param {Array} activityFeed - An array of recent activity logs.
+     */
+    function renderAdminDashboard(activityFeed) {
+        let contentHtml = `
+            <div class="bg-white shadow-md rounded-lg overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">Real-time Portal Activity</h2>
+                </div>
+                <div>
+                    <ul class="divide-y divide-gray-200">`;
+        if (activityFeed && activityFeed.length > 0) {
+            activityFeed.forEach(activity => {
+                const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
+                const userIdentifier = activity.email ? activity.email : 'An unknown user';
+                contentHtml += `
+                        <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                            <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
+                            <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
+                        </li>`;
+            });
+        } else {
+            contentHtml += `<li class="text-center py-6 text-gray-500">No recent activity.</li>`;
+        }
+        contentHtml += `
+                    </ul>
+                </div>
+            </div>`;
+        dashboardContent.innerHTML = contentHtml;
+    }
 
     /**
      * Fetches data from the server and updates the dashboard.
@@ -184,7 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateDashboard() {
         try {
             const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php');
-            if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+            if (!response.ok) throw new Error(\`Server responded with status: \${response.status}\`);
             const data = await response.json();
             
             if (data.success) {
@@ -197,14 +228,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     case 'facility_superuser':
                         renderFacilityDashboard(data.data.recentTrips);
                         break;
-                    // case 'bedrock_admin': renderAdminDashboard(data.data.activityFeed); break;
+                    case 'bedrock_admin':
+                        renderAdminDashboard(data.data.activityFeed);
+                        break;
                 }
             } else {
-                dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: ${data.error}</div>`;
+                dashboardContent.innerHTML = \`<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: \${data.error}</div>\`;
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
-            dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>`;
+            dashboardContent.innerHTML = \`<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>\`;
         } finally {
             // Schedule the next update
             setTimeout(updateDashboard, 10000);
