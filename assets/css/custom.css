@@ -1,5 +1,3 @@
-/* FILE: /assets/css/custom.css */
-
 /*
  * ===============================================
  * Global Variables (Custom Properties)
@@ -64,6 +62,53 @@ body {
 
 .dropdown-item-custom:hover {
     background-color: var(--dark-border);
+}
+
+/*
+ * ===============================================
+ * NEW STYLES FOR DARK FORM & ALERTS
+ * ===============================================
+ */
+
+/* --- Dark Form Inputs & Selects --- */
+.form-control-dark, .form-select-dark {
+    background-color: var(--dark-bg-end);
+    color: #fff;
+    border: 1px solid var(--dark-border);
+}
+
+.form-control-dark::placeholder {
+    color: #6c757d;
+}
+
+.form-control-dark:focus, .form-select-dark:focus {
+    background-color: var(--dark-bg-start);
+    color: #fff;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 0.25rem rgba(198, 0, 33, 0.25);
+}
+
+.form-select-dark {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+}
+
+/* --- Custom Alerts for Dark Theme --- */
+.alert-custom-danger {
+    background-color: rgba(220, 38, 38, 0.15);
+    border: 1px solid rgba(220, 38, 38, 0.5);
+    color: #f8d7da;
+}
+
+.alert-custom-warning {
+    background-color: rgba(212, 175, 55, 0.15);
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    color: #fff3cd;
+}
+
+.alert-custom-info {
+    background-color: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    color: #cfe2ff;
 }
 
 /*
