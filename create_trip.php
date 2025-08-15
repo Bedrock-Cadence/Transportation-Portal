@@ -357,9 +357,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 </div>
 
-<!-- This is the corrected, single, asynchronous loading script tag -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap"></script>
-
 <script>
     // This function will be called once the Google Maps API is loaded
     function initMap() {
