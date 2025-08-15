@@ -41,23 +41,43 @@ body {
 
 /* FILE: public/assets/css/custom.css */
 
+/* --- Card and Container Styling --- */
+.card-container {
+    @apply bg-white shadow-lg rounded-xl overflow-hidden transform transition-all duration-300 hover:shadow-xl;
+}
+
+.card-header {
+    @apply px-6 py-4 border-b border-gray-200 bg-gray-50;
+}
+
+.card-header h2 {
+    @apply text-xl font-semibold text-gray-800;
+}
+
 /* --- Table Styling --- */
-.table-th {
-    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+.custom-table {
+    @apply w-full;
 }
 
-.table-td {
-    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800;
-}
-
-.table-row-hover {
-    @apply transition-colors duration-150 ease-in-out;
-}
-
-.table-row-hover:hover {
+.custom-table-header {
     @apply bg-gray-100;
 }
 
+.custom-table-header th {
+    @apply px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider;
+}
+
+.custom-table-row:hover {
+    @apply bg-gray-100;
+}
+
+.custom-table-cell {
+    @apply px-6 py-4 whitespace-nowrap text-sm text-gray-800;
+}
+
+.custom-table-cell.font-mono {
+    @apply font-mono;
+}
 
 /* --- Button Styling --- */
 .btn {
