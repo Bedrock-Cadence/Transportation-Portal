@@ -7,8 +7,25 @@ require_once __DIR__ . '/../../app/session_config.php';
 // --- DATABASE QUERY REMOVED ---
 // The company name is now fetched at login and stored in the session.
 
-// Set the company name from the session, with a fallback.
+// Set the company name from the session, with a fallback to Bedrock Cadence.
 $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Bedrock Cadence';
+
+// --- NEW LOGIC FOR DYNAMIC ICONS ---
+$company_icon = '';
+if (isset($_SESSION['entity_type'])) {
+    if ($_SESSION['entity_type'] === 'carrier') {
+        // A cute little ambulance for carriers
+        $company_icon = '<i class="fa-solid fa-truck-medical text-blue-300 mr-2"></i>';
+    } elseif ($_SESSION['entity_type'] === 'facility') {
+        // A cute little hospital for facilities
+        $company_icon = '<i class="fa-solid fa-house-medical text-green-300 mr-2"></i>';
+    }
+} else {
+    // A cute little crown for Bedrock Cadence leadership
+    $company_icon = '<i class="fa-solid fa-crown text-amber-300 mr-2"></i>';
+}
+// --- END NEW LOGIC ---
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -84,7 +101,10 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
                             <i class="fas fa-user-circle text-2xl text-gray-400"></i>
                             <div class="flex flex-col text-sm text-left">
                                 <span><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
-                                <span class="text-xs text-gray-400"><?php echo htmlspecialchars($company_name); ?></span>
+                                <span class="text-xs text-gray-400 flex items-center">
+                                    <?php echo $company_icon; ?>
+                                    <?php echo htmlspecialchars($company_name); ?>
+                                </span>
                             </div>
                             <i class="fas fa-caret-down text-gray-400"></i>
                         </button>
