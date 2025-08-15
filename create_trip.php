@@ -10,7 +10,6 @@ if (!isset($_SESSION["loggedin"]) || !(in_array($_SESSION['user_role'], ['facili
     exit;
 }
 
-// Placeholder for a real encryption service call
 function encrypt_data_placeholder($data) {
     return base64_encode($data);
 }
@@ -37,12 +36,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $appointment_at = $_POST['appointment_at'];
         $patient_first_name = trim($_POST['patient_first_name']);
         $patient_last_name = trim($_POST['patient_last_name']);
-        // (etc. for all other fields)
 
         // ENCRYPT ALL PHI
         $patient_first_name_encrypted = encrypt_data_placeholder($patient_first_name);
         $patient_last_name_encrypted = encrypt_data_placeholder($patient_last_name);
-        // (etc. for all other encrypted fields)
 
         $sql = "INSERT INTO trips (facility_id, created_by_user_id, /* ... other fields ... */) VALUES (?, ?, ?, ?, ?, ?)";
         
@@ -102,19 +99,42 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <?php endif; ?>
 
             <fieldset class="mb-4">
-                <legend class="fs-5 border-bottom mb-3 pb-2">Patient Information (PHI)</legend>
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="patient_first_name" class="form-label">First Name</label>
-                        <input type="text" name="patient_first_name" id="patient_first_name" class="form-control" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="patient_last_name" class="form-label">Last Name</label>
-                        <input type="text" name="patient_last_name" id="patient_last_name" class="form-control" required>
-                    </div>
-                </div>
-                </fieldset>
-
+    <legend class="fs-5 border-bottom mb-3 pb-2">Patient Information</legend>
+    <div class="alert alert-warning" role="alert">
+        <p><strong>IMPORTANT: This form collects Protected Health Information (PHI).</strong></p>
+        <p>By filling out and submitting this form, you consent to Bedrock Cadence securely collecting, storing, and transmitting your information in a HIPAA-compliant manner. We are committed to protecting your privacy and security. Please ensure all information is accurate.</p>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="patient_first_name" class="form-label">First Name</label>
+            <input type="text" name="patient_first_name" id="patient_first_name" class="form-control" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="patient_last_name" class="form-label">Last Name</label>
+            <input type="text" name="patient_last_name" id="patient_last_name" class="form-control" required>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="patient_dob" class="form-label">Date of Birth</label>
+            <input type="date" name="patient_dob" id="patient_dob" class="form-control" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="patient_ssn" class="form-label">Social Security Number (Last 4 Digits)</label>
+            <input type="text" name="patient_ssn" id="patient_ssn" class="form-control" pattern="\d{4}" maxlength="4" required>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="patient_weight" class="form-label">Weight (in lbs)</label>
+            <input type="number" name="patient_weight" id="patient_weight" class="form-control" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label for="patient_height" class="form-label">Height (in inches)</label>
+            <input type="number" name="patient_height" id="patient_height" class="form-control" required>
+        </div>
+    </div>
+</fieldset>
             <fieldset class="mb-4">
                 <legend class="fs-5 border-bottom mb-3 pb-2">Trip Details</legend>
                 </fieldset>
