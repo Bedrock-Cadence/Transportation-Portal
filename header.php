@@ -120,22 +120,22 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
     <div class="md:hidden hidden" id="mobile-menu">
         <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
              <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
-                <a href="/index.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
-                
-                <?php // Carrier Links
-                if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
-                    <a href="/view_open_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">View Open Trips</a>
-                    <a href="/view_our_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">View Our Trips</a>
-                <?php endif; ?>
+                 <a href="/index.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                 
+                 <?php // Carrier Links
+                 if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
+                     <a href="/view_open_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">View Open Trips</a>
+                     <a href="/view_our_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">View Our Trips</a>
+                 <?php endif; ?>
 
-                <?php // Facility Links
-                if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
-                    <a href="/create_trip.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Create Trip</a>
-                    <a href="/view_our_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Our Trips</a>
-                <?php endif; ?>
+                 <?php // Facility Links
+                 if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
+                     <a href="/create_trip.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Create Trip</a>
+                     <a href="/view_our_trips.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Our Trips</a>
+                 <?php endif; ?>
              <?php else: ?>
-                <a href="/login.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Login</a>
-            <?php endif; ?>
+                 <a href="/login.php" class="text-gray-300 hover:text-white block px-3 py-2 rounded-md text-base font-medium">Login</a>
+             <?php endif; ?>
         </div>
     </div>
 </nav>
