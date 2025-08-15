@@ -37,9 +37,6 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
         }
     }
 }
-
-// Close the database connection to free up resources.
-$mysqli->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
