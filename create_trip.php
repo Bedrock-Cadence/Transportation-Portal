@@ -3,9 +3,6 @@ $page_title = 'Create New Trip';
 require_once 'header.php';
 require_once __DIR__ . '/../../app/db_connect.php';
 
-// Define your Google API Key. It's best practice to keep this in a secure config file.
-defined('GOOGLE_MAPS_API_KEY') || define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY');
-
 // Array of US states for cleaner, more maintainable dropdown menus
 $states = [
     'AL' => 'Alabama', 'AK' => 'Alaska', 'AZ' => 'Arizona', 'AR' => 'Arkansas', 'CA' => 'California',
@@ -31,7 +28,7 @@ function encrypt_data_placeholder($data) {
 }
 
 // Fetch facility address to pre-populate the form
-$facility_address = ['street' => '', 'city' => '', 'state' => '', 'zip' => ''];
+$facility_address = ['address_street' => '', 'address_city' => '', 'address_state' => '', 'address_zip' => ''];
 if (isset($_SESSION['user_role'])) {
     $facility_id_to_fetch = ($_SESSION['user_role'] === 'bedrock_admin' && isset($_POST['facility_id'])) ? $_POST['facility_id'] : $_SESSION['entity_id'];
     if (!empty($facility_id_to_fetch)) {
@@ -41,6 +38,7 @@ if (isset($_SESSION['user_role'])) {
             if ($stmt->execute()) {
                 $result = $stmt->get_result();
                 if ($row = $result->fetch_assoc()) {
+                    // Use array_map to apply htmlspecialchars to all values
                     $facility_address = array_map('htmlspecialchars', $row);
                 }
             }
@@ -135,7 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="col-md-9 mb-3">
                         <label for="pickup_address_street" class="form-label">Street Address</label>
                         <gmp-place-autocomplete country="us">
-                            <input type="text" id="pickup_address_street" name="pickup_address_street" class="form-control" value="<?php echo $facility_address['address_street']; ?>" required>
+                            <input slot="input" type="text" id="pickup_address_street" name="pickup_address_street" class="form-control" value="<?php echo $facility_address['address_street']; ?>" required>
                         </gmp-place-autocomplete>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -176,7 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <div class="col-md-9 mb-3">
                         <label for="dropoff_address_street" class="form-label">Street Address</label>
                         <gmp-place-autocomplete country="us">
-                            <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
+                            <input slot="input" type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
                         </gmp-place-autocomplete>
                         <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
                             Based on past trips to this address, a room or apartment number is often needed.
@@ -231,11 +229,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <script src="https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places,maps&callback=initMap&loading=async&v=beta" async defer></script>
 <script>
+    // No changes are needed in the JavaScript. It should work correctly with the updated HTML.
     function initMap() {
         console.log("Google Maps API loaded. Initializing autocomplete.");
 
-        // --- Simplified Autocomplete Setup ---
-        // We get a reference to the component by finding our input and looking at its parent.
         const pickupAutocompleteWrapper = document.getElementById('pickup_address_street').closest('gmp-place-autocomplete');
         const dropoffAutocompleteWrapper = document.getElementById('dropoff_address_street').closest('gmp-place-autocomplete');
 
