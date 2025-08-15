@@ -364,168 +364,162 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 <script>
     // This is the new, modern way to load the Google Maps API.
-    // It's a custom element that handles all the complex loading logic for us.
-    const googleMapsApiKey = "<?php echo GOOGLE_MAPS_API_KEY; ?>";
-    const placeAutocompleteContainer = document.createElement("div");
-    placeAutocompleteContainer.innerHTML = `
-        <input id="pickup_address_street" class="form-control" type="text" name="pickup_address_street" value="<?php echo $facility_address['street']; ?>" required>
-    `;
-    const pickupInput = placeAutocompleteContainer.querySelector("input");
-    const pickupAutocomplete = new google.maps.places.PlaceAutocompleteElement({
-        input: pickupInput,
-        componentRestrictions: { country: "us" },
-        fields: ["address_components", "geometry", "name"],
-    });
-
-    const dropoffAutocompleteContainer = document.createElement("div");
-    dropoffAutocompleteContainer.innerHTML = `
-        <input id="dropoff_address_street" class="form-control" type="text" name="dropoff_address_street" required>
-    `;
-    const dropoffInput = dropoffAutocompleteContainer.querySelector("input");
-    const dropoffAutocomplete = new google.maps.places.PlaceAutocompleteElement({
-        input: dropoffInput,
-        componentRestrictions: { country: "us" },
-        fields: ["address_components", "geometry", "name"],
-    });
-
-    // We replace the old input fields with the new, smarter ones.
-    document.getElementById("pickup-autocomplete-container").replaceWith(pickupAutocompleteContainer);
-    document.getElementById("dropoff-autocomplete-container").replaceWith(dropoffAutocompleteContainer);
-
-    // This is the correct, modern way to listen for changes on the autocomplete elements.
-    pickupAutocomplete.addEventListener("place_changed", () => {
-        const place = pickupAutocomplete.getPlace();
-        fillAddressFields(place, 'pickup');
-    });
-
-    dropoffAutocomplete.addEventListener("place_changed", () => {
-        const place = dropoffAutocomplete.getPlace();
-        fillAddressFields(place, 'dropoff');
-    });
-
-    function fillAddressFields(place, prefix) {
-        let streetNumber = '';
-        let streetName = '';
-        let city = '';
-        let state = '';
-        let zip = '';
-
-        for (const component of place.address_components) {
-            const componentType = component.types[0];
-            switch (componentType) {
-                case 'street_number':
-                    streetNumber = component.long_name;
-                    break;
-                case 'route':
-                    streetName = component.long_name;
-                    break;
-                case 'locality':
-                    city = component.long_name;
-                    break;
-                case 'administrative_area_level_1':
-                    state = component.short_name;
-                    break;
-                case 'postal_code':
-                    zip = component.long_name;
-                    break;
-            }
-        }
-
-        document.getElementById(`${prefix}_address_street`).value = `${streetNumber} ${streetName}`;
-        document.getElementById(`${prefix}_address_city`).value = city;
-        document.getElementById(`${prefix}_address_zip`).value = zip;
-
-        const stateSelect = document.getElementById(`${prefix}_address_state`);
-        for (let i = 0; i < stateSelect.options.length; i++) {
-            if (stateSelect.options[i].value === state) {
-                stateSelect.options[i].selected = true;
-                break;
-            }
-        }
-
-        if (prefix === 'dropoff') {
-            checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
-        }
-    }
-
-    // Function to check if a room number prompt is needed
-    async function checkRoomNumberPrompt(address) {
-        const dropoffRoomInput = document.getElementById('dropoff_address_room');
-        const dropoffRoomAlert = document.getElementById('room-number-alert');
-
-        const roomValue = dropoffRoomInput.value.trim();
-        if (roomValue !== '') {
-            dropoffRoomAlert.classList.add('d-none');
-            return;
-        }
-
-        try {
-            const response = await fetch('check_address.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ address: address })
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            
-            if (data.prompt_room_number) {
-                dropoffRoomAlert.classList.remove('d-none');
-            } else {
-                dropoffRoomAlert.classList.add('d-none');
-            }
-        } catch (error) {
-            console.error('Error checking address for room number prompt:', error);
-            // Optionally hide the alert on error
-            dropoffRoomAlert.classList.add('d-none');
-        }
-    }
-
-    // Checkbox to copy address
-    const copyCheckbox = document.getElementById('copy_pickup_address');
-    copyCheckbox.addEventListener('change', function() {
-        const pickupStreetInput = document.getElementById('pickup_address_street');
-        const pickupRoomInput = document.getElementById('pickup_address_room');
-        const dropoffRoomInput = document.getElementById('dropoff_address_room');
-        const dropoffRoomAlert = document.getElementById('room-number-alert');
-
-        if (this.checked) {
-            document.getElementById('dropoff_address_street').value = pickupStreetInput.value;
-            document.getElementById('dropoff_address_city').value = document.getElementById('pickup_address_city').value;
-            document.getElementById('dropoff_address_state').value = document.getElementById('pickup_address_state').value;
-            document.getElementById('dropoff_address_zip').value = document.getElementById('pickup_address_zip').value;
-            dropoffRoomInput.value = pickupRoomInput.value;
-            checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
-        } else {
-            document.getElementById('dropoff_address_street').value = '';
-            document.getElementById('dropoff_address_city').value = '';
-            document.getElementById('dropoff_address_state').value = '';
-            document.getElementById('dropoff_address_zip').value = '';
-            dropoffRoomInput.value = '';
-            dropoffRoomAlert.classList.add('d-none');
-        }
-    });
-    
-    // Hide the alert if the user starts typing in the room number field
-    document.getElementById('dropoff_address_room').addEventListener('input', function() {
-        const dropoffRoomAlert = document.getElementById('room-number-alert');
-        if (this.value.trim() !== '') {
-            dropoffRoomAlert.classList.add('d-none');
-        }
-    });
-
-    // Now, we inject the script tag to start the process.
+    // The `callback` parameter ensures `initMap` is called only after the API is ready.
+    // The `async` and `defer` attributes prevent render-blocking.
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap`;
     script.async = true;
     script.defer = true;
     document.head.appendChild(script);
 
+    // This function will be called once the Google Maps API is loaded
+    function initMap() {
+        console.log("initMap called successfully. Autocomplete is ready to use.");
+
+        const pickupStreetInput = document.getElementById('pickup_address_street');
+        const dropoffStreetInput = document.getElementById('dropoff_address_street');
+        const pickupRoomInput = document.getElementById('pickup_address_room');
+        const dropoffRoomInput = document.getElementById('dropoff_address_room');
+        const dropoffRoomAlert = document.getElementById('room-number-alert');
+
+        // Autocomplete for pickup address
+        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupStreetInput, {
+            componentRestrictions: {
+                country: 'us'
+            }
+        });
+        setupAutocomplete(pickupAutocomplete, 'pickup');
+
+        // Autocomplete for drop-off address
+        const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffStreetInput, {
+            componentRestrictions: {
+                country: 'us'
+            }
+        });
+        setupAutocomplete(dropoffAutocomplete, 'dropoff');
+
+        function setupAutocomplete(autocomplete, prefix) {
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+                if (!place.geometry) {
+                    // User did not select a predictable place, just a text query
+                    return;
+                }
+
+                // Fill form fields with data from the place object
+                let streetNumber = '';
+                let streetName = '';
+                let city = '';
+                let state = '';
+                let zip = '';
+
+                for (const component of place.address_components) {
+                    const componentType = component.types[0];
+                    switch (componentType) {
+                        case 'street_number':
+                            streetNumber = component.long_name;
+                            break;
+                        case 'route':
+                            streetName = component.long_name;
+                            break;
+                        case 'locality':
+                            city = component.long_name;
+                            break;
+                        case 'administrative_area_level_1':
+                            state = component.short_name;
+                            break;
+                        case 'postal_code':
+                            zip = component.long_name;
+                            break;
+                    }
+                }
+                document.getElementById(`${prefix}_address_street`).value = `${streetNumber} ${streetName}`;
+                document.getElementById(`${prefix}_address_city`).value = city;
+                document.getElementById(`${prefix}_address_zip`).value = zip;
+                
+                const stateSelect = document.getElementById(`${prefix}_address_state`);
+                for (let i = 0; i < stateSelect.options.length; i++) {
+                    if (stateSelect.options[i].value === state) {
+                        stateSelect.options[i].selected = true;
+                        break;
+                    }
+                }
+                
+                // After filling the drop-off address, check for a room number prompt
+                if (prefix === 'dropoff') {
+                    checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
+                }
+            });
+        }
+    
+        // Function to check if a room number prompt is needed
+        async function checkRoomNumberPrompt(address) {
+            const roomValue = dropoffRoomInput.value.trim();
+            if (roomValue !== '') {
+                dropoffRoomAlert.classList.add('d-none');
+                return;
+            }
+
+            try {
+                const response = await fetch('check_address.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ address: address })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.prompt_room_number) {
+                    dropoffRoomAlert.classList.remove('d-none');
+                } else {
+                    dropoffRoomAlert.classList.add('d-none');
+                }
+            } catch (error) {
+                console.error('Error checking address for room number prompt:', error);
+                // Optionally hide the alert on error
+                dropoffRoomAlert.classList.add('d-none');
+            }
+        }
+
+        // Checkbox to copy address
+        const copyCheckbox = document.getElementById('copy_pickup_address');
+        copyCheckbox.addEventListener('change', function() {
+            const pickupStreetInput = document.getElementById('pickup_address_street');
+            const pickupRoomInput = document.getElementById('pickup_address_room');
+            const dropoffRoomInput = document.getElementById('dropoff_address_room');
+            const dropoffRoomAlert = document.getElementById('room-number-alert');
+
+            if (this.checked) {
+                document.getElementById('dropoff_address_street').value = pickupStreetInput.value;
+                document.getElementById('dropoff_address_city').value = document.getElementById('pickup_address_city').value;
+                document.getElementById('dropoff_address_state').value = document.getElementById('pickup_address_state').value;
+                document.getElementById('dropoff_address_zip').value = document.getElementById('pickup_address_zip').value;
+                dropoffRoomInput.value = pickupRoomInput.value;
+                checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
+            } else {
+                document.getElementById('dropoff_address_street').value = '';
+                document.getElementById('dropoff_address_city').value = '';
+                document.getElementById('dropoff_address_state').value = '';
+                document.getElementById('dropoff_address_zip').value = '';
+                dropoffRoomInput.value = '';
+                dropoffRoomAlert.classList.add('d-none');
+            }
+        });
+        
+        // Hide the alert if the user starts typing in the room number field
+        document.getElementById('dropoff_address_room').addEventListener('input', function() {
+            const dropoffRoomAlert = document.getElementById('room-number-alert');
+            if (this.value.trim() !== '') {
+                dropoffRoomAlert.classList.add('d-none');
+            }
+        });
+    }
 </script>
 
 <?php
