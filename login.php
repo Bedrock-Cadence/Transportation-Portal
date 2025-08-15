@@ -18,6 +18,37 @@ $email = ''; // Keep email in the form field on a failed attempt
 // 4. Handle the form submission.
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+$turnstile_response = $_POST['cf-turnstile-response'] ?? null;
+    $CF_secretKey = CLOUD_FLARE_SECRET; // Keep this safe!
+
+    $ip = $_SERVER['REMOTE_ADDR'];
+
+    $postData = [
+        'secret'   => $secretKey,
+        'response' => $turnstile_response,
+        'remoteip' => $ip,
+    ];
+
+    $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    $result = json_decode($response, true);
+
+    if (isset($result['success']) && $result['success']) {
+        // The user is likely human. Proceed with your login or form processing.
+        // For example: check_user_credentials($_POST['username'], $_POST['password']);
+
+    } else {
+        // Verification failed. The user is likely a bot.
+        // Log the attempt and show an error message.
+        $login_err = "Security check failed. Please try again.";
+        // Optional: log the error details from $result['error-codes']
+    }
+
     // Basic validation: Ensure fields are not empty.
     if (empty(trim($_POST["email"])) || empty($_POST["password"])) {
         $login_error = "Email and password are required.";
@@ -127,6 +158,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                 <label for="password" class="form-label">Password</label>
                                 <input type="password" name="password" id="password" class="form-control" required>
                             </div>
+                            <div class="cf-turnstile" data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR"></div>
+
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary btn-lg">Log In</button>
                             </div>
