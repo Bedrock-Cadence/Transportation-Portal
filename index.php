@@ -220,10 +220,12 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function updateDashboard() {
         try {
-            // Using the absolute path to correctly locate the API file.
-            const response = await fetch('/api/dashboard_data.php', {
+            // --- FIX: Using the FULL URL to the API on the main domain ---
+            const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
+                // --- FIX: This is needed to send the session cookie across domains ---
+                credentials: 'include' 
             });
 
             if (!response.ok) {
