@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function updateDashboard() {
         try {
-            // --- FIX: Using an absolute path starting with "/" to ensure it's always correct ---
+            // Using the absolute path to correctly locate the API file.
             const response = await fetch('/api/dashboard_data.php', {
                 method: 'GET',
                 headers: { 'Accept': 'application/json' },
@@ -262,7 +262,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     (async () => {
         try {
-            // Using a single call to kick things off. The 'finally' block will handle subsequent calls.
             await updateDashboard();
         } catch (e) {
             // Error is already handled by the updateDashboard function
