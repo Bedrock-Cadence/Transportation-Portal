@@ -234,22 +234,30 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const data = await response.json();
             
-            switch (userRole) {
-                case 'carrier_user':
-                case 'carrier_superuser':
-                    renderCarrierDashboard(data.openTrips, data.awardedTrips);
-                    break;
-                case 'facility_user':
-                case 'facility_superuser':
-                    renderFacilityDashboard(data.recentTrips);
-                    break;
-                case 'bedrock_admin':
-                    renderAdminDashboard(data.activityFeed);
-                    break;
+            // Check for success or error from the server
+            if (data.success) {
+                switch (userRole) {
+                    case 'carrier_user':
+                    case 'carrier_superuser':
+                        renderCarrierDashboard(data.data.openTrips, data.data.awardedTrips);
+                        break;
+                    case 'facility_user':
+                    case 'facility_superuser':
+                        renderFacilityDashboard(data.data.recentTrips);
+                        break;
+                    case 'bedrock_admin':
+                        renderAdminDashboard(data.data.activityFeed);
+                        break;
+                }
+            } else {
+                // If the server returned an error, display it
+                dashboardContent.innerHTML = `<div class="alert alert-danger" role="alert">Error loading dashboard data: ${data.error}</div>`;
             }
+
         } catch (error) {
+            // Handle network or JSON parsing errors
             console.error('Failed to fetch dashboard data:', error);
-            dashboardContent.innerHTML = '<div class="alert alert-danger" role="alert">Error loading dashboard data. Please try again.</div>';
+            dashboardContent.innerHTML = '<div class="alert alert-danger" role="alert">A network error occurred or the server returned an invalid response.</div>';
         }
     }
 
