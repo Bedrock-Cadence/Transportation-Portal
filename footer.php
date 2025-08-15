@@ -1,6 +1,5 @@
 </main>
     
-    <!-- New Footer -->
     <footer class="mt-8 bg-gray-800 text-white py-6 shadow-inner">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="flex flex-col items-center justify-center">
@@ -17,19 +16,6 @@
         </div>
     </footer>
 
-    <!-- Live Notification Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
-      <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-        <div class="toast-header">
-          <strong class="me-auto text-primary">Live Notification</strong>
-          <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-        <div class="toast-body" id="liveToastBody">
-          </div>
-      </div>
-    </div>
-
-    <!-- External Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" xintegrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
@@ -69,29 +55,7 @@
                 });
             });
         }
-
-
-        // --- Server-Sent Events (SSE) for Live Notifications ---
-        if (typeof(EventSource) !== "undefined") {
-            const source = new EventSource("/../app/sse_server.php");
-            
-            source.addEventListener('new_notification', function(event) {
-                const notification = JSON.parse(event.data);
-                const toastBody = document.getElementById('liveToastBody');
-                let messageHTML = notification.message;
-                
-                if (notification.link) {
-                    messageHTML += ` <a href="${notification.link}" class="alert-link">View now.</a>`;
-                }
-                toastBody.innerHTML = messageHTML;
-                
-                const toastElement = document.getElementById('liveToast');
-                // Get the existing toast instance or create one if it doesn't exist
-                const toast = bootstrap.Toast.getOrCreateInstance(toastElement);
-                toast.show();
-            });
-        }
-
+        
         <?php endif; ?>
     });
     </script>
