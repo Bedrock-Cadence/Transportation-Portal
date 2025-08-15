@@ -1,27 +1,54 @@
 /* FILE: /assets/css/custom.css */
 
+/*
+ * ===============================================
+ * Global Variables (Custom Properties)
+ * ===============================================
+ * Define your core brand and theme colors here.
+ * This makes managing your site's color scheme much easier.
+ */
+:root {
+    --brand-primary: #C60021;
+    --brand-secondary: #6A008A;
+    --dark-bg-start: #2D2D2D;
+    --dark-bg-end: #1A1A1A;
+    --dark-border: #444;
+}
+
+/*
+ * ===============================================
+ * Base & Global Styles
+ * ===============================================
+ */
 body {
     font-family: 'Inter', sans-serif;
 }
 
+/*
+ * ===============================================
+ * Custom Component Styles
+ * ===============================================
+ * These are unique styles for custom components.
+ */
 .text-gradient {
-    background: linear-gradient(to right, #C60021, #6A008A);
+    background: linear-gradient(to right, var(--brand-primary), var(--brand-secondary));
     -webkit-background-clip: text;
+    background-clip: text; /* Standard property for future compatibility */
     -webkit-text-fill-color: transparent;
 }
 
 .nav-item-hover:hover {
-    color: #C60021;
+    color: var(--brand-primary);
 }
 
 .bg-dark-gradient {
-    background: linear-gradient(135deg, #2D2D2D 0%, #1A1A1A 100%);
+    background: linear-gradient(135deg, var(--dark-bg-start) 0%, var(--dark-bg-end) 100%);
 }
 
 .dropdown-menu-custom {
-    background-color: #2D2D2D;
+    background-color: var(--dark-bg-start);
     border-radius: 0.5rem;
-    border: 1px solid #444;
+    border: 1px solid var(--dark-border);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
     transform-origin: top right;
@@ -36,10 +63,18 @@ body {
 }
 
 .dropdown-item-custom:hover {
-    background-color: #444;
+    background-color: var(--dark-border);
 }
 
-/* FILE: public/assets/css/custom.css */
+
+/*
+ * ===============================================
+ * Tailwind CSS Component Abstractions (@apply)
+ * ===============================================
+ * NOTE: Modern Tailwind best practice favors using utility classes directly
+ * in HTML over creating component classes with @apply. Consider this
+ * for future development or during refactoring.
+ */
 
 /* --- Table Styling --- */
 .table-th {
@@ -57,7 +92,6 @@ body {
 .table-row-hover:hover {
     @apply bg-gray-100;
 }
-
 
 /* --- Button Styling --- */
 .btn {
@@ -79,7 +113,6 @@ body {
 .btn-danger {
     @apply bg-red-600 hover:bg-black focus:ring-red-500;
 }
-
 
 /* --- Loading Spinner --- */
 .spinner {

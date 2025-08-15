@@ -54,11 +54,11 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
 
                             <?php // Admin and Superuser Dropdown
                             if (in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser', 'bedrock_admin'])) : ?>
-                                <div class="relative group">
-                                    <button class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">
+                                <div class="relative">
+                                    <button data-dropdown-toggle="admin-menu" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">
                                         Admin Tools <i class="fas fa-caret-down text-gray-400 ml-1"></i>
                                     </button>
-                                    <div class="absolute left-0 mt-2 w-56 dropdown-menu-custom hidden group-hover:block">
+                                    <div id="admin-menu" class="absolute left-0 mt-2 w-56 dropdown-menu-custom hidden">
                                         <div class="py-1">
                                             <a href="/user_management.php" class="dropdown-item-custom">User Management</a>
                                             <?php if (in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser'])) : ?>
@@ -79,8 +79,8 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
             <div class="hidden md:flex items-center ml-4 md:ml-6 space-x-4">
                 <span class="text-gray-300 font-medium text-sm" id="liveClock"></span>
                 <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
-                    <div class="relative group">
-                        <button class="flex items-center space-x-2 text-white font-medium p-2 rounded-md hover:bg-gray-700">
+                    <div class="relative">
+                        <button data-dropdown-toggle="user-menu" class="flex items-center space-x-2 text-white font-medium p-2 rounded-md hover:bg-gray-700">
                             <i class="fas fa-user-circle text-2xl text-gray-400"></i>
                             <div class="flex flex-col text-sm text-left">
                                 <span><?php echo htmlspecialchars($_SESSION['first_name'] . ' ' . $_SESSION['last_name']); ?></span>
@@ -88,7 +88,7 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
                             </div>
                             <i class="fas fa-caret-down text-gray-400"></i>
                         </button>
-                        <div class="absolute right-0 mt-2 w-48 dropdown-menu-custom hidden group-hover:block">
+                        <div id="user-menu" class="absolute right-0 mt-2 w-48 dropdown-menu-custom hidden">
                             <?php
                                 // Determine profile link based on user type for cleaner code
                                 $profile_page = ($_SESSION['entity_type'] === 'carrier') ? '/carrier_profile.php' : '/facility_profile.php';
