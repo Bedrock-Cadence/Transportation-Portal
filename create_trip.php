@@ -171,8 +171,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <legend class="fs-5 border-bottom mb-3 pb-2">Pickup Details</legend>
                 <div class="row">
                     <div class="col-md-9 mb-3">
-                        <label for="pickup_address_street" class="form-label">Street Address</label>
-                        <gmp-place-autocomplete id="pickup-autocomplete" class="w-100" name="pickup_address_street" value="<?php echo $facility_address['street']; ?>" required></gmp-place-autocomplete>
+                        <label for="pickup-autocomplete-input" class="form-label">Street Address</label>
+                        <gmp-place-autocomplete id="pickup-autocomplete" name="pickup_address_street" class="form-control" value="<?php echo $facility_address['street']; ?>" required></gmp-place-autocomplete>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_room" class="form-label">Room/Apt #</label>
@@ -257,7 +257,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-9 mb-3">
                         <label for="dropoff_address_street" class="form-label">Street Address</label>
-                        <gmp-place-autocomplete id="dropoff-autocomplete" class="w-100" name="dropoff_address_street" required></gmp-place-autocomplete>
+                        <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
                         <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
                             Based on past trips to this address, a room or apartment number is often needed.
                         </div>
@@ -362,74 +362,85 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     function initMap() {
         console.log("initMap called successfully. Autocomplete is ready to use.");
         
-        const pickupInput = document.getElementById('pickup_address_street');
-        const dropoffInput = document.getElementById('dropoff_address_street');
+        // This is where we create the new, modern autocomplete elements.
+        // We're no longer using the old `new google.maps.places.Autocomplete()` constructor.
+        const pickupAutocompleteElement = document.createElement('gmp-place-autocomplete');
+        pickupAutocompleteElement.setAttribute('class', 'form-control');
+        pickupAutocompleteElement.setAttribute('id', 'pickup-autocomplete');
+        pickupAutocompleteElement.setAttribute('name', 'pickup_address_street');
+        pickupAutocompleteElement.setAttribute('required', 'true');
+        pickupAutocompleteElement.value = "<?php echo $facility_address['street']; ?>";
 
-        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
-            componentRestrictions: {
-                country: 'us'
-            }
-        });
-        setupAutocomplete(pickupAutocomplete, 'pickup');
+        const dropoffAutocompleteElement = document.createElement('gmp-place-autocomplete');
+        dropoffAutocompleteElement.setAttribute('class', 'form-control');
+        dropoffAutocompleteElement.setAttribute('id', 'dropoff-autocomplete');
+        dropoffAutocompleteElement.setAttribute('name', 'dropoff_address_street');
+        dropoffAutocompleteElement.setAttribute('required', 'true');
 
-        const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, {
-            componentRestrictions: {
-                country: 'us'
-            }
-        });
-        setupAutocomplete(dropoffAutocomplete, 'dropoff');
+        // Now we replace the old text inputs with our new elements.
+        const oldPickupInput = document.getElementById('pickup_address_street');
+        oldPickupInput.parentNode.replaceChild(pickupAutocompleteElement, oldPickupInput);
+
+        const oldDropoffInput = document.getElementById('dropoff_address_street');
+        oldDropoffInput.parentNode.replaceChild(dropoffAutocompleteElement, oldDropoffInput);
         
-        function setupAutocomplete(autocomplete, prefix) {
-            autocomplete.addListener('place_changed', function() {
-                const place = autocomplete.getPlace();
-                if (!place.address_components) {
-                    return;
-                }
-                
-                let streetNumber = '';
-                let streetName = '';
-                let city = '';
-                let state = '';
-                let zip = '';
-                
-                for (const component of place.address_components) {
-                    const componentType = component.types[0];
-                    switch (componentType) {
-                        case 'street_number':
-                            streetNumber = component.long_name;
-                            break;
-                        case 'route':
-                            streetName = component.long_name;
-                            break;
-                        case 'locality':
-                            city = component.long_name;
-                            break;
-                        case 'administrative_area_level_1':
-                            state = component.short_name;
-                            break;
-                        case 'postal_code':
-                            zip = component.long_name;
-                            break;
-                    }
-                }
-                document.getElementById(`${prefix}_address_street`).value = `${streetNumber} ${streetName}`;
-                document.getElementById(`${prefix}_address_city`).value = city;
-                document.getElementById(`${prefix}_address_zip`).value = zip;
-                
-                const stateSelect = document.getElementById(`${prefix}_address_state`);
-                for (let i = 0; i < stateSelect.options.length; i++) {
-                    if (stateSelect.options[i].value === state) {
-                        stateSelect.options[i].selected = true;
+        function fillAddressFields(place, prefix) {
+            let streetNumber = '';
+            let streetName = '';
+            let city = '';
+            let state = '';
+            let zip = '';
+            
+            for (const component of place.address_components) {
+                const componentType = component.types[0];
+                switch (componentType) {
+                    case 'street_number':
+                        streetNumber = component.long_name;
                         break;
-                    }
+                    case 'route':
+                        streetName = component.long_name;
+                        break;
+                    case 'locality':
+                        city = component.long_name;
+                        break;
+                    case 'administrative_area_level_1':
+                        state = component.short_name;
+                        break;
+                    case 'postal_code':
+                        zip = component.long_name;
+                        break;
                 }
-
-                if (prefix === 'dropoff') {
-                    checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
+            }
+            document.getElementById(`${prefix}_address_street`).value = `${streetNumber} ${streetName}`;
+            document.getElementById(`${prefix}_address_city`).value = city;
+            document.getElementById(`${prefix}_address_zip`).value = zip;
+            
+            const stateSelect = document.getElementById(`${prefix}_address_state`);
+            for (let i = 0; i < stateSelect.options.length; i++) {
+                if (stateSelect.options[i].value === state) {
+                    stateSelect.options[i].selected = true;
+                    break;
                 }
-            });
+            }
         }
-        
+
+        pickupAutocompleteElement.addEventListener('place_changed', (e) => {
+            const place = e.target.getPlace();
+            if (!place.address_components) {
+                return;
+            }
+            fillAddressFields(place, 'pickup');
+        });
+
+        dropoffAutocompleteElement.addEventListener('place_changed', (e) => {
+            const place = e.target.getPlace();
+            if (!place.address_components) {
+                return;
+            }
+            fillAddressFields(place, 'dropoff');
+            checkRoomNumberPrompt(dropoffAutocompleteElement.value);
+        });
+
         async function checkRoomNumberPrompt(address) {
             const dropoffRoomInput = document.getElementById('dropoff_address_room');
             const dropoffRoomAlert = document.getElementById('room-number-alert');
@@ -441,7 +452,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
             
             try {
-                const response = await fetch('check_address_v2.php', {
+                const response = await fetch('check_address.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -468,7 +479,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         
         const copyCheckbox = document.getElementById('copy_pickup_address');
         copyCheckbox.addEventListener('change', function() {
-            const pickupStreetInput = document.getElementById('pickup_address_street');
+            const pickupStreetInput = document.getElementById('pickup-autocomplete');
             const pickupRoomInput = document.getElementById('pickup_address_room');
             const dropoffRoomInput = document.getElementById('dropoff_address_room');
             const dropoffRoomAlert = document.getElementById('room-number-alert');
