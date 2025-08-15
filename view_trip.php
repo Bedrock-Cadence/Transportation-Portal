@@ -4,11 +4,6 @@ require_once __DIR__ . '/../../app/db_connect.php';
 require_once __DIR__ . '/../../app/encryption_service.php'; // Real encryption service
 require_once __DIR__ . '/../../app/logging_service.php';   // Real logging service
 
-// --- CONFIGURATION & SETUP ---
-define('ENCRYPTION_KEY', getenv('APP_ENCRYPTION_KEY')); 
-// NEW: Define our user's timezone in one place for easy management.
-define('USER_TIMEZONE', 'America/Chicago');
-
 // --- AUTHORIZATION & INITIAL DATA FETCH ---
 
 // 1. Universal Check: Is user logged in and is a trip UUID provided?
