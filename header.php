@@ -58,7 +58,7 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
                                     <button class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">
                                         Admin Tools <i class="fas fa-caret-down text-gray-400 ml-1"></i>
                                     </button>
-                                    <div class="absolute left-0 mt-2 w-56 dropdown-menu-custom hidden group-hover:block">
+                                    <div class="absolute left-0 mt-2 w-56 dropdown-menu-custom hidden">
                                         <div class="py-1">
                                             <a href="/user_management.php" class="dropdown-item-custom">User Management</a>
                                             <?php if (in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser'])) : ?>
@@ -88,7 +88,7 @@ $company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Be
                             </div>
                             <i class="fas fa-caret-down text-gray-400"></i>
                         </button>
-                        <div class="absolute right-0 mt-2 w-48 dropdown-menu-custom hidden group-hover:block">
+                        <div class="absolute right-0 mt-2 w-48 dropdown-menu-custom hidden">
                             <?php
                                 // Determine profile link based on user type for cleaner code
                                 $profile_page = ($_SESSION['entity_type'] === 'carrier') ? '/carrier_profile.php' : '/facility_profile.php';
