@@ -16,7 +16,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container-fluid">
-    <a class="navbar-brand" href="dashboard.php">Bedrock Cadence</a>
+    <a class="navbar-brand" href="index.php">Bedrock Cadence</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -24,7 +24,7 @@ if (session_status() == PHP_SESSION_NONE) {
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
             <li class="nav-item">
-                <a class="nav-link" href="dashboard.php">Dashboard</a>
+                <a class="nav-link" href="index.php">Dashboard</a>
             </li>
             <?php // Carrier Links
             if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>

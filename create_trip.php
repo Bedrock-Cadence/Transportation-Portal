@@ -171,8 +171,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <legend class="fs-5 border-bottom mb-3 pb-2">Pickup Details</legend>
                 <div class="row">
                     <div class="col-md-9 mb-3">
-                        <label for="pickup_address_street" class="form-label">Street Address</label>
-                        <input type="text" name="pickup_address_street" id="pickup_address_street" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
+                        <label for="pickup-autocomplete-input" class="form-label">Street Address</label>
+                        <input type="text" name="pickup_address_street" id="pickup-autocomplete-input" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_room" class="form-label">Room/Apt #</label>
@@ -357,8 +357,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 </div>
 
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap"></script>
+
 <script>
-    // This function will be called once the Google Maps API is loaded
     function initMap() {
         console.log("initMap called successfully. Autocomplete is ready to use.");
 
@@ -388,11 +389,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             autocomplete.addListener('place_changed', function() {
                 const place = autocomplete.getPlace();
                 if (!place.geometry) {
-                    // User did not select a predictable place, just a text query
                     return;
                 }
 
-                // Fill form fields with data from the place object
                 let streetNumber = '';
                 let streetName = '';
                 let city = '';
@@ -431,14 +430,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                 }
                 
-                // After filling the drop-off address, check for a room number prompt
                 if (prefix === 'dropoff') {
                     checkRoomNumberPrompt(document.getElementById('dropoff_address_street').value);
                 }
             });
         }
     
-        // Function to check if a room number prompt is needed
         async function checkRoomNumberPrompt(address) {
             const roomValue = dropoffRoomInput.value.trim();
             if (roomValue !== '') {
@@ -468,18 +465,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 }
             } catch (error) {
                 console.error('Error checking address for room number prompt:', error);
-                // Optionally hide the alert on error
                 dropoffRoomAlert.classList.add('d-none');
             }
         }
 
-        // Checkbox to copy address
         const copyCheckbox = document.getElementById('copy_pickup_address');
         copyCheckbox.addEventListener('change', function() {
             const pickupStreetInput = document.getElementById('pickup_address_street');
             const pickupRoomInput = document.getElementById('pickup_address_room');
-            const dropoffRoomInput = document.getElementById('dropoff_address_room');
-            const dropoffRoomAlert = document.getElementById('room-number-alert');
 
             if (this.checked) {
                 document.getElementById('dropoff_address_street').value = pickupStreetInput.value;
@@ -498,9 +491,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         });
         
-        // Hide the alert if the user starts typing in the room number field
         document.getElementById('dropoff_address_room').addEventListener('input', function() {
-            const dropoffRoomAlert = document.getElementById('room-number-alert');
             if (this.value.trim() !== '') {
                 dropoffRoomAlert.classList.add('d-none');
             }
