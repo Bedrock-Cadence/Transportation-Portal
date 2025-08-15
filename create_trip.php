@@ -28,16 +28,16 @@ if (isset($_SESSION['user_role'])) {
 
     if (!empty($facility_id_to_fetch)) {
         // Prepare a SQL query to fetch the facility's address
-        $sql = "SELECT street, city, state, zip_code FROM facilities WHERE id = ?";
+        $sql = "SELECT address_street, address_city, address_state, address_zip FROM facilities WHERE id = ?";
         if ($stmt = $mysqli->prepare($sql)) {
             $stmt->bind_param("i", $facility_id_to_fetch);
             if ($stmt->execute()) {
                 $result = $stmt->get_result();
                 if ($row = $result->fetch_assoc()) {
-                    $facility_address['street'] = htmlspecialchars($row['street']);
-                    $facility_address['city'] = htmlspecialchars($row['city']);
-                    $facility_address['state'] = htmlspecialchars($row['state']);
-                    $facility_address['zip'] = htmlspecialchars($row['zip_code']);
+                    $facility_address['street'] = htmlspecialchars($row['address_street']);
+                    $facility_address['city'] = htmlspecialchars($row['address_city']);
+                    $facility_address['state'] = htmlspecialchars($row['address_state']);
+                    $facility_address['zip'] = htmlspecialchars($row['address_zip']);
                 }
             }
             $stmt->close();
