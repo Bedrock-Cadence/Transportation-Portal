@@ -172,10 +172,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-9 mb-3">
                         <label for="pickup_address_street" class="form-label">Street Address</label>
-                        <!-- Use the new PlaceAutocompleteElement for a modern, more reliable solution -->
-                        <div id="pickup-autocomplete-container">
-                            <input type="text" name="pickup_address_street" id="pickup_address_street" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
-                        </div>
+                        <input type="text" name="pickup_address_street" id="pickup_address_street" class="form-control" value="<?php echo $facility_address['street']; ?>" required>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="pickup_address_room" class="form-label">Room/Apt #</label>
@@ -260,9 +257,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="row">
                     <div class="col-md-9 mb-3">
                         <label for="dropoff_address_street" class="form-label">Street Address</label>
-                        <div id="dropoff-autocomplete-container">
-                            <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
-                        </div>
+                        <input type="text" name="dropoff_address_street" id="dropoff_address_street" class="form-control" required>
                         <div id="room-number-alert" class="alert alert-warning mt-2 d-none" role="alert">
                             Based on past trips to this address, a room or apartment number is often needed.
                         </div>
@@ -362,16 +357,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 </div>
 
-<script>
-    // This is the new, modern way to load the Google Maps API.
-    // The `callback` parameter ensures `initMap` is called only after the API is ready.
-    // The `async` and `defer` attributes prevent render-blocking.
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap`;
-    script.async = true;
-    script.defer = true;
-    document.head.appendChild(script);
+<!-- This is the corrected, single, asynchronous loading script tag -->
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=<?php echo GOOGLE_MAPS_API_KEY; ?>&libraries=places&callback=initMap"></script>
 
+<script>
     // This function will be called once the Google Maps API is loaded
     function initMap() {
         console.log("initMap called successfully. Autocomplete is ready to use.");
