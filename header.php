@@ -32,9 +32,30 @@ if (session_status() == PHP_SESSION_NONE) {
                 <li class="nav-item"><a class="nav-link" href="carrier_profile.php">My Profile</a></li>
             <?php endif; ?>
 
+            <?php
+            if(in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser', 'bedrock_admin'])) : ?>
+            <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        Admin Tools
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                        <li><a class="dropdown-item" href="users.php">User Management</a></li>
+
+                        <?php if (in_array($_SESSION['user_role'], ['bedrock_admin'])): ?>
+                            <li><a class="dropdown-item" href="verify_carriers.php">Verify Carriers</a></li>
+                            <li class="list-group-item"><a href="billing.php">Generate Billing Export</a></li>
+                        <?php endif; ?>
+
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="billing.php">Billing Export</a></li>
+                    </ul>
+            </li>
+            <?php endif; ?>
+
             <?php // Facility Links
             if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
                  <li class="nav-item"><a class="nav-link" href="create_trip.php">Create Trip</a></li>
+                 <li class="nav-item"><a class="nav-link" href="#">View Trips</a></li>
             <?php endif; ?>
 
             <?php // Admin Links
