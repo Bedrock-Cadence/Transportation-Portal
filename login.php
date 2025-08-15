@@ -69,11 +69,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         session_regenerate_id(true); // Security: Prevent session fixation
 
         // Store data in session variables
-        $_SESSION["loggedin"] = true;
-        $_SESSION["user_id"] = $user['id'];
-        $_SESSION["user_uuid"] = $user['uuid'];
-        $_SESSION["user_role"] = $user['role'];
-        $_SESSION["entity_id"] = $user['entity_id'];
+        // Store data in session variables
+$_SESSION["loggedin"] = true;
+$_SESSION["user_id"] = $user['id'];
+$_SESSION["user_uuid"] = $user['uuid'];
+$_SESSION["user_first_name"] = $user['first_name']; // ADD THIS LINE
+$_SESSION["user_role"] = $user['role'];
+$_SESSION["entity_id"] = $user['entity_id'];
+$_SESSION["entity_type"] = $user['entity_type']; // ADD THIS LINE
 
         // --- THE FIX: Redirect user to index.php, which is your dashboard ---
         header("location: index.php");
