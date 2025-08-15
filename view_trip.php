@@ -3,7 +3,7 @@ session_start();
 require_once __DIR__ . '/../../app/db_connect.php';
 require_once __DIR__ . '/../../app/encryption_service.php'; // Real encryption service
 require_once __DIR__ . '/../../app/logging_service.php';   // Real logging service
-
+require_once('header.php');
 // --- AUTHORIZATION & INITIAL DATA FETCH ---
 
 // 1. Universal Check: Is user logged in and is a trip UUID provided?

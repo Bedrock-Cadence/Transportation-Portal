@@ -4,14 +4,7 @@
 // --- FIX: Configure the session to be valid across all subdomains ---
 // This MUST be called BEFORE session_start().
 
-session_set_cookie_params([
-    'lifetime' => 0, // 0 = cookie lasts until the browser is closed
-    'path' => '/', // The cookie is available for the entire domain
-    'domain' => '.bedrockcadence.com', // CRUCIAL: The leading dot makes it valid for all subdomains
-    'secure' => true, // IMPORTANT: Only send the cookie over HTTPS connections
-    'httponly' => true, // Helps prevent XSS attacks by blocking JS access to the cookie
-    'samesite' => 'Lax' // Provides protection against CSRF attacks
-]);
+require_once __DIR__ . '/../../app/session_config.php';
 
 // We start the session on every page that includes the header.
 if (session_status() == PHP_SESSION_NONE) {

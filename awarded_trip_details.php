@@ -1,8 +1,9 @@
 <?php
 // We require all necessary files at the top.
 require_once __DIR__ . '/../../app/cad_import_service.php';
-session_start();
 require_once __DIR__ . '/../../app/db_connect.php';
+require_once 'header.php';
+
 
 // --- Universal Check: Is user logged in and is a trip UUID provided? ---
 if (!isset($_SESSION["loggedin"])) { header("location: login.php"); exit; }
@@ -135,7 +136,6 @@ if (!$is_authorized) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
-<?php require_once 'header.php'; ?>
 <main class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Awarded Trip Details</h2>
