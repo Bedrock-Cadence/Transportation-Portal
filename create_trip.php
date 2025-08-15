@@ -104,7 +104,7 @@ $trip_success = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
-    $CF_secretKey = CLOUD_FLARE_SECRET; // Keep this safe!
+    $secretKey = CLOUD_FLARE_SECRET; // Keep this safe!
 
     $ip = $_SERVER['REMOTE_ADDR'];
 
