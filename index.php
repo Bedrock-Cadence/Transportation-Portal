@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                            <a href="view_trip.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-teal-500 hover:bg-teal-600 focus:ring-teal-400">View</a>
+                            <a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info">View</a>
                         </td>
                     </tr>`;
             });
