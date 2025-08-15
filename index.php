@@ -177,9 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * --- FIXED: Admin dashboard function is now fully implemented ---
      * Renders the HTML for the Admin's dashboard.
-     * @param {Array} activityFeed - An array of recent activity logs.
      */
     function renderAdminDashboard(activityFeed) {
         let contentHtml = `
@@ -215,7 +213,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function updateDashboard() {
         try {
             const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php');
-            if (!response.ok) throw new Error(\`Server responded with status: \${response.status}\`);
+            // FIX: Removed unnecessary backslashes (\) before backticks
+            if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
             const data = await response.json();
             
             if (data.success) {
@@ -233,11 +232,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         break;
                 }
             } else {
-                dashboardContent.innerHTML = \`<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: \${data.error}</div>\`;
+                // FIX: Removed unnecessary backslashes (\) before backticks
+                dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: ${data.error}</div>`;
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
-            dashboardContent.innerHTML = \`<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>\`;
+            // FIX: Removed unnecessary backslashes (\) before backticks
+            dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>`;
         } finally {
             // Schedule the next update
             setTimeout(updateDashboard, 10000);
