@@ -4,6 +4,11 @@ require_once __DIR__ . '/../../app/db_connect.php';
 require_once __DIR__ . '/../../app/encryption_service.php'; // Real encryption service
 require_once __DIR__ . '/../../app/logging_service.php';   // Real logging service
 
+// --- CONFIGURATION & SETUP ---
+define('ENCRYPTION_KEY', getenv('APP_ENCRYPTION_KEY')); 
+// NEW: Define our user's timezone in one place for easy management.
+define('USER_TIMEZONE', 'America/Chicago');
+
 // --- AUTHORIZATION & INITIAL DATA FETCH ---
 
 // 1. Universal Check: Is user logged in and is a trip UUID provided?
@@ -24,7 +29,6 @@ $user_role = $_SESSION['user_role'];
 $entity_id = $_SESSION['entity_id'] ?? null; // The facility or carrier ID the user belongs to
 
 $trip = null;
-$patient_phi = null;
 $view_mode = 'unauthorized'; // Default to no access
 $page_message = '';
 $page_error = '';
@@ -62,27 +66,21 @@ if (!$trip) {
 }
 
 // 3. Determine User's Authorization and View Mode
-// Bedrock Admins can see everything.
 if ($user_role === 'bedrock_admin') {
     $view_mode = 'admin';
 } 
-// Facility users can view if they created the trip.
 elseif (in_array($user_role, ['facility_user', 'facility_superuser']) && $trip['facility_id'] == $entity_id) {
     $view_mode = 'facility';
 } 
-// Carrier users need to be checked against blacklists.
 elseif (in_array($user_role, ['carrier_user', 'carrier_superuser'])) {
-    // Check if this carrier is blacklisted by the facility that created the trip
     $sql_blacklist = "SELECT 1 FROM facility_carrier_preferences WHERE facility_id = ? AND carrier_id = ? AND preference_type = 'blacklisted' LIMIT 1";
     if ($stmt_blacklist = $mysqli->prepare($sql_blacklist)) {
         $stmt_blacklist->bind_param("ii", $trip['facility_id'], $entity_id);
         $stmt_blacklist->execute();
         $stmt_blacklist->store_result();
         if ($stmt_blacklist->num_rows === 0) {
-            // Not blacklisted, now determine if they were awarded the trip
             if ($trip['carrier_id'] == $entity_id) {
                 $view_mode = 'carrier_awarded';
-                // HEAVY LOGGING: The awarded carrier is viewing the trip page.
                 log_activity($mysqli, $user_id, 'view_awarded_trip', "Awarded carrier (ID: {$entity_id}) viewed trip details for Trip ID: {$trip['id']}.");
             } else {
                 $view_mode = 'carrier_unawarded';
@@ -92,7 +90,6 @@ elseif (in_array($user_role, ['carrier_user', 'carrier_superuser'])) {
     }
 }
 
-// If after all checks the user is still unauthorized, log and boot them.
 if ($view_mode === 'unauthorized') {
     log_activity($mysqli, $user_id, 'unauthorized_trip_view', "User was denied access to view Trip ID: {$trip['id']}.");
     header("location: trip_board.php?error=unauthorized");
@@ -104,7 +101,6 @@ if ($view_mode === 'unauthorized') {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $action = $_POST['action'] ?? '';
 
-    // Action: Facility cancels a trip
     if ($action === 'cancel_trip' && $view_mode === 'facility') {
         $sql_cancel = "UPDATE trips SET status = 'cancelled', updated_at = NOW() WHERE id = ?";
         if ($stmt_cancel = $mysqli->prepare($sql_cancel)) {
@@ -121,21 +117,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Action: Carrier places a bid (submits an ETA)
+    // MODIFIED: Carrier places a bid (submits an ETA)
     if ($action === 'place_bid' && $view_mode === 'carrier_unawarded') {
-        // Double-check if bidding is still open to prevent race conditions
-        if (new DateTime() < new DateTime($trip['bidding_closes_at'])) {
-            $eta = trim($_POST['eta']);
-            if (!empty($eta)) {
+        // MODIFIED: Time comparison is now timezone-aware
+        $now_utc = new DateTime('now', new DateTimeZone('UTC'));
+        $bidding_closes_utc = new DateTime($trip['bidding_closes_at'], new DateTimeZone('UTC'));
+        
+        if ($now_utc < $bidding_closes_utc) {
+            $eta_local = trim($_POST['eta']);
+            if (!empty($eta_local)) {
+                // NEW: Convert the local time from the form to UTC for database storage
+                $local_time_obj = new DateTime($eta_local, new DateTimeZone(USER_TIMEZONE));
+                $local_time_obj->setTimezone(new DateTimeZone('UTC'));
+                $eta_for_db = $local_time_obj->format('Y-m-d H:i:s');
+
                 $sql_bid = "INSERT INTO carrier_etas (trip_id, carrier_id, eta) VALUES (?, ?, ?)";
                 if ($stmt_bid = $mysqli->prepare($sql_bid)) {
-                    $stmt_bid->bind_param("iis", $trip['id'], $entity_id, $eta);
+                    // MODIFIED: Use the UTC-converted timestamp
+                    $stmt_bid->bind_param("iis", $trip['id'], $entity_id, $eta_for_db);
                     if ($stmt_bid->execute()) {
-                        log_activity($mysqli, $user_id, 'bid_placed', "Carrier (ID: {$entity_id}) placed a bid on Trip ID: {$trip['id']} with ETA: {$eta}.");
+                        log_activity($mysqli, $user_id, 'bid_placed', "Carrier (ID: {$entity_id}) placed a bid on Trip ID: {$trip['id']} with ETA: {$eta_for_db} UTC.");
                         header("Location: trip_board.php?status=bid_placed");
                         exit;
                     } else {
-                        // Handle cases where a bid already exists (duplicate key error 1062)
                         if ($mysqli->errno == 1062) {
                             $page_error = 'You have already placed a bid on this trip.';
                         } else {
@@ -154,16 +158,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    // Action: Awarded carrier updates their ETA
+    // MODIFIED: Awarded carrier updates their ETA
     if ($action === 'update_eta' && $view_mode === 'carrier_awarded') {
-        $new_eta = trim($_POST['awarded_eta']);
-        if (!empty($new_eta)) {
+        $new_eta_local = trim($_POST['awarded_eta']);
+        if (!empty($new_eta_local)) {
+            // NEW: Convert the local time from the form to UTC for database storage
+            $local_time_obj = new DateTime($new_eta_local, new DateTimeZone(USER_TIMEZONE));
+            $local_time_obj->setTimezone(new DateTimeZone('UTC'));
+            $eta_for_db = $local_time_obj->format('Y-m-d H:i:s');
+
             $sql_update_eta = "UPDATE trips SET awarded_eta = ?, updated_at = NOW() WHERE id = ? AND carrier_id = ?";
             if ($stmt_update = $mysqli->prepare($sql_update_eta)) {
-                $stmt_update->bind_param("sii", $new_eta, $trip['id'], $entity_id);
+                // MODIFIED: Use the UTC-converted timestamp
+                $stmt_update->bind_param("sii", $eta_for_db, $trip['id'], $entity_id);
                 if ($stmt_update->execute()) {
-                    log_activity($mysqli, $user_id, 'eta_updated', "Awarded carrier updated ETA for Trip ID: {$trip['id']} to {$new_eta}.");
-                    // Refresh the page to show the new ETA
+                    log_activity($mysqli, $user_id, 'eta_updated', "Awarded carrier updated ETA for Trip ID: {$trip['id']} to {$eta_for_db} UTC.");
                     header("Location: " . htmlspecialchars($_SERVER["REQUEST_URI"]) . "&status=eta_updated");
                     exit;
                 } else {
@@ -180,17 +189,35 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
 // --- DATA PREPARATION FOR DISPLAY ---
 
-// Decrypt PHI data needed for the views
+// Decrypt PHI data
 $patient_last_name = decrypt_data($trip['patient_last_name_encrypted'], ENCRYPTION_KEY);
 $patient_dob = decrypt_data($trip['patient_dob_encrypted'], ENCRYPTION_KEY);
 $patient_diagnosis = decrypt_data($trip['diagnosis_encrypted'], ENCRYPTION_KEY);
 $special_equipment = decrypt_data($trip['special_equipment_encrypted'], ENCRYPTION_KEY);
 $isolation_precautions = decrypt_data($trip['isolation_precautions_encrypted'], ENCRYPTION_KEY);
 
-// Format data for "pretty" display
+// NEW: Helper function to convert UTC to user's local time for display
+function format_utc_to_user_time($utc_string, $format = 'M j, Y, g:i A') {
+    if (empty($utc_string)) {
+        return null;
+    }
+    try {
+        $utc_dt = new DateTime($utc_string, new DateTimeZone('UTC'));
+        $utc_dt->setTimezone(new DateTimeZone(USER_TIMEZONE));
+        return $utc_dt->format($format);
+    } catch (Exception $e) {
+        // Log error and return a safe value
+        error_log("Time formatting error: " . $e->getMessage());
+        return '[Invalid Time]';
+    }
+}
+
+// MODIFIED: Use the new helper function for all displayed times
 $patient_birth_year = $patient_dob ? (new DateTime($patient_dob))->format('Y') : '[N/A]';
-$created_at_formatted = (new DateTime($trip['created_at']))->format('M j, Y, g:i A');
-$updated_at_formatted = (new DateTime($trip['updated_at']))->format('M j, Y, g:i A');
+$created_at_formatted = format_utc_to_user_time($trip['created_at']);
+$updated_at_formatted = format_utc_to_user_time($trip['updated_at']);
+$appointment_at_formatted = $trip['appointment_at'] ? format_utc_to_user_time($trip['appointment_at']) : 'ASAP';
+$awarded_eta_for_form = $trip['awarded_eta'] ? format_utc_to_user_time($trip['awarded_eta'], 'Y-m-d\TH:i') : '';
 
 function format_status($status) {
     switch ($status) {
@@ -202,8 +229,13 @@ function format_status($status) {
     }
 }
 
-// Logic for the bidding window
-$bidding_is_open = (new DateTime() < new DateTime($trip['bidding_closes_at']));
+// MODIFIED: Time comparison is now timezone-aware and more robust
+$bidding_is_open = false;
+if ($trip['bidding_closes_at']) {
+    $now_utc = new DateTime('now', new DateTimeZone('UTC'));
+    $bidding_closes_utc = new DateTime($trip['bidding_closes_at'], new DateTimeZone('UTC'));
+    $bidding_is_open = $now_utc < $bidding_closes_utc;
+}
 
 ?>
 <!DOCTYPE html>
@@ -212,7 +244,8 @@ $bidding_is_open = (new DateTime() < new DateTime($trip['bidding_closes_at']));
     <meta charset="UTF-8">
     <title>Trip Details</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
+    <link rel="stylesheet" href="path/to/your/styles.css"> <style>
+        /* Your CSS remains the same */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 2em; }
         .container { max-width: 800px; margin: 0 auto; background-color: #fff; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header { background-color: #0056b3; color: white; padding: 1.5em; border-top-left-radius: 8px; border-top-right-radius: 8px; }
@@ -294,7 +327,7 @@ $bidding_is_open = (new DateTime() < new DateTime($trip['bidding_closes_at']));
                         <?php endif; ?>
 
                         <dt>Appointment Time</dt>
-                        <dd><?= $trip['appointment_at'] ? (new DateTime($trip['appointment_at']))->format('M j, Y, g:i A') : 'ASAP'; ?></dd>
+                        <dd><?= htmlspecialchars($appointment_at_formatted); ?></dd>
                         
                         <dt>Special Equipment</dt>
                         <dd><?= htmlspecialchars($special_equipment ?: 'None specified'); ?></dd>
@@ -358,7 +391,7 @@ $bidding_is_open = (new DateTime() < new DateTime($trip['bidding_closes_at']));
                 <form action="<?= htmlspecialchars($_SERVER["REQUEST_URI"]); ?>" method="post">
                     <div class="form-group">
                         <label for="awarded_eta">Amend Your ETA</label>
-                        <input type="datetime-local" id="awarded_eta" name="awarded_eta" value="<?= $trip['awarded_eta'] ? (new DateTime($trip['awarded_eta']))->format('Y-m-d\TH:i') : ''; ?>" required>
+                        <input type="datetime-local" id="awarded_eta" name="awarded_eta" value="<?= $awarded_eta_for_form; ?>" required>
                     </div>
                     <input type="hidden" name="action" value="update_eta">
                     <button type="submit" class="button button-success">Update ETA</button>
