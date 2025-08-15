@@ -444,6 +444,41 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// --- Special Equipment Conditional Logic ---
+const oxygenCheckbox = document.getElementById('equipment_oxygen');
+const oxygenDetails = document.getElementById('oxygen_details');
+
+const ivCheckbox = document.getElementById('equipment_iv');
+const ivDetails = document.getElementById('iv_details');
+const ivFlowingRadio = document.getElementById('iv_flowing');
+const ivMedsContainer = document.getElementById('iv_meds_container');
+
+const ventilatorCheckbox = document.getElementById('equipment_ventilator');
+const ventilatorDetails = document.getElementById('ventilator_details');
+
+const otherCheckbox = document.getElementById('equipment_other');
+const otherDetails = document.getElementById('other_details');
+
+oxygenCheckbox.addEventListener('change', function() {
+    oxygenDetails.style.display = this.checked ? 'block' : 'none';
+});
+
+ivCheckbox.addEventListener('change', function() {
+    ivDetails.style.display = this.checked ? 'block' : 'none';
+});
+
+ivFlowingRadio.addEventListener('change', function() {
+    ivMedsContainer.style.display = this.checked ? 'block' : 'none';
+});
+
+ventilatorCheckbox.addEventListener('change', function() {
+    ventilatorDetails.style.display = this.checked ? 'block' : 'none';
+});
+
+otherCheckbox.addEventListener('change', function() {
+    otherDetails.style.display = this.checked ? 'block' : 'none';
+});
 </script>
 
 <?php
