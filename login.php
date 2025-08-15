@@ -1,6 +1,6 @@
 <?php
 // 1. Start the session. This MUST be the very first thing.
-require_once __DIR__ . '../../app/session_config.php';
+require_once __DIR__ . '/../../app/session_config.php';
 
 // If the user is already logged in, redirect them to the dashboard
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
