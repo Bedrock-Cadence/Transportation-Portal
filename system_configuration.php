@@ -112,7 +112,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     'preferred_facilities' => $_POST['preferred_facilities'] ?? [],
                     'blacklisted_facilities' => $_POST['blacklisted_facilities'] ?? [],
                     'trip_types' => $_POST['trip_types'] ?? [],
-                    'ltd_miles' => $_POST['ltd_miles'] ?? 150
+                    'ltd_miles' => $_POST['ltd_miles'] ?? 150,
+                    'special_equipment' => $_POST['special_equipment'] ?? []
                 ];
             }
             
@@ -375,6 +376,31 @@ $mysqli->close();
                         </label>
                         <input type="number" id="ltd_miles" name="ltd_miles" value="<?= htmlspecialchars($config_data['ltd_miles'] ?? 150); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Special Equipment</label>
+                        <div class="mt-1 space-y-2">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="equipment_o2" name="special_equipment[]" value="O2" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" <?= in_array('O2', $config_data['special_equipment'] ?? []) ? 'checked' : ''; ?>>
+                                <label for="equipment_o2" class="ml-2 block text-sm font-medium text-gray-700">O2</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="equipment_iv" name="special_equipment[]" value="IV" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" <?= in_array('IV', $config_data['special_equipment'] ?? []) ? 'checked' : ''; ?>>
+                                <label for="equipment_iv" class="ml-2 block text-sm font-medium text-gray-700">IV</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="equipment_vent" name="special_equipment[]" value="Vent" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" <?= in_array('Vent', $config_data['special_equipment'] ?? []) ? 'checked' : ''; ?>>
+                                <label for="equipment_vent" class="ml-2 block text-sm font-medium text-gray-700">Vent</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="equipment_ecmo" name="special_equipment[]" value="ECMO" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" <?= in_array('ECMO', $config_data['special_equipment'] ?? []) ? 'checked' : ''; ?>>
+                                <label for="equipment_ecmo" class="ml-2 block text-sm font-medium text-gray-700">ECMO</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="equipment_cardiac" name="special_equipment[]" value="Cardiac Monitor" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" <?= in_array('Cardiac Monitor', $config_data['special_equipment'] ?? []) ? 'checked' : ''; ?>>
+                                <label for="equipment_cardiac" class="ml-2 block text-sm font-medium text-gray-700">Cardiac Monitor</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex justify-end">
@@ -483,6 +509,14 @@ function fetchEntityConfig(entityType, entityId) {
                 // Handle checkboxes
                 document.getElementById('trip_type_stretcher').checked = data.config.trip_types?.includes('Stretcher') ?? false;
                 document.getElementById('trip_type_wheelchair').checked = data.config.trip_types?.includes('Wheelchair') ?? false;
+                
+                // Handle special equipment checkboxes
+                const specialEquipment = data.config.special_equipment ?? [];
+                document.getElementById('equipment_o2').checked = specialEquipment.includes('O2');
+                document.getElementById('equipment_iv').checked = specialEquipment.includes('IV');
+                document.getElementById('equipment_vent').checked = specialEquipment.includes('Vent');
+                document.getElementById('equipment_ecmo').checked = specialEquipment.includes('ECMO');
+                document.getElementById('equipment_cardiac').checked = specialEquipment.includes('Cardiac Monitor');
             }
         })
         .catch(error => {
