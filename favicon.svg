@@ -1,0 +1,16 @@
+<svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- This SVG is a simplified, icon-sized version of your logo's key elements -->
+    
+    <!-- Simplified Bedrock shape -->
+    <path d="M50 85L20 65H80L50 85Z" fill="#333333"/>
+    
+    <!-- Simplified Cadence line with gradient -->
+    <path d="M10 50H20L25 40L35 60L40 50H50L55 40L65 60L70 50H90" stroke="url(#favicon-gradient)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    
+    <defs>
+        <linearGradient id="favicon-gradient" x1="10" y1="50" x2="90" y2="50" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#C60021"/>
+            <stop offset="1" stop-color="#6A008A"/>
+        </linearGradient>
+    </defs>
+</svg>
