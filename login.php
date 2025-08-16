@@ -19,7 +19,7 @@ $email = ''; // Keep email in the form field on a failed attempt
  * Logs a login attempt to the database.
  *
  * @param mysqli $mysqli The database connection object.
- * @param int|null $user_id The ID of the user attempting to log in.
+ * @param string $email The email address used in the login attempt.
  * @param string $ip_address The IP address of the user.
  * @param string $attempt_result The result of the login attempt ('success', 'fail').
  * @param string $failure_reason A brief description of why the login failed.
@@ -27,9 +27,8 @@ $email = ''; // Keep email in the form field on a failed attempt
 function log_login_attempt($mysqli, $email, $ip_address, $attempt_result, $failure_reason = '') {
     $sql = "INSERT INTO login_history (email, ip_address, attempt_result, failure_reason) VALUES (?, ?, ?, ?)";
     if ($stmt = $mysqli->prepare($sql)) {
-        // For failed attempts where user_id is unknown, we'll insert NULL.
-        // The database column for user_id must allow NULL values.
-        $stmt->bind_param("isss", $email, $ip_address, $attempt_result, $failure_reason);
+        // Bind parameters as strings.
+        $stmt->bind_param("ssss", $email, $ip_address, $attempt_result, $failure_reason);
         $stmt->execute();
         $stmt->close();
     }
@@ -43,6 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
     $secretKey = CLOUD_FLARE_SECRET; // Keep this safe!
     $ip_address = $_SERVER['REMOTE_ADDR'];
+    // Grab email early for logging, provide a default if not present.
+    $email_for_logging = trim($_POST["email"] ?? 'N/A');
+
 
     $postData = [
         'secret'   => $secretKey,
@@ -59,21 +61,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (!isset($result['success']) || !$result['success']) {
         $login_error = "Security check failed. Please try again.";
-        // Note: We can't log with user_id yet, but we can log the attempt.
-        log_login_attempt($mysqli, null, $ip_address, 'fail', 'Cloudflare Turnstile failed');
+        log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Cloudflare Turnstile failed');
     } elseif (empty(trim($_POST["email"])) || empty($_POST["password"])) {
         $login_error = "Email and password are required.";
-        // We can't log with user_id, but we can log the attempt with the provided email for context if desired.
-        log_login_attempt($mysqli, null, $ip_address, 'fail', 'Empty email or password');
+        log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Empty email or password');
     } else {
         $email = trim($_POST["email"]);
         $password = $_POST["password"];
         $user = null;
-        $user_id_for_logging = null;
 
         // --- STEP 1 & 2: Fetch User and Entity Details ---
         // This single query gets all necessary user and entity data in one go.
-        // It now also fetches the entity's active status.
         $sql = "SELECT 
                     u.id, u.uuid, u.email, u.password_hash, u.first_name, u.last_name, 
                     u.role, u.is_active AS user_is_active, u.entity_id, u.entity_type,
@@ -91,7 +89,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $result = $stmt->get_result();
             if ($result->num_rows === 1) {
                 $user = $result->fetch_assoc();
-                $user_id_for_logging = $user['id']; // Get user ID for logging purposes
             }
             $stmt->close();
         }
@@ -101,29 +98,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Check 1: Does the user exist?
         if (!$user) {
             $login_error = "The email or password you entered is incorrect.";
-            log_login_attempt($mysqli, null, $ip_address, 'fail', 'User not found');
+            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User not found');
         
         // Check 2: Is the user's own account active? (Applies to all roles)
         } elseif (!$user['user_is_active']) {
             $login_error = "This account is inactive or pending activation.";
-            log_login_attempt($mysqli, $user_id_for_logging, $ip_address, 'fail', 'User account inactive');
+            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User account inactive');
 
         // Check 3: Is the user's associated entity active? (Bypassed for 'superuser')
         } elseif ($user['role'] === 'user' && !$user['entity_is_active']) {
             $login_error = "Your company's account is currently inactive. Please contact support.";
-            log_login_attempt($mysqli, $user_id_for_logging, $ip_address, 'fail', 'Entity inactive');
+            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Entity inactive');
 
         // Check 4: Does the password match? (This is checked last for security)
         } elseif (!password_verify($password, $user['password_hash'])) {
             $login_error = "The email or password you entered is incorrect.";
-            log_login_attempt($mysqli, $user_id_for_logging, $ip_address, 'fail', 'Incorrect password');
+            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Incorrect password');
         
         // --- FINAL STEP: LOGIN SUCCESS ---
         } else {
             // If we got here, all checks passed.
             
             // Step 5: Log the successful attempt.
-            log_login_attempt($mysqli, $user_id_for_logging, $ip_address, 'success');
+            log_login_attempt($mysqli, $email, $ip_address, 'success');
 
             // Step 6: Set session variables and redirect.
             session_regenerate_id(true);
