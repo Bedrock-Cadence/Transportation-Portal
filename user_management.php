@@ -97,7 +97,6 @@ function getDisplayName($role) {
 <div id="dashboard-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
-        <p id="last-updated" class="text-sm text-gray-500">Last updated: <?php echo date("F d, Y h:i:s A"); ?></p>
     </div>
 
     <!-- Active Users Section -->
