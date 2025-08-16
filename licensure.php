@@ -2,7 +2,7 @@
 // FILE: licensure.php
 
 // 1. Set the page title for the header.
-$page_title = 'Licensure';
+$page_title = 'Licensure Management';
 
 // 2. Include the header, which also handles session startup.
 require_once 'header.php';
@@ -30,6 +30,35 @@ $page_error = '';
 $carrier = null;
 $is_editable = false;
 
+// Check for and display session messages after a redirect.
+if (isset($_SESSION['licensure_page_message'])) {
+    $page_message = $_SESSION['licensure_page_message'];
+    unset($_SESSION['licensure_page_message']);
+}
+if (isset($_SESSION['licensure_page_error'])) {
+    $page_error = $_SESSION['licensure_page_error'];
+    unset($_SESSION['licensure_page_error']);
+}
+
+// --- Start of Utility Functions ---
+
+/**
+ * Logs an action to the user_activity_logs table.
+ * @param mysqli $conn The database connection object.
+ * @param int $user_id The ID of the user performing the action.
+ * @param string $action The type of action (e.g., 'licensure_updated').
+ * @param string $message A detailed message about the action.
+ */
+function log_user_activity($conn, $user_id, $action, $message) {
+    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
+    $log_stmt = $conn->prepare("INSERT INTO user_activity_logs (user_id, action, message, ip_address) VALUES (?, ?, ?, ?)");
+    $log_stmt->bind_param("isss", $user_id, $action, $message, $ip_address);
+    $log_stmt->execute();
+    $log_stmt->close();
+}
+
+// --- End of Utility Functions ---
+
 // --- Start of Form Submission Handling ---
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Fetch the carrier's current verification status before attempting an update.
@@ -52,18 +81,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $stmt->bind_param("sssi", $license_state, $license_number, $license_expires_at, $_SESSION['entity_id']);
             
             if ($stmt->execute()) {
-                $page_message = "Licensing information has been updated successfully.";
+                $_SESSION['licensure_page_message'] = "Licensing information has been updated successfully.";
+                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', "Carrier licensure updated for entity ID: {$_SESSION['entity_id']}");
             } else {
-                $page_error = "Error updating licensure: " . $stmt->error;
+                $_SESSION['licensure_page_error'] = "Error updating licensure: " . $stmt->error;
+                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Failed to update carrier licensure for entity ID: {$_SESSION['entity_id']}");
             }
             $stmt->close();
 
         } catch (Exception $e) {
-            $page_error = "An error occurred: " . $e->getMessage();
+            $_SESSION['licensure_page_error'] = "An error occurred: " . $e->getMessage();
+            log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Exception occurred during licensure update for entity ID: {$_SESSION['entity_id']}");
         }
     } else {
-        $page_error = "Licensing data cannot be changed. It is in a 'verified' status.";
+        $_SESSION['licensure_page_error'] = "Licensing data cannot be changed. It is in a 'verified' status.";
+        log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_blocked', "Blocked attempt to update verified licensure for entity ID: {$_SESSION['entity_id']}");
     }
+    
+    // Redirect to the same page to show the new data and clear POST data.
+    header("location: licensure.php");
+    exit;
 }
 // --- End of Form Submission Handling ---
 
@@ -93,9 +130,6 @@ $mysqli->close();
 <div id="licensure-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Licensure Management</h1>
-        <p class="text-sm text-gray-500">
-            Last updated: <span class="font-semibold"><?= htmlspecialchars(date("F d, Y h:i:s A")); ?></span>
-        </p>
     </div>
 
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
