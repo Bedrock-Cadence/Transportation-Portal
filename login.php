@@ -200,7 +200,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       which JavaScript function to run when it's successful.
     -->
     <div class="cf-turnstile" 
-         data-sitekey="YOUR_SITE_KEY_HERE" 
+         data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR" 
          data-callback="onTurnstileSuccess">
     </div>
 
