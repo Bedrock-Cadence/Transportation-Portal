@@ -163,70 +163,151 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login - Bedrock Cadence</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
-<body class="bg-light">
-
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-5 col-md-7 mt-5">
-                <div class="card shadow-lg">
-                    <div class="card-body p-4 p-md-5">
-                        <h2 class="text-center mb-4">Portal Login</h2>
-
-                        <?php 
-                        if(!empty($login_error)){
-                            echo '<div class="alert alert-danger">' . htmlspecialchars($login_error) . '</div>';
-                        }
-                        if (isset($_GET['status']) && $_GET['status'] == 'activation_success') {
-                            echo '<div class="alert alert-success">Account activated! You can now log in.</div>';
-                        }
-                        ?>
-
-                        <form id="loginForm" method="POST" action="login.php">
-    
-    <!-- Your email and password fields go here -->
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required>
-    
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required>
-
-    <!-- 
-      This is the Turnstile widget. 
-      The 'data-callback' is the magic part. It tells Turnstile 
-      which JavaScript function to run when it's successful.
-    -->
-    <div class="cf-turnstile" 
-         data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR" 
-         data-callback="onTurnstileSuccess">
-    </div>
-
-    <!-- 
-      The login button starts off as 'disabled'. 
-      Our JavaScript function will enable it.
-    -->
-    <button type="submit" id="submitBtn" disabled>Log In</button>
-
-</form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <title>Login</title>
+    <!-- Include the Turnstile script from Cloudflare -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-    <script>
+    <style>
+        /* Basic styles for the page */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
 
-  function onTurnstileSuccess(token) {
-    const submitButton = document.getElementById('submitBtn');
+        /* Container for the login form */
+        .login-container {
+            background-color: #ffffff;
+            padding: 2rem 2.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+        }
+
+        /* Form title */
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Styling for form groups (label + input) */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        /* Styling for labels */
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 600;
+        }
+
+        /* Styling for text and password inputs */
+        input[type="email"],
+        input[type="password"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        input[type="email"]:focus,
+        input[type="password"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+            outline: none;
+        }
+        
+        /* Center the Turnstile widget */
+        .cf-turnstile {
+            margin: 1.5rem auto;
+            display: table;
+        }
+
+        /* Styling for the submit button */
+        button[type="submit"] {
+            width: 100%;
+            padding: 0.85rem;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+
+        button[type="submit"]:hover:not(:disabled) {
+            background-color: #0056b3;
+        }
+        
+        /* Style for the button when it is disabled */
+        button[type="submit"]:disabled {
+            background-color: #a0c7ff;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h2>Member Login</h2>
+        <form id="loginForm" method="POST" action="login.php">
+            
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <!-- 
+              This is the Turnstile widget. 
+              The 'data-callback' tells Turnstile which JavaScript 
+              function to run when it's successful.
+            -->
+            <div class="cf-turnstile" 
+                 data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR" 
+                 data-callback="onTurnstileSuccess">
+            </div>
+
+            <!-- 
+              The login button starts off as 'disabled'. 
+              Our JavaScript function will enable it.
+            -->
+            <button type="submit" id="submitBtn" disabled>Log In</button>
+
+        </form>
+    </div>
+
+    <!-- This script should be placed at the bottom of your page -->
+    <script>
+      // This is the function that the Turnstile widget will call on success.
+      function onTurnstileSuccess(token) {
+        // Find the submit button on the page.
+        const submitButton = document.getElementById('submitBtn');
+        
+        // If the button exists, remove the 'disabled' attribute.
         if (submitButton) {
-      submitButton.disabled = false;
-    }
-  }
-</script>
+          submitButton.disabled = false;
+        }
+      }
+    </script>
+
 </body>
 </html>
