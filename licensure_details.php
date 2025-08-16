@@ -1,8 +1,10 @@
 <?php
-// FILE: licensure-details.php (NEW FILE)
+// FILE: licensure-details.php (FINAL REVISION)
+
+ob_start(); // ADDED: Start the output buffer. This is the only line needed to fix the header error.
 
 $page_title = 'Edit Carrier Licensure';
-require_once 'header.php';
+require_once 'header.php'; // This can now safely stay at the top.
 
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     header("location: login.php");
@@ -32,6 +34,7 @@ $selected_carrier = null;
 $carrier_id = $_GET['carrier_id'] ?? $_POST['carrier_id'] ?? null;
 
 if ($carrier_id === null) {
+    // This header call will now work correctly.
     header("location: licensure.php");
     exit;
 }
@@ -43,7 +46,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $license_number = trim($_POST['license_number'] ?? '');
     $license_expires_at = trim($_POST['license_expires_at'] ?? '');
 
-    // ADDED: Fetch the carrier's current data BEFORE the update for logging purposes.
     $stmt_old_data = $mysqli->prepare("SELECT verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1");
     $stmt_old_data->bind_param("i", $carrier_id);
     $stmt_old_data->execute();
@@ -68,7 +70,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if ($stmt->execute()) {
                 $mysqli->commit();
 
-                // CHANGED: Build a detailed log message with before and after values.
                 $log_message = "Admin updated licensure for carrier ID {$carrier_id}. ";
                 $changes = [];
 
@@ -81,7 +82,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 if ($old_data['license_number'] !== $license_number) {
                     $changes[] = "Number: '{$old_data['license_number']}' -> '{$license_number}'";
                 }
-                // Handle date comparison carefully
                 $old_date = $old_data['license_expires_at'] ?? '';
                 if ($old_date !== $license_expires_at) {
                     $changes[] = "Expires: '{$old_date}' -> '{$license_expires_at}'";
@@ -95,6 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 
                 log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', $log_message);
                 
+                // This header call will now work correctly.
                 header("location: licensure.php?update=success");
                 exit;
             } else {
@@ -119,6 +120,7 @@ $selected_carrier = $result->fetch_assoc();
 $stmt->close();
 
 if (!$selected_carrier) {
+    // This header call will now work correctly.
     header("location: licensure.php");
     exit;
 }
@@ -172,4 +174,5 @@ if (!$selected_carrier) {
 
 <?php
 require_once 'footer.php';
+// The output buffer will be automatically sent to the browser when the script finishes.
 ?>
