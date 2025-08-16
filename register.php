@@ -8,8 +8,9 @@ require_once __DIR__ . '/../../app/db_connect.php';
 $page_message = '';
 $page_error = '';
 $user = null;
-$show_form = false;
-$token = '';
+$show_form_step_1 = false;
+$show_form_step_2 = false;
+$token = $_GET['uuid'] ?? '';
 
 // --- Start of Utility Functions ---
 
@@ -55,10 +56,8 @@ function isMediumStrengthPassword($password) {
 // --- End of Utility Functions ---
 
 
-// --- Handle GET request to validate the registration token and show the form ---
-if (isset($_GET['uuid'])) {
-    $token = $_GET['uuid'];
-
+// --- Handle GET request to validate the registration token and determine form step ---
+if (!empty($token)) {
     // Query the database to find the user by their registration token hash.
     $stmt = $mysqli->prepare("SELECT id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
     $stmt->bind_param("s", $token);
@@ -69,7 +68,7 @@ if (isset($_GET['uuid'])) {
 
     // Check if the user exists and the invitation is still valid.
     if ($user_exists && !$user_exists['is_active'] && strtotime($user_exists['token_expires_at']) > time()) {
-        $show_form = true;
+        $show_form_step_1 = true;
     } else {
         $page_error = 'This registration link is invalid or has expired. Please contact your admin for a new one.';
     }
@@ -78,43 +77,69 @@ if (isset($_GET['uuid'])) {
 }
 
 // --- Handle POST request for form submission ---
-if ($show_form && $_SERVER["REQUEST_METHOD"] === "POST") {
-    $token = trim($_POST['token']);
-    $entered_entity_id = trim($_POST['entity_id']);
-    $password = $_POST['password'];
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $token = trim($_POST['token'] ?? '');
+    
+    // Check if we are handling a valid token and proceed with the form logic.
+    if (!empty($token)) {
+        // Step 1: Validate the entity ID and transition to step 2.
+        if (isset($_POST['action']) && $_POST['action'] === 'validate_entity') {
+            $entered_entity_id = trim($_POST['entity_id']);
 
-    // Re-fetch the user data to ensure it's still valid, but only after form submission.
-    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
-    $stmt->bind_param("s", $token);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
-    $stmt->close();
-
-    if (!$user || $user['is_active'] || strtotime($user['token_expires_at']) < time()) {
-        $page_error = 'This registration link has become invalid. Please refresh the page.';
-    } else if ($entered_entity_id != $user['entity_id']) {
-        $page_error = 'The entity ID you entered does not match the invitation. Please try again.';
-    } else if (!isMediumStrengthPassword($password)) {
-        $page_error = 'Password is too weak. It must be at least 8 characters and contain at least three of the following: uppercase letters, lowercase letters, numbers, and symbols.';
-    } else {
-        // All checks passed. Activate the account and update the user data.
-        $password_hash = password_hash($password, PASSWORD_ARGON2ID);
-        
-        $stmt_update = $mysqli->prepare("UPDATE users SET password_hash = ?, is_active = 1, registration_token_hash = NULL, token_expires_at = NULL WHERE id = ?");
-        $stmt_update->bind_param("si", $password_hash, $user['id']);
-        
-        if ($stmt_update->execute()) {
-            $stmt_update->close();
+            $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+            $stmt->bind_param("s", $token);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            $stmt->close();
             
-            // Log the successful registration. The actor and target are the same user.
-            log_user_history($mysqli, $user['id'], $user['id'], 'user_registered', 'User successfully completed registration and activated their account.');
+            if (!$user) {
+                $page_error = 'The provided token is no longer valid. Please refresh the page.';
+            } else if ($entered_entity_id != $user['entity_id']) {
+                $page_error = 'The entity ID you entered does not match the invitation. Please try again.';
+            } else {
+                // Entity ID is valid. Show step 2.
+                $show_form_step_1 = false;
+                $show_form_step_2 = true;
+            }
+        }
+        
+        // Step 2: Handle password creation and final registration.
+        else if (isset($_POST['action']) && $_POST['action'] === 'complete_registration') {
+            $password = $_POST['password'];
 
-            // Redirect to the index page.
-            header("location: index.php");
-            exit;
-        } else {
-            $page_error = 'There was an error activating your account. Please try again.';
+            // Re-fetch user data to ensure token and user still valid.
+            $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+            $stmt->bind_param("s", $token);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $user = $result->fetch_assoc();
+            $stmt->close();
+
+            if (!$user || $user['is_active'] || strtotime($user['token_expires_at']) < time()) {
+                $page_error = 'This registration link has become invalid. Please refresh the page.';
+            } else if (!isMediumStrengthPassword($password)) {
+                $page_error = 'Password is too weak. It must be at least 8 characters and contain at least three of the following: uppercase letters, lowercase letters, numbers, or symbols.';
+            } else {
+                // All checks passed. Activate the account and update the user data.
+                $password_hash = password_hash($password, PASSWORD_ARGON2ID);
+                
+                $stmt_update = $mysqli->prepare("UPDATE users SET password_hash = ?, is_active = 1, registration_token_hash = NULL, token_expires_at = NULL WHERE id = ?");
+                $stmt_update->bind_param("si", $password_hash, $user['id']);
+                
+                if ($stmt_update->execute()) {
+                    $stmt_update->close();
+                    
+                    // Log the successful registration. The actor and target are the same user.
+                    log_user_history($mysqli, $user['id'], $user['id'], 'user_registered', 'User successfully completed registration and activated their account.');
+
+                    // Redirect to the index page.
+                    header("location: index.php");
+                    exit;
+                } else {
+                    $page_error = 'There was an error activating your account. Please try again.';
+                }
+            }
         }
     }
 }
@@ -136,12 +161,6 @@ $mysqli->close();
         </div>
 
         <div class="p-6">
-            <?php if (!empty($page_message)): ?>
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
-                    <p class="font-bold">Success</p>
-                    <p><?= htmlspecialchars($page_message); ?></p>
-                </div>
-            <?php endif; ?>
             <?php if (!empty($page_error)): ?>
                 <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
                     <p class="font-bold">Error</p>
@@ -149,13 +168,48 @@ $mysqli->close();
                 </div>
             <?php endif; ?>
 
-            <?php if ($show_form): ?>
-                <form method="POST" action="register.php?token=<?= htmlspecialchars($_GET['token']); ?>" class="space-y-6">
-                    <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']); ?>">
-
+            <?php if ($show_form_step_1): ?>
+                <!-- Step 1: Entity ID Verification -->
+                <form method="POST" action="register.php?token=<?= htmlspecialchars($token); ?>" class="space-y-6">
+                    <input type="hidden" name="token" value="<?= htmlspecialchars($token); ?>">
+                    <input type="hidden" name="action" value="validate_entity">
+                    <p class="text-center text-gray-600 mb-6">To begin, please enter the Entity ID provided in your invitation email.</p>
                     <div>
                         <label for="entity_id" class="block text-sm font-medium text-gray-700">Entity ID</label>
-                        <input type="text" id="entity_id" name="entity_id" required placeholder="Enter the ID from your invitation email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <input type="text" id="entity_id" name="entity_id" required placeholder="Your Company's Entity ID" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div class="flex justify-center">
+                        <button type="submit" class="w-full sm:w-auto inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Verify Identity
+                        </button>
+                    </div>
+                </form>
+            <?php elseif ($show_form_step_2): ?>
+                <!-- Step 2: User Confirmation and Password Creation -->
+                <form method="POST" action="register.php?token=<?= htmlspecialchars($token); ?>" class="space-y-6">
+                    <input type="hidden" name="token" value="<?= htmlspecialchars($token); ?>">
+                    <input type="hidden" name="action" value="complete_registration">
+                    <p class="text-center text-gray-600 mb-6">Identity verified! Please confirm your details and create a secure password to complete your registration.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">First Name</label>
+                            <input type="text" value="<?= htmlspecialchars($user['first_name'] ?? ''); ?>" readonly class="mt-1 block w-full rounded-md bg-gray-100 border-gray-300 shadow-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Last Name</label>
+                            <input type="text" value="<?= htmlspecialchars($user['last_name'] ?? ''); ?>" readonly class="mt-1 block w-full rounded-md bg-gray-100 border-gray-300 shadow-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" value="<?= htmlspecialchars($user['email'] ?? ''); ?>" readonly class="mt-1 block w-full rounded-md bg-gray-100 border-gray-300 shadow-sm">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phone Number</label>
+                        <input type="tel" value="<?= htmlspecialchars($user['phone_number'] ?? ''); ?>" readonly class="mt-1 block w-full rounded-md bg-gray-100 border-gray-300 shadow-sm">
                     </div>
 
                     <div>
