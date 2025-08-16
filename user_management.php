@@ -21,6 +21,7 @@ if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], $allowed
     exit;
 }
 
+// 4. Include the database connection file. The $mysqli object is now available for use.
 require_once __DIR__ . '/../../app/db_connect.php';
 
 // Initialize arrays to hold active and inactive users.
@@ -41,12 +42,14 @@ try {
             echo '<p class="text-red-500">Error: Your account is missing an associated entity ID. Please contact support.</p>';
         } else {
             $sql .= " WHERE entity_id = ?";
-            $stmt = $conn->prepare($sql);
+            // Use the established $mysqli connection object.
+            $stmt = $mysqli->prepare($sql);
             $stmt->bind_param("i", $_SESSION['entity_id']);
         }
     } else {
         // If the user is a bedrock_admin, query all users.
-        $stmt = $conn->prepare($sql);
+        // Use the established $mysqli connection object.
+        $stmt = $mysqli->prepare($sql);
     }
     
     // Check if the statement was successfully prepared before executing.
