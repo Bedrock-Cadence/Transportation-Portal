@@ -1,6 +1,10 @@
 <?php
 // FILE: licensure.php
 
+// Start output buffering to prevent "headers already sent" errors.
+// This captures all output until the script is ready to send it to the browser.
+ob_start();
+
 // 1. Set the page title for the header.
 $page_title = 'Licensure Management';
 
@@ -206,4 +210,7 @@ $mysqli->close();
 <?php
 // This includes the footer and necessary closing tags.
 require_once 'footer.php';
+
+// Flush the output buffer and send content to the browser.
+ob_end_flush();
 ?>
