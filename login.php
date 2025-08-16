@@ -185,21 +185,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                         ?>
 
-                        <form action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" method="post">
-                            <div class="mb-3">
-                                <label for="email" class="form-label">Email Address</label>
-                                <input type="email" name="email" id="email" class="form-control" value="<?php echo htmlspecialchars($email); ?>" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Password</label>
-                                <input type="password" name="password" id="password" class="form-control" required>
-                            </div>
-                            <div class="cf-turnstile" data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR"></div>
+                        <form id="loginForm" method="POST" action="login.php">
+    
+    <!-- Your email and password fields go here -->
+    <label for="email">Email:</label>
+    <input type="email" id="email" name="email" required>
+    
+    <label for="password">Password:</label>
+    <input type="password" id="password" name="password" required>
 
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg">Log In</button>
-                            </div>
-                        </form>
+    <!-- 
+      This is the Turnstile widget. 
+      The 'data-callback' is the magic part. It tells Turnstile 
+      which JavaScript function to run when it's successful.
+    -->
+    <div class="cf-turnstile" 
+         data-sitekey="YOUR_SITE_KEY_HERE" 
+         data-callback="onTurnstileSuccess">
+    </div>
+
+    <!-- 
+      The login button starts off as 'disabled'. 
+      Our JavaScript function will enable it.
+    -->
+    <button type="submit" id="submitBtn" disabled>Log In</button>
+
+</form>
                     </div>
                 </div>
             </div>
@@ -207,5 +218,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+
+  // This is the function that the Turnstile widget will call on success.
+  function onTurnstileSuccess(token) {
+    // Find the submit button on the page.
+    const submitButton = document.getElementById('submitBtn');
+    
+    // If the button exists, remove the 'disabled' attribute.
+    if (submitButton) {
+      submitButton.disabled = false;
+    }
+  }
+</script>
 </body>
 </html>
