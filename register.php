@@ -56,7 +56,7 @@ function isMediumStrengthPassword($password) {
 
 // --- Handle GET request to validate the registration token ---
 if (isset($_GET['token'])) {
-    $token = $_GET['token'];
+    $token = $_GET['uuid'];
 
     // Query the database to find the user by their registration token hash.
     $stmt = $mysqli->prepare("SELECT id, uuid, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
