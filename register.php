@@ -11,6 +11,7 @@ $user = null;
 $show_form_step_1 = false;
 $show_form_step_2 = false;
 $token = $_GET['uuid'] ?? '';
+$entered_uuid = '';
 
 // --- Start of Utility Functions ---
 
@@ -59,7 +60,7 @@ function isMediumStrengthPassword($password) {
 // --- Handle GET request to validate the registration token and determine form step ---
 if (!empty($token)) {
     // Query the database to find the user by their registration token hash.
-    $stmt = $mysqli->prepare("SELECT id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+    $stmt = $mysqli->prepare("SELECT id, is_active, token_expires_at, entity_type FROM users WHERE registration_token_hash = ? LIMIT 1");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -82,11 +83,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     
     // Check if we are handling a valid token and proceed with the form logic.
     if (!empty($token)) {
-        // Step 1: Validate the entity ID and transition to step 2.
+        // Step 1: Validate the entity UUID and transition to step 2.
         if (isset($_POST['action']) && $_POST['action'] === 'validate_entity') {
-            $entered_entity_id = trim($_POST['entity_id']);
+            $entered_uuid = trim($_POST['entity_uuid']);
 
-            $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+            $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, entity_type, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
             $stmt->bind_param("s", $token);
             $stmt->execute();
             $result = $stmt->get_result();
@@ -95,12 +96,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             
             if (!$user) {
                 $page_error = 'The provided token is no longer valid. Please refresh the page.';
-            } else if ($entered_entity_id != $user['entity_id']) {
-                $page_error = 'The entity ID you entered does not match the invitation. Please try again.';
-            } else {
-                // Entity ID is valid. Show step 2.
+            } else if ($user['entity_type'] === 'bedrock') {
+                // Bedrock employees don't have an entity UUID to verify, so skip to step 2.
+                // Log a note about the successful verification.
+                log_user_history($mysqli, $user['id'], $user['id'], 'identity_verified', 'User identity verified via registration token.');
+                $page_error = '';
                 $show_form_step_1 = false;
                 $show_form_step_2 = true;
+            } else {
+                // Validate the UUID against the correct entity table.
+                $entity_table = $user['entity_type'] . 's';
+                $stmt_entity = $mysqli->prepare("SELECT id FROM `" . $entity_table . "` WHERE uuid = ? LIMIT 1");
+                $stmt_entity->bind_param("s", $entered_uuid);
+                $stmt_entity->execute();
+                $result_entity = $stmt_entity->get_result();
+                $entity = $result_entity->fetch_assoc();
+                $stmt_entity->close();
+                
+                if (!$entity || $entity['id'] != $user['entity_id']) {
+                    $page_error = 'The entity UUID you entered does not match the invitation. Please try again.';
+                } else {
+                    // UUID is valid. Show step 2.
+                    log_user_history($mysqli, $user['id'], $user['id'], 'identity_verified', 'User identity verified by entity UUID.');
+                    $page_error = '';
+                    $show_form_step_1 = false;
+                    $show_form_step_2 = true;
+                }
             }
         }
         
@@ -167,16 +188,22 @@ $mysqli->close();
                     <p><?= htmlspecialchars($page_error); ?></p>
                 </div>
             <?php endif; ?>
-
+            <?php if (!empty($page_message)): ?>
+                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+                    <p class="font-bold">Success</p>
+                    <p><?= htmlspecialchars($page_message); ?></p>
+                </div>
+            <?php endif; ?>
+            
             <?php if ($show_form_step_1): ?>
-                <!-- Step 1: Entity ID Verification -->
+                <!-- Step 1: Entity UUID Verification -->
                 <form method="POST" action="register.php?token=<?= htmlspecialchars($token); ?>" class="space-y-6">
                     <input type="hidden" name="token" value="<?= htmlspecialchars($token); ?>">
                     <input type="hidden" name="action" value="validate_entity">
-                    <p class="text-center text-gray-600 mb-6">To begin, please enter the Entity ID provided in your invitation email.</p>
+                    <p class="text-center text-gray-600 mb-6">To begin, please enter the UUID provided in your invitation email.</p>
                     <div>
-                        <label for="entity_id" class="block text-sm font-medium text-gray-700">Entity ID</label>
-                        <input type="text" id="entity_id" name="entity_id" required placeholder="Your Company's Entity ID" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <label for="entity_uuid" class="block text-sm font-medium text-gray-700">Entity UUID</label>
+                        <input type="text" id="entity_uuid" name="entity_uuid" required placeholder="Your Company's UUID" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
                     <div class="flex justify-center">
                         <button type="submit" class="w-full sm:w-auto inline-flex justify-center py-2 px-6 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
