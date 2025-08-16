@@ -27,15 +27,20 @@ $states = [
     'VA' => 'Virginia', 'WA' => 'Washington', 'WV' => 'West Virginia', 'WI' => 'Wisconsin', 'WY' => 'Wyoming'
 ];
 
-// Permission Check: Only 'user', 'superuser', or 'admin' with a 'facility' entity can create a trip.
-if (!isset($_SESSION["loggedin"]) || $_SESSION['entity_type'] !== 'facility' || !(in_array($_SESSION['user_role'], ['user', 'superuser', 'admin']))) {
-    header("location: login.php");
+// Permission Check: A user is authorized if they are an admin, OR if they are a user/superuser for a facility.
+$is_authorized = false;
+if (isset($_SESSION["loggedin"])) {
+    if ($_SESSION['user_role'] === 'admin') {
+        $is_authorized = true;
+    } elseif (in_array($_SESSION['user_role'], ['user', 'superuser']) && $_SESSION['entity_type'] === 'facility') {
+        $is_authorized = true;
+    }
+}
+if (!$is_authorized) {
+    header("location: index.php");
     exit;
 }
 
-// Define the user and system timezones for conversion.
-// These would typically be defined in a config file, but are hardcoded here for a complete example.
-define('USER_TIMEZONE', 'America/Chicago'); // Example: Central Time for your location
 define('SYSTEM_TIMEZONE', 'UTC');
 
 /**
