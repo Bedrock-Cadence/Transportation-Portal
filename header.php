@@ -60,7 +60,7 @@ if (isset($_SESSION['entity_type'])) {
                             
                             <?php // Carrier User Navigation
                             if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
-                                <a href="/view_open_trips.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">View Open Trips</a>
+                                <a href="/trip_board.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">View Open Trips</a>
                                 <a href="/view_our_trips.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">View Our Trips</a>
                             <?php endif; ?>
                             
