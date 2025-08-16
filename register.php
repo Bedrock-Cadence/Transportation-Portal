@@ -54,13 +54,13 @@ function isMediumStrengthPassword($password) {
 // --- End of Utility Functions ---
 
 
-// --- Handle GET request to validate the UUID and token ---
-if (isset($_GET['uuid'])) {
-    $uuid = $_GET['uuid'];
+// --- Handle GET request to validate the registration token ---
+if (isset($_GET['token'])) {
+    $token = $_GET['token'];
 
-    // Query the database to find the user by their UUID.
-    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE uuid = ? LIMIT 1");
-    $stmt->bind_param("s", $uuid);
+    // Query the database to find the user by their registration token hash.
+    $stmt = $mysqli->prepare("SELECT id, uuid, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+    $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
@@ -78,7 +78,7 @@ if (isset($_GET['uuid'])) {
 
 // --- Handle POST request for form submission ---
 if ($show_form && $_SERVER["REQUEST_METHOD"] === "POST") {
-    $uuid = trim($_POST['uuid']);
+    $token = trim($_POST['token']);
     $entered_entity_id = trim($_POST['entity_id']);
     $password = $_POST['password'];
     $first_name = trim($_POST['first_name']);
@@ -86,8 +86,8 @@ if ($show_form && $_SERVER["REQUEST_METHOD"] === "POST") {
     $phone_number = trim($_POST['phone_number']);
 
     // Re-fetch the user data to ensure it's still valid.
-    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, phone_number, entity_id, is_active, token_expires_at FROM users WHERE uuid = ? LIMIT 1");
-    $stmt->bind_param("s", $uuid);
+    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+    $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
@@ -152,8 +152,8 @@ $mysqli->close();
             <?php endif; ?>
 
             <?php if ($show_form): ?>
-                <form method="POST" action="register.php?uuid=<?= htmlspecialchars($_GET['uuid']); ?>" class="space-y-6">
-                    <input type="hidden" name="uuid" value="<?= htmlspecialchars($_GET['uuid']); ?>">
+                <form method="POST" action="register.php?token=<?= htmlspecialchars($_GET['token']); ?>" class="space-y-6">
+                    <input type="hidden" name="token" value="<?= htmlspecialchars($_GET['token']); ?>">
 
                     <div>
                         <label for="entity_id" class="block text-sm font-medium text-gray-700">Entity ID</label>
