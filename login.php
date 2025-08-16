@@ -2,6 +2,7 @@
 // FILE: login.php
 
 // 1. Start the session using our centralized configuration.
+require_once ('init.php');
 require_once __DIR__ . '/../../app/session_config.php';
 
 // 2. If the user is already logged in, send them straight to the dashboard.
