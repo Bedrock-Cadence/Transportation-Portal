@@ -103,11 +103,7 @@ if (isset($_SESSION['entity_type'])) {
                             <i class="fas fa-caret-down text-gray-400"></i>
                         </button>
                         <div id="user-menu" class="absolute right-0 mt-2 w-48 dropdown-menu-custom hidden">
-                            <?php
-                                // Determine profile link based on user type for cleaner code
-                                $profile_page = ($_SESSION['entity_type'] === 'carrier') ? '/carrier_profile.php' : '/facility_profile.php';
-                            ?>
-                            <a href="<?php echo $profile_page; ?>" class="dropdown-item-custom">My Profile</a>
+                            <a href="user_profile.php?id=<?php echo $_SESSION["user_uuid"] ?>" class="dropdown-item-custom">My Profile</a>
                             <div class="border-t border-gray-600 my-1"></div>
                             <a href="/logout.php" class="block px-4 py-2 text-sm text-red-500 hover:bg-gray-700 hover:text-red-400">Log Out</a>
                         </div>

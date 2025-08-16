@@ -7,142 +7,140 @@ $page_title = 'User Profile';
 // 2. Include the header, which also handles session startup.
 require_once 'header.php';
 
-// 3. Security Check: If the user isn't logged in, send them to the login page.
+// 3. Security Check: Redirect if the user isn't logged in.
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     header("location: login.php");
     exit;
 }
 
-// 4. Include the database connection file. The $mysqli object is now available for use.
+// 4. Include the database connection file.
 require_once __DIR__ . '/../../app/db_connect.php';
 
 // Initialize variables for messages and errors.
 $page_message = '';
 $page_error = '';
 
-// Determine which user's profile to view.
+// Determine which user's profile to view. Default to the logged-in user.
 $view_user_uuid = $_GET['uuid'] ?? $_SESSION['user_uuid'];
 
-// Security Check: A non-admin can only view their own profile.
-$allowed_roles = ['facility_superuser', 'carrier_superuser', 'bedrock_admin'];
-$is_admin = isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], $allowed_roles);
+// Determine the logged-in user's role.
+$user_role = $_SESSION['user_role'] ?? null;
+$is_privileged = in_array($user_role, ['superuser', 'admin']);
 
-if (!$is_admin && $view_user_uuid !== $_SESSION['user_uuid']) {
-    // Redirect non-admins if they try to view another user's profile.
+// Security Check: A non-privileged user can only view their own profile.
+if (!$is_privileged && $view_user_uuid !== $_SESSION['user_uuid']) {
     header("location: user_profile.php?uuid=" . $_SESSION['user_uuid']);
     exit;
 }
 
 // --- Start of Form Submission Handling ---
-// This section handles all POST requests for updating user data.
-if ($_SERVER["REQUEST_METHOD"] === "POST" && $is_admin) {
-    try {
-        if (isset($_POST['action'])) {
-            $target_user_uuid = $_POST['uuid'];
+if ($_SERVER["REQUEST_METHOD"] === "POST" && $is_privileged) {
+    $target_user_uuid = $_POST['uuid'] ?? null;
+    $action = $_POST['action'] ?? null;
 
-            // Prevent an admin from editing their own profile.
-            if ($target_user_uuid === $_SESSION['user_uuid']) {
-                $page_error = "You cannot perform this action on your own profile.";
+    if ($target_user_uuid === $_SESSION['user_uuid']) {
+        $page_error = "You cannot perform this action on your own profile.";
+    } else {
+        $stmt = null;
+        try {
+            // Fetch the target user's data to ensure they exist and determine their status.
+            $stmt = $mysqli->prepare("SELECT id, is_active, email FROM users WHERE uuid = ? LIMIT 1");
+            $stmt->bind_param("s", $target_user_uuid);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $target_user = $result->fetch_assoc();
+            
+            if (!$target_user) {
+                $page_error = "User not found.";
             } else {
-                // Fetch the target user's data to ensure they exist and determine their status.
-                $stmt = $mysqli->prepare("SELECT id, is_active, email FROM users WHERE uuid = ? LIMIT 1");
-                $stmt->bind_param("s", $target_user_uuid);
-                $stmt->execute();
-                $result = $stmt->get_result();
-                $target_user = $result->fetch_assoc();
-                $stmt->close();
-                
-                if (!$target_user) {
-                    $page_error = "User not found.";
-                } else {
-                    $affected_user_id = $target_user['id'];
-                    $actor_user_id = $_SESSION['user_id'];
-                    $action_type = '';
-                    $action_message = '';
-                    
-                    switch ($_POST['action']) {
-                        case 'deactivate':
-                            if ($target_user['is_active']) {
-                                $stmt = $mysqli->prepare("UPDATE users SET is_active = 0 WHERE uuid = ?");
-                                $stmt->bind_param("s", $target_user_uuid);
-                                $stmt->execute();
-                                $stmt->close();
-                                $page_message = "User has been deactivated.";
-                                $action_type = 'user_deactivated';
-                                $action_message = 'User account was deactivated by an admin.';
+                $affected_user_id = $target_user['id'];
+                $actor_user_id = $_SESSION['user_id'];
+                $action_type = '';
+                $action_message = '';
+
+                switch ($action) {
+                    case 'deactivate':
+                        if ($target_user['is_active']) {
+                            $stmt = $mysqli->prepare("UPDATE users SET is_active = 0 WHERE uuid = ?");
+                            $stmt->bind_param("s", $target_user_uuid);
+                            $stmt->execute();
+                            $page_message = "User has been deactivated.";
+                            $action_type = 'user_deactivated';
+                            $action_message = 'User account was deactivated.';
+                        } else {
+                            $page_error = "User is already deactivated.";
+                        }
+                        break;
+                    case 'activate':
+                        if (!$target_user['is_active']) {
+                            $stmt = $mysqli->prepare("UPDATE users SET is_active = 1 WHERE uuid = ?");
+                            $stmt->bind_param("s", $target_user_uuid);
+                            $stmt->execute();
+                            $page_message = "User has been activated.";
+                            $action_type = 'user_activated';
+                            $action_message = 'User account was activated.';
+                        } else {
+                            $page_error = "User is already active.";
+                        }
+                        break;
+                    case 'change_email':
+                        if (!$target_user['is_active']) {
+                            $page_error = "Cannot change email for a deactivated user.";
+                        } else {
+                            $old_email = $target_user['email'];
+                            $new_email = trim($_POST['new_email'] ?? '');
+                            if (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+                                $page_error = "Invalid email format.";
                             } else {
-                                $page_error = "User is already deactivated.";
-                            }
-                            break;
-                        case 'activate':
-                            if (!$target_user['is_active']) {
-                                $stmt = $mysqli->prepare("UPDATE users SET is_active = 1 WHERE uuid = ?");
-                                $stmt->bind_param("s", $target_user_uuid);
-                                $stmt->execute();
-                                $stmt->close();
-                                $page_message = "User has been activated.";
-                                $action_type = 'user_activated';
-                                $action_message = 'User account was activated by an admin.';
-                            } else {
-                                $page_error = "User is already active.";
-                            }
-                            break;
-                        case 'change_email':
-                            if (!$target_user['is_active']) {
-                                $page_error = "Cannot change email for a deactivated user.";
-                            } else {
-                                $old_email = $target_user['email'];
-                                $new_email = $_POST['new_email'];
                                 $stmt = $mysqli->prepare("UPDATE users SET email = ? WHERE uuid = ?");
                                 $stmt->bind_param("ss", $new_email, $target_user_uuid);
                                 $stmt->execute();
-                                $stmt->close();
                                 $page_message = "User email has been updated.";
                                 $action_type = 'email_change';
                                 $action_message = "Email changed from '{$old_email}' to '{$new_email}'.";
                             }
-                            break;
-                        case 'reset_password':
-                            if (!$target_user['is_active']) {
-                                $page_error = "Cannot reset password for a deactivated user.";
-                            } else {
-                                $new_password = bin2hex(random_bytes(8)); // Generate a random 16-character hex string
-                                $password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
-                                
-                                $stmt = $mysqli->prepare("UPDATE users SET password_hash = ? WHERE uuid = ?");
-                                $stmt->bind_param("ss", $password_hash, $target_user_uuid);
-                                $stmt->execute();
-                                $stmt->close();
-
-                                $page_message = "User password has been reset. The new password is: " . htmlspecialchars($new_password);
-                                $action_type = 'password_reset';
-                                $action_message = 'Password reset by an admin.';
-                            }
-                            break;
-                    }
-                    
-                    // Log the action if a message was created.
-                    if (!empty($action_type)) {
-                        $log_stmt = $mysqli->prepare("INSERT INTO user_history (actor_user_id, target_user_id, action, message) VALUES (?, ?, ?, ?)");
-                        $log_stmt->bind_param("iiss", $actor_user_id, $affected_user_id, $action_type, $action_message);
-                        $log_stmt->execute();
-                        $log_stmt->close();
-                    }
+                        }
+                        break;
+                    case 'reset_password':
+                        if (!$target_user['is_active']) {
+                            $page_error = "Cannot reset password for a deactivated user.";
+                        } else {
+                            $new_password = bin2hex(random_bytes(8));
+                            $password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
+                            
+                            $stmt = $mysqli->prepare("UPDATE users SET password_hash = ? WHERE uuid = ?");
+                            $stmt->bind_param("ss", $password_hash, $target_user_uuid);
+                            $stmt->execute();
+                            $page_message = "User password has been reset. The new password is: " . htmlspecialchars($new_password);
+                            $action_type = 'password_reset';
+                            $action_message = 'Password reset.';
+                        }
+                        break;
+                }
+                
+                // Log the action if a message was created.
+                if (!empty($action_type)) {
+                    $log_stmt = $mysqli->prepare("INSERT INTO user_history (actor_user_id, target_user_id, action, message) VALUES (?, ?, ?, ?)");
+                    $log_stmt->bind_param("iiss", $actor_user_id, $affected_user_id, $action_type, $action_message);
+                    $log_stmt->execute();
+                    $log_stmt->close();
                 }
             }
+        } catch (Exception $e) {
+            $page_error = "An error occurred: " . $e->getMessage();
+        } finally {
+            if ($stmt) {
+                $stmt->close();
+            }
         }
-    } catch (Exception $e) {
-        $page_error = "An error occurred: " . $e->getMessage();
     }
 }
 // --- End of Form Submission Handling ---
-
 
 // Fetch the user's data from the database.
 $user = null;
 $timeline = [];
 try {
-    // Fetch the target user's profile data.
     $stmt = $mysqli->prepare("SELECT * FROM users WHERE uuid = ? LIMIT 1");
     $stmt->bind_param("s", $view_user_uuid);
     $stmt->execute();
@@ -150,8 +148,8 @@ try {
     $user = $result->fetch_assoc();
     $stmt->close();
 
-    if ($user && $_SESSION['user_role'] === 'bedrock_admin') {
-        // Only Bedrock Admins can see the user activity timeline.
+    if ($user && $user_role === 'admin') {
+        // Only admins can see the user activity timeline.
         $stmt = $mysqli->prepare("SELECT * FROM user_history WHERE target_user_id = ? ORDER BY created_at DESC LIMIT 50");
         $stmt->bind_param("i", $user['id']);
         $stmt->execute();
@@ -167,20 +165,7 @@ try {
 
 // Function to translate internal roles to display names.
 function getDisplayName($role) {
-    switch ($role) {
-        case 'carrier_superuser':
-            return 'Carrier Admin';
-        case 'carrier_user':
-            return 'Carrier Staff';
-        case 'facility_superuser':
-            return 'Facility Admin';
-        case 'facility_user':
-            return 'Facility Staff';
-        case 'bedrock_admin':
-            return 'Bedrock Employee';
-        default:
-            return ucfirst(str_replace('_', ' ', $role));
-    }
+    return ucfirst($role);
 }
 ?>
 
@@ -215,9 +200,9 @@ function getDisplayName($role) {
                 </div>
             <?php endif; ?>
             
-            <?php if ($is_admin && $view_user_uuid !== $_SESSION['user_uuid']): ?>
+            <?php if ($is_privileged && $view_user_uuid !== $_SESSION['user_uuid']): ?>
                 <div class="bg-yellow-100 text-yellow-800 p-3 rounded-md text-sm text-center font-semibold">
-                    Admin View
+                    <?= htmlspecialchars(ucfirst($user_role)); ?> View
                 </div>
             <?php endif; ?>
 
@@ -233,37 +218,34 @@ function getDisplayName($role) {
                             <dt class="text-sm font-medium text-gray-500">Access Role</dt>
                             <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars(getDisplayName($user['role'])); ?></dd>
                         </div>
-                        <?php if ($user['entity_type']): ?>
+                        <?php if (isset($user['entity_type'])): ?>
                             <div>
                                 <dt class="text-sm font-medium text-gray-500"><?= ucfirst($user['entity_type']); ?> Name</dt>
-                                <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($_SESSION['entity_name']); ?></dd>
+                                <dd class="mt-1 text-base text-gray-900"><?= htmlspecialchars($_SESSION['entity_name'] ?? 'N/A'); ?></dd>
                             </div>
                         <?php endif; ?>
                     </dl>
                 </div>
 
-                <?php if ($is_admin && $view_user_uuid !== $_SESSION['user_uuid']): ?>
+                <?php if ($is_privileged && $view_user_uuid !== $_SESSION['user_uuid']): ?>
                 <div class="space-y-6">
                     <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Admin Actions</h3>
                     <div class="space-y-4">
                         <?php if ($user['is_active']): ?>
-                            <!-- Deactivate User -->
                             <form method="POST" action="user_profile.php?uuid=<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="uuid" value="<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="action" value="deactivate">
-                                <button type="submit" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition-colors duration-150 ease-in-out">
+                                <button type="submit" onclick="return confirm('Are you sure you want to deactivate this account? This action cannot be undone.')" class="w-full bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition-colors duration-150 ease-in-out">
                                     Deactivate User
                                 </button>
                             </form>
-                            <!-- Reset Password -->
                             <form method="POST" action="user_profile.php?uuid=<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="uuid" value="<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="action" value="reset_password">
-                                <button type="submit" class="w-full bg-orange-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-orange-600 transition-colors duration-150 ease-in-out">
+                                <button type="submit" onclick="return confirm('Are you sure you want to reset this user\'s password? A new temporary password will be generated.')" class="w-full bg-orange-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-orange-600 transition-colors duration-150 ease-in-out">
                                     Reset Password
                                 </button>
                             </form>
-                            <!-- Change Email Form -->
                             <form method="POST" action="user_profile.php?uuid=<?= htmlspecialchars($user['uuid']); ?>" class="space-y-2">
                                 <input type="hidden" name="uuid" value="<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="action" value="change_email">
@@ -273,11 +255,10 @@ function getDisplayName($role) {
                                 </button>
                             </form>
                         <?php else: ?>
-                            <!-- Reactivate User -->
                             <form method="POST" action="user_profile.php?uuid=<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="uuid" value="<?= htmlspecialchars($user['uuid']); ?>">
                                 <input type="hidden" name="action" value="activate">
-                                <button type="submit" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-150 ease-in-out">
+                                <button type="submit" onclick="return confirm('Are you sure you want to activate this account?')" class="w-full bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition-colors duration-150 ease-in-out">
                                     Activate User
                                 </button>
                             </form>
@@ -290,8 +271,7 @@ function getDisplayName($role) {
                 <?php endif; ?>
             </div>
 
-            <?php if ($_SESSION['user_role'] === 'bedrock_admin'): ?>
-                <!-- Timeline for Bedrock Admins -->
+            <?php if ($user_role === 'admin'): ?>
                 <div class="mt-8">
                     <h3 class="text-lg font-medium text-gray-900 border-b pb-2">User Timeline</h3>
                     <ul class="space-y-4 mt-4">
@@ -301,16 +281,14 @@ function getDisplayName($role) {
                             <?php foreach ($timeline as $activity): ?>
                                 <li class="p-4 bg-gray-50 rounded-md border border-gray-200">
                                     <div class="text-xs text-gray-500"><?= htmlspecialchars(date('F d, Y h:i:s A', strtotime($activity['created_at']))); ?></div>
-                                    <div class="font-semibold text-gray-800"><?= htmlspecialchars($activity['action']); ?></div>
+                                    <div class="font-semibold text-gray-800"><?= htmlspecialchars(str_replace('_', ' ', ucfirst($activity['action']))); ?></div>
                                     <div class="text-sm text-gray-600"><?= htmlspecialchars($activity['message']); ?></div>
-                                    <div class="text-xs text-gray-400">IP: <?= htmlspecialchars($activity['ip_address']); ?></div>
                                 </li>
                             <?php endforeach; ?>
                         <?php endif; ?>
                     </ul>
                 </div>
             <?php endif; ?>
-
         </div>
     </div>
     <?php else: ?>
