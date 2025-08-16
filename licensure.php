@@ -115,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-if ($user_role === 'admin') {
+if ($user_role === 'admin') { // <-- THIS IS THE MAIN BLOCK
     $carrier_id = $_GET['carrier_id'] ?? null;
     if ($is_ajax && !empty($carrier_id)) {
         $stmt = $mysqli->prepare("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? AND is_active = 1 LIMIT 1");
@@ -126,14 +126,17 @@ if ($user_role === 'admin') {
         $stmt->close();
         
         if ($selected_carrier) {
-            header('Content-Type: application/json');
-            echo json_encode($selected_carrier);
+            // ▼▼▼ THESE ARE THE TWO LINES TO CHANGE ▼▼▼
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode($selected_carrier, JSON_UNESCAPED_UNICODE);
+            // ▲▲▲ THESE ARE THE TWO LINES TO CHANGE ▲▲▲
             exit;
         } else {
             http_response_code(404);
             echo json_encode(['error' => 'Carrier not found.']);
             exit;
         }
+
     } else {
         $stmt = $mysqli->prepare("SELECT id, name, verification_status FROM carriers WHERE is_active = 1 ORDER BY name ASC");
         $stmt->execute();
