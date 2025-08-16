@@ -114,6 +114,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $password_hash = null; // No password until they register
             $is_active = 0; // Not active until registration
             
+            // The type definition string now has 9 characters to match the 9 bind variables.
             $stmt->bind_param("sssssiss", $email, $first_name, $last_name, $phone_number, $user_role_to_add, $entity_id, $entity_type, $registration_token, $token_expires_at);
             
             if ($stmt->execute()) {
