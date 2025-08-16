@@ -14,6 +14,7 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 }
 
 // 4. Security Check: Only allow 'superuser' and 'admin' roles to access this page.
+// CORRECTED: This logic now correctly reflects your updated database schema.
 $allowed_roles = ['superuser', 'admin'];
 $user_role = $_SESSION['user_role'] ?? null;
 if (!in_array($user_role, $allowed_roles) || ($_SESSION['entity_type'] ?? null) !== 'carrier' && $user_role !== 'admin') {
@@ -23,7 +24,6 @@ if (!in_array($user_role, $allowed_roles) || ($_SESSION['entity_type'] ?? null) 
 }
 
 // Check if this is an AJAX request from the front-end.
-// We are now looking for a specific query parameter.
 $is_ajax = isset($_GET['ajax']) && $_GET['ajax'] === 'true';
 
 // 5. Include the database connection file.
@@ -40,14 +40,14 @@ $is_editable = false;
 
 /**
  * Logs an action to the user_activity_logs table.
- * @param mysqli $conn The database connection object.
+ * @param mysqli $mysqli The database connection object.
  * @param int $user_id The ID of the user performing the action.
  * @param string $action The type of action (e.g., 'licensure_updated').
  * @param string $message A detailed message about the action.
  */
-function log_user_activity($conn, $user_id, $action, $message) {
+function log_user_activity($mysqli, $user_id, $action, $message) {
     $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-    $log_stmt = $conn->prepare("INSERT INTO user_activity_logs (user_id, action, message, ip_address) VALUES (?, ?, ?, ?)");
+    $log_stmt = $mysqli->prepare("INSERT INTO user_activity_logs (user_id, action, message, ip_address) VALUES (?, ?, ?, ?)");
     if ($log_stmt) {
         $log_stmt->bind_param("isss", $user_id, $action, $message, $ip_address);
         $log_stmt->execute();
@@ -70,7 +70,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if ($target_carrier_id === null) {
         $page_error = "No carrier selected for update.";
     } else {
-        // Fetch the carrier's current data before attempting an update.
         $stmt_status = $mysqli->prepare("SELECT verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1");
         $stmt_status->bind_param("i", $target_carrier_id);
         $stmt_status->execute();
@@ -81,27 +80,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if ($current_data) {
             $can_edit = false;
             if ($user_role === 'admin') {
-                $can_edit = true; // Admins can always edit.
+                $can_edit = true; 
             } elseif ($user_role === 'superuser' && $current_data['verification_status'] === 'waiting') {
-                $can_edit = true; // Superusers can only edit if status is 'waiting'.
+                $can_edit = true;
             }
 
             if ($can_edit) {
                 try {
                     $mysqli->begin_transaction();
                     
-                    // Build the update query based on the user's role.
                     $update_query = "UPDATE carriers SET license_state = ?, license_number = ?, license_expires_at = ?";
-                    $types = "sssi";
-                    $params = [$license_state, $license_number, $license_expires_at];
+                    $types = "sss";
+                    $params = [$license_state, $license_number, empty($license_expires_at) ? null : $license_expires_at];
                     
-                    // Admins can also update the verification status.
-                    if ($user_role === 'admin' && in_array($verification_status_input, ['waiting', 'verified', 'denied'])) {
+                    $valid_statuses = ['pending', 'verified', 'expired', 'suspended', 'failed', 'waiting'];
+                    
+                    if ($user_role === 'admin' && in_array($verification_status_input, $valid_statuses)) {
                         $update_query .= ", verification_status = ?";
-                        $types = "ssssi";
+                        $types .= "s";
                         $params[] = $verification_status_input;
                     }
                     $update_query .= " WHERE id = ?";
+                    $types .= "i";
                     $params[] = $target_carrier_id;
 
                     $stmt = $mysqli->prepare($update_query);
@@ -110,14 +110,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     if ($stmt->execute()) {
                         $mysqli->commit();
                         $page_message = "Licensing information has been updated successfully.";
-
-                        // Create a log message with both old and new data.
                         $log_message = "Licensure updated for carrier ID: {$target_carrier_id}. ";
                         $log_message .= "Old values: ";
                         $log_message .= "License State: '{$current_data['license_state']}' -> '{$license_state}', ";
                         $log_message .= "License Number: '{$current_data['license_number']}' -> '{$license_number}', ";
                         $log_message .= "Expiration Date: '{$current_data['license_expires_at']}' -> '{$license_expires_at}'.";
-                        if ($user_role === 'admin' && isset($params[3])) {
+                        
+                        if ($user_role === 'admin' && in_array($verification_status_input, $valid_statuses)) {
                             $log_message .= " Status: '{$current_data['verification_status']}' -> '{$verification_status_input}'.";
                         }
                         
@@ -147,8 +146,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 // --- Start of Page Data Retrieval ---
 if ($user_role === 'admin') {
     $carrier_id = $_GET['carrier_id'] ?? null;
-    if ($is_ajax) {
-        // AJAX request for a specific carrier's data.
+    if ($is_ajax && !empty($carrier_id)) {
         $stmt = $mysqli->prepare("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? AND is_active = 1 LIMIT 1");
         $stmt->bind_param("i", $carrier_id);
         $stmt->execute();
@@ -157,7 +155,6 @@ if ($user_role === 'admin') {
         $stmt->close();
         
         if ($selected_carrier) {
-            // Send back JSON and exit.
             header('Content-Type: application/json');
             echo json_encode($selected_carrier);
             exit;
@@ -168,7 +165,6 @@ if ($user_role === 'admin') {
         }
 
     } else {
-        // Initial load for admin: get list of all active carriers.
         $stmt = $mysqli->prepare("SELECT id, name, verification_status FROM carriers WHERE is_active = 1 ORDER BY name ASC");
         $stmt->execute();
         $result = $stmt->get_result();
@@ -178,7 +174,6 @@ if ($user_role === 'admin') {
         $stmt->close();
     }
 } elseif ($user_role === 'superuser' && $_SESSION['entity_type'] === 'carrier') {
-    // Initial load for superuser: get their specific carrier data.
     $stmt = $mysqli->prepare("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1");
     $stmt->bind_param("i", $_SESSION['entity_id']);
     $stmt->execute();
@@ -193,7 +188,6 @@ if ($user_role === 'admin') {
     }
 }
 
-$mysqli->close();
 ?>
 
 <div id="licensure-container" class="p-6">
@@ -215,7 +209,6 @@ $mysqli->close();
     <?php endif; ?>
     
     <?php if ($user_role === 'admin'): ?>
-    <!-- Admin View: List of Carriers -->
     <div id="carriers-list" class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
             <h2 class="text-xl font-semibold text-gray-800">Active Carriers</h2>
@@ -228,30 +221,22 @@ $mysqli->close();
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Carrier Name
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Status
-                            </th>
-                            <th scope="col" class="relative px-6 py-3">
-                                <span class="sr-only">View</span>
-                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carrier Name</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="relative px-6 py-3"><span class="sr-only">View</span></th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($carriers as $carrier_item): ?>
-                        <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out cursor-pointer" data-carrier-id="<?= htmlspecialchars($carrier_item['id']); ?>">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                <?= htmlspecialchars($carrier_item['name']); ?>
-                            </td>
+                        <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out cursor-pointer view-details-row" data-carrier-id="<?= htmlspecialchars($carrier_item['id']); ?>">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= htmlspecialchars($carrier_item['name']); ?></td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                     <?= htmlspecialchars(ucwords($carrier_item['verification_status'])); ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button type="button" data-carrier-id="<?= htmlspecialchars($carrier_item['id']); ?>" class="view-details-btn text-indigo-600 hover:text-indigo-900">View Details</button>
+                                <button type="button" class="view-details-btn text-indigo-600 hover:text-indigo-900">View Details</button>
                             </td>
                         </tr>
                         <?php endforeach; ?>
@@ -263,7 +248,6 @@ $mysqli->close();
     </div>
     <?php endif; ?>
 
-    <!-- Licensure Details View (for Superuser or Admin dynamic view) -->
     <div id="licensure-details" class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 mt-6" style="<?= $user_role === 'admin' ? 'display: none;' : ''; ?>">
         <?php if ($selected_carrier): ?>
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
@@ -275,28 +259,27 @@ $mysqli->close();
                     Status: <?= htmlspecialchars(ucwords(str_replace('_', ' ', $selected_carrier['verification_status']))); ?>
                 </span>
             </div>
-
             <div class="p-6 space-y-8">
-                <?php if ($user_role === 'superuser' && $selected_carrier['verification_status'] !== 'waiting'): ?>
+                <?php if ($user_role === 'superuser' && !$is_editable): ?>
                     <div class="bg-yellow-100 text-yellow-800 p-3 rounded-md text-sm text-center font-semibold">
                         This information is in '<?= htmlspecialchars($selected_carrier['verification_status']); ?>' status and cannot be changed.
                     </div>
                 <?php endif; ?>
-
                 <form id="licensure-form" method="POST" action="licensure.php" class="space-y-6">
                     <input type="hidden" name="carrier_id" id="carrier-id-input" value="<?= htmlspecialchars($selected_carrier['id']); ?>">
-
                     <?php if ($user_role === 'admin'): ?>
                         <div>
                             <label for="verification_status" class="block text-sm font-medium text-gray-700">Verification Status</label>
                             <select id="verification_status" name="verification_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="waiting" <?= $selected_carrier['verification_status'] === 'waiting' ? 'selected' : ''; ?>>Waiting</option>
-                                <option value="verified" <?= $selected_carrier['verification_status'] === 'verified' ? 'selected' : ''; ?>>Verified</option>
-                                <option value="denied" <?= $selected_carrier['verification_status'] === 'denied' ? 'selected' : ''; ?>>Denied</option>
+                                <option value="waiting" <?= ($selected_carrier['verification_status'] ?? '') === 'waiting' ? 'selected' : ''; ?>>Waiting</option>
+                                <option value="pending" <?= ($selected_carrier['verification_status'] ?? '') === 'pending' ? 'selected' : ''; ?>>Pending Review</option>
+                                <option value="verified" <?= ($selected_carrier['verification_status'] ?? '') === 'verified' ? 'selected' : ''; ?>>Verified</option>
+                                <option value="failed" <?= ($selected_carrier['verification_status'] ?? '') === 'failed' ? 'selected' : ''; ?>>Failed</option>
+                                <option value="expired" <?= ($selected_carrier['verification_status'] ?? '') === 'expired' ? 'selected' : ''; ?>>Expired</option>
+                                <option value="suspended" <?= ($selected_carrier['verification_status'] ?? '') === 'suspended' ? 'selected' : ''; ?>>Suspended</option>
                             </select>
                         </div>
                     <?php endif; ?>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label for="license_state" class="block text-sm font-medium text-gray-700">License State</label>
@@ -311,76 +294,67 @@ $mysqli->close();
                         <label for="license_expires_at" class="block text-sm font-medium text-gray-700">Expiration Date</label>
                         <input type="date" id="license_expires_at" name="license_expires_at" value="<?= htmlspecialchars($selected_carrier['license_expires_at'] ?? ''); ?>" <?= !$is_editable && $user_role === 'superuser' ? 'readonly' : ''; ?> required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 <?= !$is_editable && $user_role === 'superuser' ? 'bg-gray-100' : ''; ?>">
                     </div>
-
                     <?php if ($is_editable || $user_role === 'admin'): ?>
                         <div class="flex justify-end">
-                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                Save Changes
-                            </button>
+                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Save Changes</button>
                         </div>
                     <?php endif; ?>
                 </form>
             </div>
         <?php else: ?>
             <div class="p-6 text-center text-gray-500">
-                <p>Licensure information not found.</p>
+                <p>Please select a carrier to view their licensure information.</p>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
 <?php
-// This includes the footer and necessary closing tags.
 require_once 'footer.php';
 ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const userRole = '<?= htmlspecialchars($user_role); ?>';
+    const userRole = '<?= htmlspecialchars($user_role ?? ''); ?>';
     
     if (userRole === 'admin') {
         const carrierList = document.getElementById('carriers-list');
         const licensureDetails = document.getElementById('licensure-details');
         
-        carrierList.addEventListener('click', async (event) => {
-            const button = event.target.closest('.view-details-btn');
-            if (button) {
-                const carrierId = button.dataset.carrierId;
-                licensureDetails.style.display = 'block'; // Show the details section
-
-                try {
-                    // Update the fetch URL to include a query parameter for AJAX
-                    const response = await fetch(`licensure.php?carrier_id=${carrierId}&ajax=true`);
-
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok.');
-                    }
-
-                    const carrierData = await response.json();
-
-                    if (carrierData.error) {
-                        alert(carrierData.error);
-                        return;
-                    }
-
-                    // Populate the form and header with the fetched data
-                    document.getElementById('carrier-name-header').textContent = carrierData.name;
-                    document.getElementById('carrier-id-header').textContent = `ID: ${carrierData.id}`;
-                    document.getElementById('carrier-id-input').value = carrierData.id;
-                    document.getElementById('verification_status').value = carrierData.verification_status;
-                    document.getElementById('license_state').value = carrierData.license_state;
-                    document.getElementById('license_number').value = carrierData.license_number;
-                    document.getElementById('license_expires_at').value = carrierData.license_expires_at;
-
-                    const statusDisplay = document.getElementById('verification-status-display');
-                    statusDisplay.textContent = `Status: ${carrierData.verification_status.charAt(0).toUpperCase() + carrierData.verification_status.slice(1)}`;
-
-                } catch (error) {
-                    console.error('Error fetching carrier data:', error);
-                    // Hide the form and display an error
-                    licensureDetails.style.display = 'none';
-                    alert('An error occurred while loading carrier data. Please try again.');
+        const loadCarrierData = async (carrierId) => {
+            licensureDetails.style.display = 'block';
+            try {
+                const response = await fetch(`licensure.php?carrier_id=${carrierId}&ajax=true`);
+                if (!response.ok) {
+                    throw new Error(`Network response was not ok. Status: ${response.status}`);
                 }
+                const carrierData = await response.json();
+                if (carrierData.error) {
+                    alert(carrierData.error);
+                    return;
+                }
+                document.getElementById('carrier-name-header').textContent = carrierData.name;
+                document.getElementById('carrier-id-header').textContent = `ID: ${carrierData.id}`;
+                document.getElementById('carrier-id-input').value = carrierData.id;
+                document.getElementById('verification_status').value = carrierData.verification_status;
+                document.getElementById('license_state').value = carrierData.license_state || '';
+                document.getElementById('license_number').value = carrierData.license_number || '';
+                document.getElementById('license_expires_at').value = carrierData.license_expires_at || '';
+                const statusDisplay = document.getElementById('verification-status-display');
+                const statusText = carrierData.verification_status.replace('_', ' ');
+                statusDisplay.textContent = `Status: ${statusText.charAt(0).toUpperCase() + statusText.slice(1)}`;
+            } catch (error) {
+                console.error('Error fetching carrier data:', error);
+                licensureDetails.style.display = 'none';
+                alert('An error occurred while loading carrier data. Please try again.');
+            }
+        };
+
+        carrierList.addEventListener('click', (event) => {
+            const row = event.target.closest('.view-details-row');
+            if (row) {
+                const carrierId = row.dataset.carrierId;
+                loadCarrierData(carrierId);
             }
         });
     }
