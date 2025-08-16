@@ -22,6 +22,7 @@ $entity_name = $_SESSION['entity_name'] ?? 'Bedrock Cadence';
 <div id="dashboard-container">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+            <p id="last-updated" class="text-sm text-gray-500"></p>
 
     </div>
     
@@ -42,7 +43,9 @@ require_once 'footer.php';
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const dashboardContent = document.getElementById('dashboard-content');
+    const lastUpdatedElement = document.getElementById('last-updated');
     const userRole = '<?php echo $user_role; ?>';
+    const userTimeZone = '<?php echo $user_timezone; ?>';
 
     /**
      * Renders the HTML for the Carrier's dashboard using Tailwind CSS classes.
@@ -68,14 +71,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (openTrips && openTrips.length > 0) {
             openTrips.forEach(trip => {
                 contentHtml += `
-                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                            <a href="trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Bid Now</a>
-                        </td>
-                    </tr>`;
+                        <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                <a href="trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">Bid Now</a>
+                            </td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="4" class="text-center py-6 text-gray-500">No open trips at this time.</td></tr>`;
@@ -106,15 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
             awardedTrips.forEach(trip => {
                 const awarded_eta = new Date(trip.awarded_eta + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 contentHtml += `
-                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${awarded_eta}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                            <a href="awarded_trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-green-600 hover:bg-green-700 focus:ring-green-500">View Details</a>
-                        </td>
-                    </tr>`;
+                        <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${awarded_eta}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                <a href="awarded_trip_details.php?uuid=${trip.uuid}" class="inline-block font-bold py-2 px-4 rounded-md text-sm text-white transition-transform transform hover:scale-105 shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 bg-green-600 hover:bg-green-700 focus:ring-green-500">View Details</a>
+                            </td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="5" class="text-center py-6 text-gray-500">No trips have been awarded to you yet.</td></tr>`;
@@ -153,15 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
             recentTrips.forEach(trip => {
                 const status = trip.status.charAt(0).toUpperCase() + trip.status.slice(1);
                 contentHtml += `
-                    <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${status}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                            <a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info">View</a>
-                        </td>
-                    </tr>`;
+                        <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono">${trip.uuid.substring(0, 8)}...</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${status}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.origin_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${trip.destination_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                                <a href="view_trip.php?uuid=${trip.uuid}" class="btn btn-info">View</a>
+                            </td>
+                        </tr>`;
             });
         } else {
             contentHtml += `<tr><td colspan="5" class="text-center py-6 text-gray-500">No trips created in the last 24 hours.</td></tr>`;
@@ -190,10 +193,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 const userIdentifier = activity.email ? activity.email : 'An unknown user';
                 contentHtml += `
-                            <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
-                                <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
-                            </li>`;
+                                <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                                    <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
+                                </li>`;
             });
         } else {
             contentHtml += `<li class="text-center py-6 text-gray-500">No recent activity.</li>`;
@@ -208,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Fetches data from the server and updates the dashboard.
      */
-async function updateDashboard() {
+    async function updateDashboard() {
         try {
             const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php', {
                 method: 'POST',
@@ -243,6 +246,20 @@ async function updateDashboard() {
             console.error('Failed to fetch dashboard data:', error);
             dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>`;
         } finally {
+            // Update the timestamp element
+            if (lastUpdatedElement) {
+                const now = new Date();
+                const options = {
+                    timeZone: userTimeZone,
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    timeZoneName: 'short'
+                };
+                lastUpdatedElement.textContent = `Last Update: ${now.toLocaleTimeString('en-US', options)}`;
+            }
+            
             // Schedule the next update
             setTimeout(updateDashboard, 10000);
         }
