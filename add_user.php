@@ -115,7 +115,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $is_active = 0; // Not active until registration
             
             // The type definition string now has 9 characters to match the 9 bind variables.
-            $stmt->bind_param("sssssiss", $email, $first_name, $last_name, $phone_number, $user_role_to_add, $entity_id, $entity_type, $registration_token, $token_expires_at);
+            $stmt->bind_param("ssssissss", $email, $first_name, $last_name, $phone_number, $user_role_to_add, $entity_id, $entity_type, $registration_token, $token_expires_at);
             
             if ($stmt->execute()) {
                 $new_user_id = $mysqli->insert_id;
@@ -146,9 +146,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <div id="add-user-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">Add New User</h1>
-        <p class="text-sm text-gray-500">
-            Logged in as: <span class="font-semibold"><?= htmlspecialchars($_SESSION['email']); ?></span>
-        </p>
     </div>
 
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
