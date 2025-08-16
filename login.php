@@ -3,7 +3,6 @@
 
 // 1. Start the session using our centralized configuration.
 require_once ('init.php');
-require_once __DIR__ . '/../../app/session_config.php';
 
 // 2. If the user is already logged in, send them straight to the dashboard.
 if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
@@ -11,8 +10,6 @@ if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
     exit;
 }
 
-// 3. Include the database connection and initialize variables.
-require_once __DIR__ . '/../../app/db_connect.php';
 $login_error = '';
 $email = ''; // Keep email in the form field on a failed attempt
 
