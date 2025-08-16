@@ -245,8 +245,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (result.success) {
                 const data = result.data;
-                // --- FIX: Use entity_type to determine which dashboard to render ---
-                if (userEntityType === 'admin') {
+                // --- FIX: Use 'bedrock' for the entity_type check for admins ---
+                if (userEntityType === 'bedrock') {
                     let adminHtml = '<div class="space-y-8">';
                     // Admin sees all relevant sections
                     if (data.recentTrips) {
