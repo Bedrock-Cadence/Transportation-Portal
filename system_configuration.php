@@ -30,7 +30,8 @@ require_once __DIR__ . '/../../app/db_connect.php';
 // Initialize variables for messages and errors.
 $page_message = '';
 $page_error = '';
-$entities = [];
+$all_facilities = [];
+$all_carriers = [];
 $selected_entity = null;
 $config_data = [];
 
@@ -138,6 +139,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 // --- End of Form Submission Handling ---
 
 // --- Start of Page Data Retrieval ---
+// Fetch all active facilities and carriers for the admin lists and select options.
+$facilities_stmt = $mysqli->prepare("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC");
+$facilities_stmt->execute();
+$facilities_result = $facilities_stmt->get_result();
+while ($row = $facilities_result->fetch_assoc()) {
+    $all_facilities[] = $row;
+}
+$facilities_stmt->close();
+
+$carriers_stmt = $mysqli->prepare("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC");
+$carriers_stmt->execute();
+$carriers_result = $carriers_stmt->get_result();
+while ($row = $carriers_result->fetch_assoc()) {
+    $all_carriers[] = $row;
+}
+$carriers_stmt->close();
+
 if ($user_role === 'admin') {
     $entity_type = $_GET['entity_type'] ?? null;
     $entity_id = $_GET['entity_id'] ?? null;
@@ -166,22 +184,6 @@ if ($user_role === 'admin') {
             echo json_encode(['error' => 'Entity not found.']);
             exit;
         }
-    } else {
-        $facilities_stmt = $mysqli->prepare("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC");
-        $facilities_stmt->execute();
-        $facilities_result = $facilities_stmt->get_result();
-        while ($row = $facilities_result->fetch_assoc()) {
-            $entities['facilities'][] = $row;
-        }
-        $facilities_stmt->close();
-        
-        $carriers_stmt = $mysqli->prepare("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC");
-        $carriers_stmt->execute();
-        $carriers_result = $carriers_stmt->get_result();
-        while ($row = $carriers_result->fetch_assoc()) {
-            $entities['carriers'][] = $row;
-        }
-        $carriers_stmt->close();
     }
 } elseif ($user_role === 'superuser') {
     $entity_type = $_SESSION['entity_type'];
@@ -233,10 +235,10 @@ $mysqli->close();
                 <h3 class="font-bold text-lg mb-2">Facilities</h3>
                 <div class="overflow-y-auto max-h-64 border rounded-md">
                     <ul class="divide-y divide-gray-200">
-                        <?php if (empty($entities['facilities'])): ?>
+                        <?php if (empty($all_facilities)): ?>
                             <li class="px-4 py-2 text-sm text-gray-500">No active facilities found.</li>
                         <?php else: ?>
-                            <?php foreach ($entities['facilities'] as $facility): ?>
+                            <?php foreach ($all_facilities as $facility): ?>
                                 <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm" onclick="fetchEntityConfig('facility', <?= htmlspecialchars($facility['id']); ?>)">
                                     <?= htmlspecialchars($facility['name']); ?>
                                 </li>
@@ -249,10 +251,10 @@ $mysqli->close();
                 <h3 class="font-bold text-lg mb-2">Carriers</h3>
                 <div class="overflow-y-auto max-h-64 border rounded-md">
                     <ul class="divide-y divide-gray-200">
-                        <?php if (empty($entities['carriers'])): ?>
+                        <?php if (empty($all_carriers)): ?>
                             <li class="px-4 py-2 text-sm text-gray-500">No active carriers found.</li>
                         <?php else: ?>
-                            <?php foreach ($entities['carriers'] as $carrier): ?>
+                            <?php foreach ($all_carriers as $carrier): ?>
                                 <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm" onclick="fetchEntityConfig('carrier', <?= htmlspecialchars($carrier['id']); ?>)">
                                     <?= htmlspecialchars($carrier['name']); ?>
                                 </li>
@@ -276,7 +278,7 @@ $mysqli->close();
                 <input type="hidden" name="entity_id" id="entity-id-input" value="<?= htmlspecialchars($selected_entity['id'] ?? ''); ?>">
                 <input type="hidden" name="entity_type" id="entity-type-input" value="<?= htmlspecialchars($_SESSION['entity_type'] ?? ''); ?>">
 
-                <div id="facility-settings-form" style="display: <?= (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'facility') || ($user_role === 'admin') ? 'block' : 'none'; ?>">
+                <div id="facility-settings-form" style="display: <?= (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'facility') || ($user_role === 'admin' && (($_GET['entity_type'] ?? '') === 'facility' || ($selected_entity && $selected_entity['type'] === 'facility'))) ? 'block' : 'none'; ?>">
                     <!-- Facility Settings -->
                     <div>
                         <label for="short_bid_duration" class="block text-sm font-medium text-gray-700">Bid Duration (<150 miles)</label>
@@ -299,13 +301,9 @@ $mysqli->close();
                         <label for="preferred_carriers" class="block text-sm font-medium text-gray-700">Preferred Carriers</label>
                         <select id="preferred_carriers" name="preferred_carriers[]" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                              <?php
-                                if ($user_role === 'admin' || (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'facility')) {
-                                    $all_carriers_stmt = $mysqli->query("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC");
-                                    while ($c = $all_carriers_stmt->fetch_assoc()) {
-                                        $selected = in_array($c['id'], $config_data['preferred_carriers'] ?? []) ? 'selected' : '';
-                                        echo "<option value=\"{$c['id']}\" {$selected}>" . htmlspecialchars($c['name']) . "</option>";
-                                    }
-                                    $all_carriers_stmt->close();
+                                foreach ($all_carriers as $c) {
+                                    $selected = in_array($c['id'], $config_data['preferred_carriers'] ?? []) ? 'selected' : '';
+                                    echo "<option value=\"{$c['id']}\" {$selected}>" . htmlspecialchars($c['name']) . "</option>";
                                 }
                             ?>
                         </select>
@@ -314,13 +312,9 @@ $mysqli->close();
                         <label for="blacklisted_carriers" class="block text-sm font-medium text-gray-700">Blacklisted Carriers</label>
                         <select id="blacklisted_carriers" name="blacklisted_carriers[]" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                              <?php
-                                if ($user_role === 'admin' || (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'facility')) {
-                                    $all_carriers_stmt = $mysqli->query("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC");
-                                    while ($c = $all_carriers_stmt->fetch_assoc()) {
-                                        $selected = in_array($c['id'], $config_data['blacklisted_carriers'] ?? []) ? 'selected' : '';
-                                        echo "<option value=\"{$c['id']}\" {$selected}>" . htmlspecialchars($c['name']) . "</option>";
-                                    }
-                                    $all_carriers_stmt->close();
+                                foreach ($all_carriers as $c) {
+                                    $selected = in_array($c['id'], $config_data['blacklisted_carriers'] ?? []) ? 'selected' : '';
+                                    echo "<option value=\"{$c['id']}\" {$selected}>" . htmlspecialchars($c['name']) . "</option>";
                                 }
                             ?>
                         </select>
@@ -331,7 +325,7 @@ $mysqli->close();
                     </div>
                 </div>
 
-                <div id="carrier-settings-form" style="display: <?= (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'carrier') || ($user_role === 'admin') ? 'block' : 'none'; ?>">
+                <div id="carrier-settings-form" style="display: <?= (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'carrier') || ($user_role === 'admin' && (($_GET['entity_type'] ?? '') === 'carrier' || ($selected_entity && $selected_entity['type'] === 'carrier'))) ? 'block' : 'none'; ?>">
                     <!-- Carrier Settings -->
                     <div>
                         <label for="secure_email_carrier" class="block text-sm font-medium text-gray-700">Secure PHI Email</label>
@@ -341,13 +335,9 @@ $mysqli->close();
                         <label for="preferred_facilities" class="block text-sm font-medium text-gray-700">Preferred Facilities</label>
                         <select id="preferred_facilities" name="preferred_facilities[]" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                              <?php
-                                if ($user_role === 'admin' || (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'carrier')) {
-                                    $all_facilities_stmt = $mysqli->query("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC");
-                                    while ($f = $all_facilities_stmt->fetch_assoc()) {
-                                        $selected = in_array($f['id'], $config_data['preferred_facilities'] ?? []) ? 'selected' : '';
-                                        echo "<option value=\"{$f['id']}\" {$selected}>" . htmlspecialchars($f['name']) . "</option>";
-                                    }
-                                    $all_facilities_stmt->close();
+                                foreach ($all_facilities as $f) {
+                                    $selected = in_array($f['id'], $config_data['preferred_facilities'] ?? []) ? 'selected' : '';
+                                    echo "<option value=\"{$f['id']}\" {$selected}>" . htmlspecialchars($f['name']) . "</option>";
                                 }
                             ?>
                         </select>
@@ -356,13 +346,9 @@ $mysqli->close();
                         <label for="blacklisted_facilities" class="block text-sm font-medium text-gray-700">Blacklisted Facilities</label>
                         <select id="blacklisted_facilities" name="blacklisted_facilities[]" multiple class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                              <?php
-                                if ($user_role === 'admin' || (isset($_SESSION['entity_type']) && $_SESSION['entity_type'] === 'carrier')) {
-                                    $all_facilities_stmt = $mysqli->query("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC");
-                                    while ($f = $all_facilities_stmt->fetch_assoc()) {
-                                        $selected = in_array($f['id'], $config_data['blacklisted_facilities'] ?? []) ? 'selected' : '';
-                                        echo "<option value=\"{$f['id']}\" {$selected}>" . htmlspecialchars($f['name']) . "</option>";
-                                    }
-                                    $all_facilities_stmt->close();
+                                foreach ($all_facilities as $f) {
+                                    $selected = in_array($f['id'], $config_data['blacklisted_facilities'] ?? []) ? 'selected' : '';
+                                    echo "<option value=\"{$f['id']}\" {$selected}>" . htmlspecialchars($f['name']) . "</option>";
                                 }
                             ?>
                         </select>
