@@ -152,7 +152,7 @@ try {
 
     if ($user && $_SESSION['user_role'] === 'bedrock_admin') {
         // Only Bedrock Admins can see the user activity timeline.
-        $stmt = $mysqli->prepare("SELECT * FROM user_activity WHERE user_id = ? ORDER BY created_at DESC LIMIT 50");
+        $stmt = $mysqli->prepare("SELECT * FROM user_history WHERE target_user_id = ? ORDER BY created_at DESC LIMIT 50");
         $stmt->bind_param("i", $user['id']);
         $stmt->execute();
         $result = $stmt->get_result();
