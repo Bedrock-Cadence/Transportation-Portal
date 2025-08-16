@@ -23,7 +23,8 @@ if (!in_array($user_role, $allowed_roles) || ($_SESSION['entity_type'] ?? null) 
 }
 
 // Check if this is an AJAX request from the front-end.
-$is_ajax = isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+// We are now looking for a specific query parameter.
+$is_ajax = isset($_GET['ajax']) && $_GET['ajax'] === 'true';
 
 // 5. Include the database connection file.
 require_once __DIR__ . '/../../app/db_connect.php';
@@ -146,7 +147,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 // --- Start of Page Data Retrieval ---
 if ($user_role === 'admin') {
     $carrier_id = $_GET['carrier_id'] ?? null;
-    if ($carrier_id) {
+    if ($is_ajax) {
         // AJAX request for a specific carrier's data.
         $stmt = $mysqli->prepare("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? AND is_active = 1 LIMIT 1");
         $stmt->bind_param("i", $carrier_id);
@@ -348,11 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 licensureDetails.style.display = 'block'; // Show the details section
 
                 try {
-                    const response = await fetch(`licensure.php?carrier_id=${carrierId}`, {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
+                    // Update the fetch URL to include a query parameter for AJAX
+                    const response = await fetch(`licensure.php?carrier_id=${carrierId}&ajax=true`);
 
                     if (!response.ok) {
                         throw new Error('Network response was not ok.');
