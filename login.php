@@ -89,14 +89,14 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
         if (!$user || !password_verify($password, $user['password_hash'])) {
             $login_error = "The email or password you entered is incorrect.";
         
-        // Check 2: Is the user's account active? (Only runs if password was correct)
-        } elseif (!$user['is_active']) {
-            $login_error = "This account is inactive or pending activation.";
-        
-        // Check 3: If it's a carrier, are they verified?
-        } elseif ($user['entity_type'] === 'carrier' && $user['verification_status'] !== 'verified') {
-            $login_error = "Your company's account is pending verification by our staff.";
-        }
+// Check 2: Is the user's account active? (Only runs if password was correct)
+} elseif (!$user['is_active']) {
+    $login_error = "This account is inactive or pending activation.";
+    
+// Check 3: If it's a carrier, are they verified?
+} elseif ($user['entity_type'] === 'carrier' && $user['verification_status'] !== 'verified' && !in_array($user['role'], ['carrier_superuser', 'bedrock_admin'])) {
+    $login_error = "Your company's account is pending verification by our staff.";
+}
 
         // --- FINAL STEP: LOGIN ---
         // If we got here with no errors, the user is valid and good to go.
