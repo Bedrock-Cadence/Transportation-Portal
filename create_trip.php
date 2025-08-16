@@ -37,6 +37,12 @@ if (isset($_SESSION["loggedin"])) {
     }
 }
 if (!$is_authorized) {
+    // Log the unauthorized access attempt before redirecting.
+    $attempted_user_id = $_SESSION['user_id'] ?? 0; // Use 0 if user_id isn't set
+    $log_message = "Unauthorized access attempt to create_new_trip.php.";
+    log_activity($mysqli, $attempted_user_id, 'unauthorized_access', $log_message);
+
+    // Now, redirect the user.
     header("location: index.php");
     exit;
 }
@@ -233,29 +239,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
 
             // --- INSERT INTO 'trips' TABLE ---
-            $trip_uuid = null;
-            $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at, distance) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?, ?)";
+$trip_uuid = null;
+// Add the new columns to the query
+$sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_room, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_room, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at, distance) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?, ?)";
 
-            if ($stmt_trip = $mysqli->prepare($sql_trip)) {
-                
-                // Convert times to UTC
-                $appointment_at_utc = convert_to_utc($_POST['appointment_time'], USER_TIMEZONE);
-                $requested_pickup_time_utc = convert_to_utc($_POST['requested_pickup_time'], USER_TIMEZONE);
-                
-                $origin_name = "Pickup Location";
-                $destination_name = "Dropoff Location";
+if ($stmt_trip = $mysqli->prepare($sql_trip)) {
+    
+    // Convert times to UTC
+    $appointment_at_utc = convert_to_utc($_POST['appointment_time'], USER_TIMEZONE);
+    $requested_pickup_time_utc = convert_to_utc($_POST['requested_pickup_time'], USER_TIMEZONE);
+    
+    $origin_name = "Pickup Location";
+    $destination_name = "Dropoff Location";
 
-                $stmt_trip->bind_param("iisssssssssssissd", $facility_id, $created_by_user_id, $origin_name, $_POST['pickup_address_street'], $_POST['pickup_address_city'], $_POST['pickup_address_state'], $_POST['pickup_address_zip'], $destination_name, $_POST['dropoff_address_street'], $_POST['dropoff_address_city'], $_POST['dropoff_address_state'], $_POST['dropoff_address_zip'], $appointment_at_utc, $asap, $requested_pickup_time_utc, $bidding_closes_at, $trip_distance_miles);
+    // Add the room numbers to bind_param. Note the two new 's' types.
+    $stmt_trip->bind_param(
+        "iisssssssssssssisssd", 
+        $facility_id, 
+        $created_by_user_id, 
+        $origin_name, 
+        $_POST['pickup_address_street'], 
+        $_POST['pickup_address_room'], // New
+        $_POST['pickup_address_city'], 
+        $_POST['pickup_address_state'], 
+        $_POST['pickup_address_zip'], 
+        $destination_name, 
+        $_POST['dropoff_address_street'],
+        $_POST['dropoff_address_room'], // New
+        $_POST['dropoff_address_city'], 
+        $_POST['dropoff_address_state'], 
+        $_POST['dropoff_address_zip'], 
+        $appointment_at_utc, 
+        $asap, 
+        $requested_pickup_time_utc, 
+        $bidding_closes_at, 
+        $trip_distance_miles
+    );
 
-                if (!$stmt_trip->execute()) {
-                    throw new Exception("Failed to create the trip record: " . $stmt_trip->error);
-                }
-                $trip_id = $mysqli->insert_id;
-                $stmt_trip->close();
+    if (!$stmt_trip->execute()) {
+        throw new Exception("Failed to create the trip record: " . $stmt_trip->error);
+    }
+    $trip_id = $mysqli->insert_id;
+    $stmt_trip->close();
 
-            } else {
-                throw new Exception("Database error preparing the trip record: " . $mysqli->error);
-            }
+} else {
+    throw new Exception("Database error preparing the trip record: " . $mysqli->error);
+}
 
             // --- INSERT INTO 'TRIPS_PHI' TABLE ---
             $sql_patient = "INSERT INTO trips_phi (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -295,11 +324,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             // Fallback in case UUID retrieval fails, show a success message on the current page
             $trip_success = "Trip request created successfully! The trip ID is #{$trip_id}.";
 
-        } catch (Exception $e) {
-            $mysqli->rollback();
-            $trip_error = "Error creating trip: " . $e->getMessage();
-            log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', 'Error: ' . $e->getMessage());
-        }
+} catch (Exception $e) {
+    $mysqli->rollback();
+    
+    // Log the detailed system error for IT review.
+    $user_id_on_fail = $_SESSION['user_id'] ?? 0;
+    $system_error_message = "System Error on trip creation: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine();
+    log_activity($mysqli, $user_id_on_fail, 'create_trip_failure', $system_error_message);
+
+    // Provide a generic, user-friendly error message.
+    $trip_error = "We're sorry, but there was a problem creating the trip. Our technical team has been notified. Please try again later.";
+}
     }
 }
 ?>
