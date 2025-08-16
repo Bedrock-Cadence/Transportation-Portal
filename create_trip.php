@@ -1,10 +1,17 @@
 <?php
+// FILE: create_new_trip.php
+
+// Start output buffering to prevent "headers already sent" errors.
+ob_start();
+
+// 1. Set the page title for the header.
 $page_title = 'Create New Trip';
+
+// 2. Include the header and necessary services.
 require_once 'header.php';
 require_once __DIR__ . '/../../app/db_connect.php';
-require_once __DIR__ . '/../../app/encryption_service.php'; // Include our new service
-require_once __DIR__ . '/../../app/logging_service.php';   // Include our new service
-
+require_once __DIR__ . '/../../app/encryption_service.php';
+require_once __DIR__ . '/../../app/logging_service.php';
 
 // Array of US states for cleaner, more maintainable dropdown menus
 $states = [
@@ -20,69 +27,75 @@ $states = [
     'VA' => 'Virginia', 'WA' => 'Washington', 'WV' => 'West Virginia', 'WI' => 'Wisconsin', 'WY' => 'Wyoming'
 ];
 
-// Permission Check
-if (!isset($_SESSION["loggedin"]) || !(in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser']) || $_SESSION['user_role'] === 'bedrock_admin')) {
+// Permission Check: Only 'user', 'superuser', or 'admin' with a 'facility' entity can create a trip.
+if (!isset($_SESSION["loggedin"]) || $_SESSION['entity_type'] !== 'facility' || !(in_array($_SESSION['user_role'], ['user', 'superuser', 'admin']))) {
     header("location: login.php");
     exit;
 }
 
+// Define the user and system timezones for conversion.
+// These would typically be defined in a config file, but are hardcoded here for a complete example.
+define('USER_TIMEZONE', 'America/Chicago'); // Example: Central Time for your location
+define('SYSTEM_TIMEZONE', 'UTC');
+
 /**
- * Standardizes an address using the Google Geocoding API.
- *
- * @param string $street
- * @param string $city
- * @param string $state
- * @param string $zip
- * @return array An array containing the success status and either the formatted address or an error message.
+ * Converts a date/time string from a specified timezone to UTC.
+ * @param string $datetime_string The date/time string to convert.
+ * @param string $source_timezone The original timezone of the string.
+ * @return string The converted date/time string in UTC, formatted for MySQL.
  */
-function standardize_address($street, $city, $state, $zip) {
-    $street = trim($street);
-    $city = trim($city);
-    $state = trim($state);
-    $zip = trim($zip);
-
-    if (empty($street) || empty($city) || empty($state)) {
-        return ['success' => false, 'error' => 'Incomplete address provided.'];
+function convert_to_utc($datetime_string, $source_timezone) {
+    if (empty($datetime_string)) {
+        return null;
     }
+    try {
+        $datetime_obj = new DateTime($datetime_string, new DateTimeZone($source_timezone));
+        $datetime_obj->setTimezone(new DateTimeZone(SYSTEM_TIMEZONE));
+        return $datetime_obj->format('Y-m-d H:i:s');
+    } catch (Exception $e) {
+        // Log the error and return null to prevent script failure
+        error_log("Timezone conversion error: " . $e->getMessage());
+        return null;
+    }
+}
 
-    $address_string = urlencode("$street, $city, $state, $zip");
+/**
+ * Calculates the driving distance between two points using the Google Distance Matrix API.
+ * * @param string $origin The origin address string.
+ * @param string $destination The destination address string.
+ * @return array An array with 'distance_miles' on success, or 'error' on failure.
+ */
+function get_distance_from_api($origin, $destination) {
     $api_key = GOOGLE_MAPS_API_KEY; // This constant is defined elsewhere in your application
-    $url = "https://maps.googleapis.com/maps/api/geocode/json?address={$address_string}&key={$api_key}";
+    $url = "https://maps.googleapis.com/maps/api/distancematrix/json?origins=" . urlencode($origin) . "&destinations=" . urlencode($destination) . "&key=" . $api_key;
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
     $response = curl_exec($ch);
     $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
 
     if ($http_code != 200 || $response === false) {
-        return ['success' => false, 'error' => 'Could not connect to the address verification service.'];
+        return ['error' => 'Could not connect to the distance calculation service.'];
     }
 
     $data = json_decode($response, true);
-
-    if ($data['status'] == 'OK') {
-        $result = $data['results'][0];
-        return [
-            'success' => true,
-            'formatted_address' => $result['formatted_address'],
-            'latitude' => $result['geometry']['location']['lat'],
-            'longitude' => $result['geometry']['location']['lng'],
-            'place_id' => $result['place_id']
-        ];
+    
+    if (isset($data['status']) && $data['status'] === 'OK' && !empty($data['rows'][0]['elements'][0]['distance'])) {
+        $distance_meters = $data['rows'][0]['elements'][0]['distance']['value'];
+        $distance_miles = round($distance_meters * 0.000621371, 2);
+        return ['distance_miles' => $distance_miles];
     } else {
-        return ['success' => false, 'error' => 'Address could not be verified. Please check for errors.'];
+        return ['error' => 'Could not calculate distance. Please check the addresses.'];
     }
 }
 
 
 // Fetch facility address to pre-populate the form
 $facility_address = ['address_street' => '', 'address_city' => '', 'address_state' => '', 'address_zip' => ''];
-if (isset($_SESSION['user_role'])) {
-    $facility_id_to_fetch = ($_SESSION['user_role'] === 'bedrock_admin' && isset($_POST['facility_id'])) ? $_POST['facility_id'] : $_SESSION['entity_id'];
+if (isset($_SESSION['user_role']) && in_array($_SESSION['user_role'], ['user', 'superuser', 'admin'])) {
+    $facility_id_to_fetch = ($_SESSION['user_role'] === 'admin' && isset($_POST['facility_id'])) ? $_POST['facility_id'] : $_SESSION['entity_id'];
     if (!empty($facility_id_to_fetch)) {
         $sql = "SELECT address_street, address_city, address_state, address_zip FROM facilities WHERE id = ?";
         if ($stmt = $mysqli->prepare($sql)) {
@@ -103,9 +116,9 @@ $trip_error = '';
 $trip_success = '';
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
-$turnstile_response = $_POST['cf-turnstile-response'] ?? null;
-    $secretKey = CLOUD_FLARE_SECRET; // Keep this safe!
-
+    // Cloudflare Turnstile verification
+    $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
+    $secretKey = CLOUD_FLARE_SECRET;
     $ip = $_SERVER['REMOTE_ADDR'];
 
     $postData = [
@@ -117,169 +130,171 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
     $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
-
     $response = curl_exec($ch);
     curl_close($ch);
-
     $result = json_decode($response, true);
 
-    if (isset($result['success']) && $result['success']) {
-        // The user is likely human. Proceed with your login or form processing.
-        // For example: check_user_credentials($_POST['username'], $_POST['password']);
-
+    if (!isset($result['success']) || !$result['success']) {
+        $trip_error = "Security check failed. Please try again.";
+        log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', "Security check failed.");
     } else {
-        // Verification failed. The user is likely a bot.
-        // Log the attempt and show an error message.
-        $login_err = "Security check failed. Please try again.";
-        // Optional: log the error details from $result['error-codes']
-    }
+        // --- Start a database transaction ---
+        $mysqli->begin_transaction();
 
-    // --- Start a database transaction ---
-    $mysqli->begin_transaction();
+        try {
+            // --- DATA COLLECTION AND VALIDATION ---
+            $facility_id = ($_SESSION['user_role'] === 'admin') ? (int)$_POST['facility_id'] : (int)$_SESSION['entity_id'];
+            $created_by_user_id = (int)$_SESSION['user_id'];
+            $asap = isset($_POST['asap_checkbox']) ? 1 : 0;
+            
+            // 2. ASAP & TIME VALIDATION
+            if (!$asap && empty($_POST['requested_pickup_time']) && empty($_POST['appointment_time'])) {
+                throw new Exception("If the trip is not ASAP, you must provide either a requested pickup time or an appointment time.");
+            }
+            
+            // --- DISTANCE CALCULATION ---
+            $origin_address = $_POST['pickup_address_street'] . ', ' . $_POST['pickup_address_city'] . ', ' . $_POST['pickup_address_state'] . ' ' . $_POST['pickup_address_zip'];
+            $destination_address = $_POST['dropoff_address_street'] . ', ' . $_POST['dropoff_address_city'] . ', ' . $_POST['dropoff_address_state'] . ' ' . $_POST['dropoff_address_zip'];
+            $distance_result = get_distance_from_api($origin_address, $destination_address);
 
-    try {
-        // --- DATA COLLECTION AND VALIDATION ---
-        $facility_id = ($_SESSION['user_role'] === 'bedrock_admin') ? (int)$_POST['facility_id'] : (int)$_SESSION['entity_id'];
-        $created_by_user_id = (int)$_SESSION['user_id'];
-        $asap = isset($_POST['asap_checkbox']) ? 1 : 0;
-        
-        // 2. ASAP & TIME VALIDATION
-        if (!$asap && empty($_POST['requested_pickup_time']) && empty($_POST['appointment_time'])) {
-            throw new Exception("If the trip is not ASAP, you must provide either a requested pickup time or an appointment time.");
-        }
+            if (isset($distance_result['error'])) {
+                throw new Exception("Distance calculation failed: " . $distance_result['error']);
+            }
+            $trip_distance_miles = $distance_result['distance_miles'];
 
-        // 3. DYNAMIC BIDDING WINDOW
-        $bidding_minutes = 10; // Default value
-        $sql_config = "SELECT config_settings FROM facilities WHERE id = ?";
-        if ($stmt_config = $mysqli->prepare($sql_config)) {
-            $stmt_config->bind_param("i", $facility_id);
-            if ($stmt_config->execute()) {
-                $result_config = $stmt_config->get_result();
-                if ($row_config = $result_config->fetch_assoc()) {
-                    if (!empty($row_config['config_settings'])) {
-                        $config = json_decode($row_config['config_settings'], true);
-                        if (isset($config['bidding_window_minutes']) && is_numeric($config['bidding_window_minutes'])) {
-                            $bidding_minutes = (int)$config['bidding_window_minutes'];
+            // 3. DYNAMIC BIDDING WINDOW
+            $bidding_minutes = 15; // Default short-trip value
+            $sql_config = "SELECT config_settings FROM facilities WHERE id = ?";
+            if ($stmt_config = $mysqli->prepare($sql_config)) {
+                $stmt_config->bind_param("i", $facility_id);
+                if ($stmt_config->execute()) {
+                    $result_config = $stmt_config->get_result();
+                    if ($row_config = $result_config->fetch_assoc()) {
+                        if (!empty($row_config['config_settings'])) {
+                            $config = json_decode($row_config['config_settings'], true);
+                            if ($trip_distance_miles >= 150) {
+                                $bidding_minutes = $config['long_bid_duration'] ?? 30; // Use long bid duration
+                            } else {
+                                $bidding_minutes = $config['short_bid_duration'] ?? 15; // Use short bid duration
+                            }
                         }
                     }
                 }
+                $stmt_config->close();
             }
-            $stmt_config->close();
-        }
-        $bidding_closes_at = date('Y-m-d H:i:s', strtotime("+{$bidding_minutes} minutes"));
+            $bidding_closes_at = date('Y-m-d H:i:s', strtotime("+{$bidding_minutes} minutes"));
 
-        // Collect special equipment details into a single string
-        $special_equipment_details = [];
-        if (!empty($_POST['special_equipment'])) {
-            foreach ($_POST['special_equipment'] as $equipment) {
-                $detail = $equipment;
-                if ($equipment === 'Oxygen' && !empty($_POST['oxygen_notes'])) {
-                    $detail .= ': ' . trim($_POST['oxygen_notes']);
-                } elseif ($equipment === 'IV') {
-                    if (!empty($_POST['iv_notes'])) {
-                        $detail .= ': ' . $_POST['iv_notes'];
-                        if ($_POST['iv_notes'] === 'Flowing medications' && !empty($_POST['iv_meds'])) {
-                            $detail .= ' - ' . trim($_POST['iv_meds']);
+            // Collect special equipment details into a single string
+            $special_equipment_details = [];
+            if (!empty($_POST['special_equipment'])) {
+                foreach ($_POST['special_equipment'] as $equipment) {
+                    $detail = $equipment;
+                    if ($equipment === 'Oxygen' && !empty($_POST['oxygen_notes'])) {
+                        $detail .= ': ' . trim($_POST['oxygen_notes']);
+                    } elseif ($equipment === 'IV') {
+                        if (!empty($_POST['iv_notes'])) {
+                            $detail .= ': ' . $_POST['iv_notes'];
+                            if ($_POST['iv_notes'] === 'Flowing medications' && !empty($_POST['iv_meds'])) {
+                                $detail .= ' - ' . trim($_POST['iv_meds']);
+                            }
                         }
+                    } elseif ($equipment === 'Ventilator' && !empty($_POST['ventilator_notes'])) {
+                        $detail .= ': ' . trim($_POST['ventilator_notes']);
+                    } elseif ($equipment === 'Other' && !empty($_POST['other_notes'])) {
+                        $detail .= ': ' . trim($_POST['other_notes']);
                     }
-                } elseif ($equipment === 'Ventilator' && !empty($_POST['ventilator_notes'])) {
-                    $detail .= ': ' . trim($_POST['ventilator_notes']);
-                } elseif ($equipment === 'Other' && !empty($_POST['other_notes'])) {
-                    $detail .= ': ' . trim($_POST['other_notes']);
+                    $special_equipment_details[] = $detail;
                 }
-                $special_equipment_details[] = $detail;
             }
-        }
-        $special_equipment_string = implode('; ', $special_equipment_details);
+            $special_equipment_string = implode('; ', $special_equipment_details);
 
-        // Convert lbs to kg for patient weight
-        $patient_weight_lbs = filter_var($_POST['patient_weight'], FILTER_VALIDATE_FLOAT);
-        $patient_weight_kg = $patient_weight_lbs ? $patient_weight_lbs * 0.453592 : null;
+            // Convert lbs to kg for patient weight
+            $patient_weight_lbs = filter_var($_POST['patient_weight'], FILTER_VALIDATE_FLOAT);
+            $patient_weight_kg = $patient_weight_lbs ? $patient_weight_lbs * 0.453592 : null;
 
-        // --- ENCRYPT SENSITIVE DATA ---
-        $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
-        $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
-        $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
-        $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
-        $encrypted_weight = encrypt_data((string)$patient_weight_kg, ENCRYPTION_KEY);
-        $encrypted_height = encrypt_data($_POST['patient_height'], ENCRYPTION_KEY);
-        $encrypted_diagnosis = encrypt_data($_POST['diagnosis'], ENCRYPTION_KEY);
-        $encrypted_equipment = encrypt_data($special_equipment_string, ENCRYPTION_KEY);
-        $encrypted_isolation = encrypt_data($_POST['isolation_precautions'], ENCRYPTION_KEY);
-        
-        if (!$encrypted_first_name || !$encrypted_last_name || !$encrypted_dob || !$encrypted_ssn) {
-            throw new Exception("A critical error occurred while securing patient data. Please try again.");
-        }
-
-        // --- INSERT INTO 'trips' TABLE ---
-        $trip_uuid = null; // Initialize variable to hold the new UUID
-        $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?)";
-
-        if ($stmt_trip = $mysqli->prepare($sql_trip)) {
-            $appointment_at = (!$asap && !empty($_POST['appointment_time'])) ? date('Y-m-d H:i:s', strtotime($_POST['appointment_time'])) : null;
-            $requested_pickup_time = (!$asap && !empty($_POST['requested_pickup_time'])) ? $_POST['requested_pickup_time'] : null;
-            $origin_name = "Pickup Location"; 
-            $destination_name = "Dropoff Location"; 
-
-            $stmt_trip->bind_param("iisssssssssssiss", $facility_id, $created_by_user_id, $origin_name, $_POST['pickup_address_street'], $_POST['pickup_address_city'], $_POST['pickup_address_state'], $_POST['pickup_address_zip'], $destination_name, $_POST['dropoff_address_street'], $_POST['dropoff_address_city'], $_POST['dropoff_address_state'], $_POST['dropoff_address_zip'], $appointment_at, $asap, $requested_pickup_time, $bidding_closes_at);
-
-            if (!$stmt_trip->execute()) {
-                throw new Exception("Failed to create the trip record: " . $stmt_trip->error);
+            // --- ENCRYPT SENSITIVE DATA ---
+            $encrypted_first_name = encrypt_data($_POST['patient_first_name'], ENCRYPTION_KEY);
+            $encrypted_last_name = encrypt_data($_POST['patient_last_name'], ENCRYPTION_KEY);
+            $encrypted_dob = encrypt_data($_POST['patient_dob'], ENCRYPTION_KEY);
+            $encrypted_ssn = encrypt_data($_POST['patient_ssn'], ENCRYPTION_KEY);
+            $encrypted_weight = encrypt_data((string)$patient_weight_kg, ENCRYPTION_KEY);
+            $encrypted_height = encrypt_data($_POST['patient_height'], ENCRYPTION_KEY);
+            $encrypted_diagnosis = encrypt_data($_POST['diagnosis'], ENCRYPTION_KEY);
+            $encrypted_equipment = encrypt_data($special_equipment_string, ENCRYPTION_KEY);
+            $encrypted_isolation = encrypt_data($_POST['isolation_precautions'], ENCRYPTION_KEY);
+            
+            if (!$encrypted_first_name || !$encrypted_last_name || !$encrypted_dob || !$encrypted_ssn) {
+                throw new Exception("A critical error occurred while securing patient data. Please try again.");
             }
-            $trip_id = $mysqli->insert_id;
-            $stmt_trip->close();
 
-        } else {
-            throw new Exception("Database error preparing the trip record: " . $mysqli->error);
-        }
+            // --- INSERT INTO 'trips' TABLE ---
+            $trip_uuid = null;
+            $sql_trip = "INSERT INTO trips (uuid, facility_id, created_by_user_id, origin_name, origin_street, origin_city, origin_state, origin_zip, destination_name, destination_street, destination_city, destination_state, destination_zip, appointment_at, asap, requested_pickup_time, status, bidding_closes_at, distance) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bidding', ?, ?)";
 
-        // --- INSERT INTO 'TRIPS_PHI' TABLE ---
-        // 4. PHI TABLE UUID
-        $sql_patient = "INSERT INTO trips_phi (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        if ($stmt_patient = $mysqli->prepare($sql_patient)) {
-            // Note the new bind_param string starts with 'i' for trip_id, then 10 's' strings for the encrypted data
-            $stmt_patient->bind_param("isssssssss", $trip_id, $encrypted_first_name, $encrypted_last_name, $encrypted_dob, $encrypted_ssn, $encrypted_weight, $encrypted_height, $encrypted_diagnosis, $encrypted_equipment, $encrypted_isolation);
-            if (!$stmt_patient->execute()) {
-                throw new Exception("Failed to save patient details: " . $stmt_patient->error);
+            if ($stmt_trip = $mysqli->prepare($sql_trip)) {
+                
+                // Convert times to UTC
+                $appointment_at_utc = convert_to_utc($_POST['appointment_time'], USER_TIMEZONE);
+                $requested_pickup_time_utc = convert_to_utc($_POST['requested_pickup_time'], USER_TIMEZONE);
+                
+                $origin_name = "Pickup Location";
+                $destination_name = "Dropoff Location";
+
+                $stmt_trip->bind_param("iisssssssssssissd", $facility_id, $created_by_user_id, $origin_name, $_POST['pickup_address_street'], $_POST['pickup_address_city'], $_POST['pickup_address_state'], $_POST['pickup_address_zip'], $destination_name, $_POST['dropoff_address_street'], $_POST['dropoff_address_city'], $_POST['dropoff_address_state'], $_POST['dropoff_address_zip'], $appointment_at_utc, $asap, $requested_pickup_time_utc, $bidding_closes_at, $trip_distance_miles);
+
+                if (!$stmt_trip->execute()) {
+                    throw new Exception("Failed to create the trip record: " . $stmt_trip->error);
+                }
+                $trip_id = $mysqli->insert_id;
+                $stmt_trip->close();
+
+            } else {
+                throw new Exception("Database error preparing the trip record: " . $mysqli->error);
             }
-            $stmt_patient->close();
-        } else {
-            throw new Exception("Database error preparing patient details: " . $mysqli->error);
-        }
 
-        // --- LOG THE ACTIVITY ---
-        $log_message = "User successfully created a new trip request (Trip ID: {$trip_id}) for Facility ID: {$facility_id}.";
-        if (!log_activity($mysqli, $created_by_user_id, 'create_trip_success', $log_message)) {
-            error_log("CRITICAL: Failed to log successful trip creation for Trip ID: {$trip_id}.");
-        }
-        
-        // --- COMMIT AND REDIRECT ---
-        $mysqli->commit();
-
-        // 1. REDIRECT LOGIC: Get the UUID of the trip we just created
-        $sql_get_uuid = "SELECT uuid FROM trips WHERE id = ? LIMIT 1";
-        if ($stmt_uuid = $mysqli->prepare($sql_get_uuid)) {
-            $stmt_uuid->bind_param("i", $trip_id);
-            $stmt_uuid->execute();
-            $result_uuid = $stmt_uuid->get_result();
-            if ($row_uuid = $result_uuid->fetch_assoc()) {
-                $trip_uuid = $row_uuid['uuid'];
-                // Redirect to the view trip page
-                header("Location: view_trip.php?uuid=" . urlencode($trip_uuid));
-                exit();
+            // --- INSERT INTO 'TRIPS_PHI' TABLE ---
+            $sql_patient = "INSERT INTO trips_phi (trip_id, uuid, patient_first_name_encrypted, patient_last_name_encrypted, patient_dob_encrypted, patient_ssn_last4_encrypted, patient_weight_kg_encrypted, patient_height_in_encrypted, diagnosis_encrypted, special_equipment_encrypted, isolation_precautions_encrypted) VALUES (?, UUID(), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            if ($stmt_patient = $mysqli->prepare($sql_patient)) {
+                $stmt_patient->bind_param("isssssssss", $trip_id, $encrypted_first_name, $encrypted_last_name, $encrypted_dob, $encrypted_ssn, $encrypted_weight, $encrypted_height, $encrypted_diagnosis, $encrypted_equipment, $encrypted_isolation);
+                if (!$stmt_patient->execute()) {
+                    throw new Exception("Failed to save patient details: " . $stmt_patient->error);
+                }
+                $stmt_patient->close();
+            } else {
+                throw new Exception("Database error preparing patient details: " . $mysqli->error);
             }
-            $stmt_uuid->close();
+
+            // --- LOG THE ACTIVITY ---
+            $log_message = "User successfully created a new trip request (Trip ID: {$trip_id}) for Facility ID: {$facility_id}.";
+            if (!log_activity($mysqli, $created_by_user_id, 'create_trip_success', $log_message)) {
+                error_log("CRITICAL: Failed to log successful trip creation for Trip ID: {$trip_id}.");
+            }
+            
+            // --- COMMIT AND REDIRECT ---
+            $mysqli->commit();
+
+            // Redirect to the view trip page
+            $sql_get_uuid = "SELECT uuid FROM trips WHERE id = ? LIMIT 1";
+            if ($stmt_uuid = $mysqli->prepare($sql_get_uuid)) {
+                $stmt_uuid->bind_param("i", $trip_id);
+                $stmt_uuid->execute();
+                $result_uuid = $stmt_uuid->get_result();
+                if ($row_uuid = $result_uuid->fetch_assoc()) {
+                    $trip_uuid = $row_uuid['uuid'];
+                    header("Location: view_trip.php?uuid=" . urlencode($trip_uuid));
+                    exit();
+                }
+                $stmt_uuid->close();
+            }
+            // Fallback in case UUID retrieval fails, show a success message on the current page
+            $trip_success = "Trip request created successfully! The trip ID is #{$trip_id}.";
+
+        } catch (Exception $e) {
+            $mysqli->rollback();
+            $trip_error = "Error creating trip: " . $e->getMessage();
+            log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', 'Error: ' . $e->getMessage());
         }
-        // Fallback in case UUID retrieval fails, show a success message on the current page
-        $trip_success = "Trip request created successfully! The trip ID is #{$trip_id}.";
-
-
-    } catch (Exception $e) {
-        $mysqli->rollback();
-        $trip_error = "Error creating trip: " . $e->getMessage();
-        
-        log_activity($mysqli, $_SESSION['user_id'], 'create_trip_failure', 'Error: ' . $e->getMessage());
     }
 }
 ?>
@@ -293,7 +308,7 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
                 echo '<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert"><p class="font-bold">Error</p><p>' . trim($trip_error) . '</p></div>';
             } ?>
 
-            <?php if ($_SESSION['user_role'] === 'bedrock_admin') : ?>
+            <?php if ($_SESSION['user_role'] === 'admin') : ?>
                 <?php
                 $facilities = [];
                 $sql_facilities = "SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC";
@@ -495,9 +510,9 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
                         </div>
                     </div>
                      <div>
-                        <label for="isolation_precautions" class="block text-sm font-medium text-gray-700">Medical Isolation Precautions</label>
-                        <input type="text" name="isolation_precautions" id="isolation_precautions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="E.g., Airborne, Droplet, Contact, None">
-                    </div>
+                         <label for="isolation_precautions" class="block text-sm font-medium text-gray-700">Medical Isolation Precautions</label>
+                         <input type="text" name="isolation_precautions" id="isolation_precautions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="E.g., Airborne, Droplet, Contact, None">
+                     </div>
                 </div>
             </fieldset>
 
@@ -516,7 +531,6 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
 document.addEventListener('DOMContentLoaded', function() {
     const roomAlert = document.getElementById('room-number-alert');
 
-    // Helper to toggle visibility for Tailwind
     const toggleElementVisibility = (element, show) => {
         element.classList.toggle('hidden', !show);
     };
@@ -565,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fields.forEach(field => {
             const pickupEl = document.getElementById(`pickup_address_${field}`);
             const dropoffEl = document.getElementById(`dropoff_address_${field}`);
-            if(pickupEl && dropoffEl) { // Ensure both elements exist
+            if(pickupEl && dropoffEl) {
                 dropoffEl.value = isChecked ? pickupEl.value : '';
             }
         });
@@ -582,8 +596,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-
-    // Function to handle the ASAP checkbox
     const asapCheckbox = document.getElementById('asap_checkbox');
     const pickupTimeInput = document.getElementById('requested_pickup_time');
     const appointmentTimeInput = document.getElementById('appointment_time');
@@ -594,7 +606,6 @@ document.addEventListener('DOMContentLoaded', function() {
         appointmentTimeInput.disabled = isDisabled;
     });
 
-    // --- Special Equipment Conditional Logic ---
     const setupConditionalDisplay = (checkboxId, detailsId) => {
         const checkbox = document.getElementById(checkboxId);
         const details = document.getElementById(detailsId);
@@ -622,4 +633,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <?php
 require_once 'footer.php';
+// Flush the output buffer and send content to the browser.
+ob_end_flush();
 ?>
