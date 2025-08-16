@@ -124,7 +124,7 @@ function getDisplayName($role) {
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['email']); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars(getDisplayName($user['role'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="view_user.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="user_profile.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -159,7 +159,7 @@ function getDisplayName($role) {
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['email']); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars(getDisplayName($user['role'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="view_user.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="user_profile.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
