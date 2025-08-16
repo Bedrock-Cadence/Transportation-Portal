@@ -61,16 +61,16 @@ function log_user_activity($conn, $user_id, $action, $message) {
 
 // --- Start of Form Submission Handling ---
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    // Fetch the carrier's current verification status before attempting an update.
-    $stmt_status = $mysqli->prepare("SELECT verification_status FROM carriers WHERE id = ? LIMIT 1");
+    // Fetch the carrier's current verification status and existing data before attempting an update.
+    $stmt_status = $mysqli->prepare("SELECT verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1");
     $stmt_status->bind_param("i", $_SESSION['entity_id']);
     $stmt_status->execute();
     $result_status = $stmt_status->get_result();
-    $current_status = $result_status->fetch_assoc();
+    $current_data = $result_status->fetch_assoc();
     $stmt_status->close();
 
     // Check if the record can be updated.
-    if ($current_status && $current_status['verification_status'] !== 'verified') {
+    if ($current_data && $current_data['verification_status'] !== 'verified') {
         try {
             $license_state = trim($_POST['license_state']);
             $license_number = trim($_POST['license_number']);
@@ -82,7 +82,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             
             if ($stmt->execute()) {
                 $_SESSION['licensure_page_message'] = "Licensing information has been updated successfully.";
-                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', "Carrier licensure updated for entity ID: {$_SESSION['entity_id']}");
+
+                // Create a log message with both old and new data.
+                $log_message = "Licensure updated for entity ID: {$_SESSION['entity_id']}. ";
+                $log_message .= "Old values: ";
+                $log_message .= "License State: '{$current_data['license_state']}' -> '{$license_state}', ";
+                $log_message .= "License Number: '{$current_data['license_number']}' -> '{$license_number}', ";
+                $log_message .= "Expiration Date: '{$current_data['license_expires_at']}' -> '{$license_expires_at}'.";
+                
+                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', $log_message);
             } else {
                 $_SESSION['licensure_page_error'] = "Error updating licensure: " . $stmt->error;
                 log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Failed to update carrier licensure for entity ID: {$_SESSION['entity_id']}");
