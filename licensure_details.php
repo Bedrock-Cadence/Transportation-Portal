@@ -135,7 +135,7 @@ if (!$selected_carrier) {
     <?php endif; ?>
 
     <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-        <form id="licensure-form-details" method="POST" action="licensure-details.php" class="space-y-6">
+        <form id="licensure-form-details" method="POST" action="licensure_details.php" class="space-y-6">
             <input type="hidden" name="carrier_id" value="<?= htmlspecialchars($selected_carrier['id']); ?>">
             <div>
                 <label for="verification_status" class="block text-sm font-medium text-gray-700">Verification Status</label>
