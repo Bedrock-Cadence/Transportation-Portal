@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../app/session_config.php';
 // The company name is now fetched at login and stored in the session.
 
 // Set the company name from the session, with a fallback to Bedrock Cadence.
-$company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'];
+$company_name = isset($_SESSION['entity_name']);
 
 // --- NEW LOGIC FOR DYNAMIC ICONS ---
 $company_icon = '';
