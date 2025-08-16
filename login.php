@@ -221,13 +221,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-  // This is the function that the Turnstile widget will call on success.
   function onTurnstileSuccess(token) {
-    // Find the submit button on the page.
     const submitButton = document.getElementById('submitBtn');
-    
-    // If the button exists, remove the 'disabled' attribute.
-    if (submitButton) {
+        if (submitButton) {
       submitButton.disabled = false;
     }
   }
