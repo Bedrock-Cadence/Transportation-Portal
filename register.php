@@ -9,6 +9,7 @@ $page_message = '';
 $page_error = '';
 $user = null;
 $show_form = false;
+$token = '';
 
 // --- Start of Utility Functions ---
 
@@ -54,20 +55,20 @@ function isMediumStrengthPassword($password) {
 // --- End of Utility Functions ---
 
 
-// --- Handle GET request to validate the registration token ---
+// --- Handle GET request to validate the registration token and show the form ---
 if (isset($_GET['uuid'])) {
     $token = $_GET['uuid'];
 
     // Query the database to find the user by their registration token hash.
-    $stmt = $mysqli->prepare("SELECT id, uuid, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+    $stmt = $mysqli->prepare("SELECT id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
-    $user = $result->fetch_assoc();
+    $user_exists = $result->fetch_assoc();
     $stmt->close();
 
     // Check if the user exists and the invitation is still valid.
-    if ($user && !$user['is_active'] && strtotime($user['token_expires_at']) > time()) {
+    if ($user_exists && !$user_exists['is_active'] && strtotime($user_exists['token_expires_at']) > time()) {
         $show_form = true;
     } else {
         $page_error = 'This registration link is invalid or has expired. Please contact your admin for a new one.';
@@ -81,12 +82,9 @@ if ($show_form && $_SERVER["REQUEST_METHOD"] === "POST") {
     $token = trim($_POST['token']);
     $entered_entity_id = trim($_POST['entity_id']);
     $password = $_POST['password'];
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
-    $phone_number = trim($_POST['phone_number']);
 
-    // Re-fetch the user data to ensure it's still valid.
-    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
+    // Re-fetch the user data to ensure it's still valid, but only after form submission.
+    $stmt = $mysqli->prepare("SELECT id, first_name, last_name, email, phone_number, entity_id, is_active, token_expires_at FROM users WHERE registration_token_hash = ? LIMIT 1");
     $stmt->bind_param("s", $token);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -103,8 +101,8 @@ if ($show_form && $_SERVER["REQUEST_METHOD"] === "POST") {
         // All checks passed. Activate the account and update the user data.
         $password_hash = password_hash($password, PASSWORD_ARGON2ID);
         
-        $stmt_update = $mysqli->prepare("UPDATE users SET password_hash = ?, first_name = ?, last_name = ?, phone_number = ?, is_active = 1, registration_token_hash = NULL, token_expires_at = NULL WHERE id = ?");
-        $stmt_update->bind_param("ssssi", $password_hash, $first_name, $last_name, $phone_number, $user['id']);
+        $stmt_update = $mysqli->prepare("UPDATE users SET password_hash = ?, is_active = 1, registration_token_hash = NULL, token_expires_at = NULL WHERE id = ?");
+        $stmt_update->bind_param("si", $password_hash, $user['id']);
         
         if ($stmt_update->execute()) {
             $stmt_update->close();
@@ -158,27 +156,6 @@ $mysqli->close();
                     <div>
                         <label for="entity_id" class="block text-sm font-medium text-gray-700">Entity ID</label>
                         <input type="text" id="entity_id" name="entity_id" required placeholder="Enter the ID from your invitation email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                            <input type="text" id="first_name" name="first_name" value="<?= htmlspecialchars($user['first_name']); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input type="text" id="last_name" name="last_name" value="<?= htmlspecialchars($user['last_name']); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" id="email" name="email" value="<?= htmlspecialchars($user['email']); ?>" readonly class="mt-1 block w-full rounded-md bg-gray-100 border-gray-300 shadow-sm">
-                    </div>
-
-                    <div>
-                        <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                        <input type="tel" id="phone_number" name="phone_number" value="<?= htmlspecialchars($user['phone_number']); ?>" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
 
                     <div>
