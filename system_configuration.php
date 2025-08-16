@@ -62,7 +62,7 @@ function log_user_activity($conn, $user_id, $action, $message) {
 function generate_config_log_message($old_data, $new_data) {
     $changes = [];
     foreach ($new_data as $key => $value) {
-        if (!isset($old_data[$key]) || $old_data[$key] !== $value) {
+        if (!isset($old_data[$key]) || json_encode($old_data[$key]) !== json_encode($value)) {
             $old_value = isset($old_data[$key]) ? (is_array($old_data[$key]) ? json_encode($old_data[$key]) : $old_data[$key]) : 'N/A';
             $new_value = is_array($value) ? json_encode($value) : $value;
             $changes[] = "{$key}: '{$old_value}' -> '{$new_value}'";
