@@ -75,7 +75,7 @@ if (isset($_SESSION['entity_type'])) {
                                                 <a href="/system_configuration.php" class="dropdown-item-custom">System Configuration</a>
                                             <?php endif; ?>
                                             <?php
-                            if ( (in_array($_SESSION['user_role'], ['superuser']) && $_SESSION['entity_type'] === 'carrier')): ?>
+                            if ( (in_array($_SESSION['user_role'], ['superuser']) && $_SESSION['entity_type'] === 'carrier') || $_SESSION['user_role'] === 'admin' ): ?>
                                                 <a href="/licensure.php" class="dropdown-item-custom">Licensure</a>
                                             <?php endif; ?>
                                         </div>
