@@ -66,7 +66,6 @@ if (isset($_SESSION['entity_type'])) {
                             <?php // Facility User Navigation
                             if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
                                 <a href="/create_trip.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Create Trip</a>
-                                <a href="/view_our_trips.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Our Trips</a>
                             <?php endif; ?>
 
                             <?php // Admin and Superuser Dropdown
