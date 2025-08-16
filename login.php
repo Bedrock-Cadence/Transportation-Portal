@@ -263,7 +263,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
     <div class="login-container">
-        <h2>Member Login</h2>
+        <h2>Portal Login</h2>
         <form id="loginForm" method="POST" action="login.php">
             
             <div class="form-group">
