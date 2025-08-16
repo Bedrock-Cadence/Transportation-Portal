@@ -70,9 +70,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         curl_close($ch);
         $result = json_decode($response, true);
 
+        // --- ENHANCED DEBUGGING: Log the specific error codes from Cloudflare ---
         if (!isset($result['success']) || !$result['success']) {
             $login_error = "Security check failed. Please try again.";
-            log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Cloudflare Turnstile failed');
+            // Capture and log the specific error codes from Cloudflare for easier debugging.
+            $error_codes = isset($result['error-codes']) ? implode(', ', $result['error-codes']) : 'No error codes provided';
+            $failure_reason = 'Cloudflare Turnstile failed: ' . $error_codes;
+            log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', $failure_reason);
+
         } elseif (empty(trim($_POST["email"])) || empty($_POST["password"])) {
             $login_error = "Email and password are required.";
             log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Empty email or password');
