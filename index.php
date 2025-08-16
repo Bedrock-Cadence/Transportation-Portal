@@ -17,6 +17,7 @@ require_once __DIR__ . '/../../app/db_connect.php';
 
 // 4. Get necessary user data from the session for the JavaScript below.
 $user_role = $_SESSION['user_role'];
+$entity_type = $_SESSION['entity_type'];
 $entity_name = $_SESSION['entity_name'];
 $user_timezone = USER_TIMEZONE;
 
@@ -47,6 +48,7 @@ require_once 'footer.php';
 document.addEventListener('DOMContentLoaded', () => {
     const dashboardContent = document.getElementById('dashboard-content');
     const userRole = '<?php echo $user_role; ?>';
+    const userEntityType = '<?php echo $entity_type; ?>';
     const lastUpdatedElement = document.getElementById('last-updated');
     const userTimeZone = '<?php echo $user_timezone; ?>';
 
