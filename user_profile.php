@@ -187,7 +187,6 @@ function getDisplayName($role) {
 <div id="user-profile-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
         <h1 class="text-3xl font-bold text-gray-800">User Profile</h1>
-        <p class="text-sm text-gray-500">Last updated: <?php echo date("F d, Y h:i:s A"); ?></p>
     </div>
 
     <?php if ($user): ?>
