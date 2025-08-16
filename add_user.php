@@ -13,10 +13,12 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// 4. Security Check: Only allow authorized roles. Redirect to index.php as requested.
-$allowed_roles = ['facility_superuser', 'carrier_superuser', 'bedrock_admin'];
+// 4. Security Check: Only allow 'superuser' and 'admin' roles to access this page.
+// This is the core logic based on your explicit request.
+$allowed_roles = ['superuser', 'admin'];
 $user_role = $_SESSION['user_role'] ?? null;
 if (!in_array($user_role, $allowed_roles)) {
+    // Redirect to index.php as requested.
     header("location: index.php");
     exit;
 }
@@ -64,41 +66,6 @@ function hash_token($token) {
     return password_hash($token, PASSWORD_DEFAULT);
 }
 
-/**
- * Determines the new user's role and entity based on the current user's role.
- * @param string $user_role The current user's role.
- * @param array $post_data The $_POST array from the form submission.
- * @return array An array containing the role, entity ID, and entity type.
- */
-function determine_new_user_role_and_entity($user_role, $post_data) {
-    $entity_id = $_SESSION['entity_id'] ?? null;
-    $entity_type = $_SESSION['entity_type'] ?? null;
-    $new_user_role = $post_data['role'] ?? null;
-
-    if ($user_role === 'bedrock_admin') {
-        // Bedrock Admin can select any entity type and ID, and any valid user role.
-        $entity_id = $post_data['entity_id'] ?? null;
-        $entity_type = $post_data['entity_type'] ?? null;
-        if (!in_array($new_user_role, ['bedrock_admin', 'facility_superuser', 'facility_user', 'carrier_superuser', 'carrier_user'])) {
-             $new_user_role = null; // Invalid role selected
-        }
-    } elseif ($user_role === 'facility_superuser' || $user_role === 'carrier_superuser') {
-        // Superusers can only add users of their own type and cannot add other superusers.
-        $entity_id = $_SESSION['entity_id'];
-        $entity_type = $_SESSION['entity_type'];
-        $valid_role = ($user_role === 'facility_superuser') ? 'facility_user' : 'carrier_user';
-        $new_user_role = ($post_data['role'] === $valid_role) ? $valid_role : null;
-    } else {
-        $new_user_role = null; // Not an allowed role
-    }
-
-    return [
-        'role' => $new_user_role,
-        'entity_id' => $entity_id,
-        'entity_type' => $entity_type
-    ];
-}
-
 // --- End of Utility Functions ---
 
 // --- Start of Form Submission Handling ---
@@ -113,16 +80,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $page_error = "Please provide valid first name, last name, and email address.";
     } else {
         $actor_user_id = $_SESSION['user_id'] ?? null;
-        $user_permissions = determine_new_user_role_and_entity($user_role, $_POST);
+        $new_user_role = null;
+        $new_user_entity_id = null;
+        $new_user_entity_type = null;
 
-        if (!$user_permissions['role'] || !$user_permissions['entity_id'] || !$user_permissions['entity_type']) {
-            $page_error = "Invalid role or entity selection. Please contact support.";
-        } else {
+        if ($user_role === 'superuser') {
+            // Superusers can only add 'user' types
+            if ($_POST['role'] !== 'user') {
+                $page_error = "Superusers can only add 'user' accounts.";
+            } else {
+                $new_user_role = 'user';
+                $new_user_entity_id = $_SESSION['entity_id'] ?? null;
+                $new_user_entity_type = $_SESSION['entity_type'] ?? null;
+            }
+        } elseif ($user_role === 'admin') {
+            // Admins can select entity and user type ('user' or 'superuser')
+            $new_user_entity_id = $_POST['entity_id'] ?? null;
+            $new_user_entity_type = $_POST['entity_type'] ?? null;
+            $new_user_role_requested = $_POST['role'] ?? null;
+
+            if (in_array($new_user_role_requested, ['user', 'superuser']) && !empty($new_user_entity_id) && !empty($new_user_entity_type)) {
+                $new_user_role = $new_user_role_requested;
+            } else {
+                $page_error = "Admins must select a valid entity and a user type ('user' or 'superuser').";
+            }
+        }
+
+        if (empty($page_error)) {
             $mysqli->begin_transaction();
 
             try {
-                // Check if the email already exists in the users table.
-                $stmt = $mysqli->prepare("SELECT id, is_active, first_name, last_name, entity_id FROM users WHERE email = ? LIMIT 1");
+                // Check if the email already exists.
+                $stmt = $mysqli->prepare("SELECT id, is_active, first_name, last_name FROM users WHERE email = ? LIMIT 1");
                 $stmt->bind_param("s", $email);
                 $stmt->execute();
                 $result = $stmt->get_result();
@@ -131,19 +120,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
                 if ($existing_user) {
                     if ($existing_user['is_active']) {
-                        $page_error = "User with that email address is already active. Please contact Bedrock Cadence for assistance.";
+                        $page_error = "User with that email address is already active.";
                     } else {
                         if (strtolower($existing_user['first_name']) === strtolower($first_name) && strtolower($existing_user['last_name']) === strtolower($last_name)) {
                             // Reactivate and re-associate.
                             $stmt = $mysqli->prepare("UPDATE users SET is_active = 1, entity_id = ?, entity_type = ?, role = ? WHERE id = ?");
-                            $stmt->bind_param("iiss", $user_permissions['entity_id'], $user_permissions['entity_type'], $user_permissions['role'], $existing_user['id']);
+                            $stmt->bind_param("iiss", $new_user_entity_id, $new_user_entity_type, $new_user_role, $existing_user['id']);
                             $stmt->execute();
                             $stmt->close();
                             
-                            $page_message = "User account found and reactivated. The user has been associated with your entity.";
-                            log_user_history($mysqli, $actor_user_id, $existing_user['id'], 'user_reactivated_and_reassociated', "User re-activated and re-associated with {$user_permissions['entity_type']} ID: {$user_permissions['entity_id']}.");
+                            $page_message = "User account found and reactivated.";
+                            log_user_history($mysqli, $actor_user_id, $existing_user['id'], 'user_reactivated_and_reassociated', "User re-activated and re-associated with {$new_user_entity_type} ID: {$new_user_entity_id}.");
                         } else {
-                            $page_error = "An account with this email address exists but the name does not match. Please contact Bedrock Cadence for assistance.";
+                            $page_error = "An account with this email address exists but the name does not match.";
                         }
                     }
                 } else {
@@ -152,7 +141,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     $token_expires_at = date('Y-m-d H:i:s', strtotime('+24 hours'));
 
                     $stmt = $mysqli->prepare("INSERT INTO users (uuid, email, first_name, last_name, phone_number, role, entity_id, entity_type, is_active, registration_token_hash, token_expires_at) VALUES (UUID(), ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)");
-                    $stmt->bind_param("sssssisss", $email, $first_name, $last_name, $phone_number, $user_permissions['role'], $user_permissions['entity_id'], $user_permissions['entity_type'], hash_token($registration_token), $token_expires_at);
+                    $stmt->bind_param("sssssisss", $email, $first_name, $last_name, $phone_number, $new_user_role, $new_user_entity_id, $new_user_entity_type, hash_token($registration_token), $token_expires_at);
                     
                     if ($stmt->execute()) {
                         $new_user_id = $mysqli->insert_id;
@@ -226,7 +215,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     </div>
                 </div>
 
-                <?php if ($user_role === 'bedrock_admin'): ?>
+                <?php if ($user_role === 'admin'): ?>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="entity_type" class="block text-sm font-medium text-gray-700">Entity Type</label>
@@ -245,15 +234,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <div>
                     <label for="role" class="block text-sm font-medium text-gray-700">Access Role</label>
                     <select id="role" name="role" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <?php if ($user_role === 'carrier_superuser'): ?>
-                            <option value="carrier_user">Carrier Staff</option>
-                        <?php elseif ($user_role === 'facility_superuser'): ?>
-                            <option value="facility_user">Facility Staff</option>
-                        <?php elseif ($user_role === 'bedrock_admin'): ?>
-                            <option value="facility_superuser">Facility Admin</option>
-                            <option value="facility_user">Facility Staff</option>
-                            <option value="carrier_superuser">Carrier Admin</option>
-                            <option value="carrier_user">Carrier Staff</option>
+                        <?php if ($user_role === 'superuser'): ?>
+                            <option value="user">User</option>
+                        <?php elseif ($user_role === 'admin'): ?>
+                            <option value="superuser">Superuser</option>
+                            <option value="user">User</option>
                         <?php endif; ?>
                     </select>
                 </div>
