@@ -32,7 +32,6 @@ $selected_carrier = null;
 $carrier_id = $_GET['carrier_id'] ?? $_POST['carrier_id'] ?? null;
 
 if ($carrier_id === null) {
-    // Redirect if no ID is provided.
     header("location: licensure.php");
     exit;
 }
@@ -44,31 +43,70 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $license_number = trim($_POST['license_number'] ?? '');
     $license_expires_at = trim($_POST['license_expires_at'] ?? '');
 
-    try {
-        $mysqli->begin_transaction();
-        
-        $update_query = "UPDATE carriers SET license_state = ?, license_number = ?, license_expires_at = ?, verification_status = ? WHERE id = ?";
-        $types = "ssssi";
-        $params = [$license_state, $license_number, empty($license_expires_at) ? null : $license_expires_at, $verification_status_input, $carrier_id];
+    // ADDED: Fetch the carrier's current data BEFORE the update for logging purposes.
+    $stmt_old_data = $mysqli->prepare("SELECT verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1");
+    $stmt_old_data->bind_param("i", $carrier_id);
+    $stmt_old_data->execute();
+    $result_old_data = $stmt_old_data->get_result();
+    $old_data = $result_old_data->fetch_assoc();
+    $stmt_old_data->close();
 
-        $stmt = $mysqli->prepare($update_query);
-        $stmt->bind_param($types, ...$params);
-        
-        if ($stmt->execute()) {
-            $mysqli->commit();
-            log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', "Admin updated licensure for carrier ID: {$carrier_id}.");
-            // Redirect back to the main list with a success message
-            header("location: licensure.php?update=success");
-            exit;
-        } else {
+    if (!$old_data) {
+        $page_error = "Cannot update. The carrier record does not exist.";
+        log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Attempted to update non-existent carrier ID: {$carrier_id}");
+    } else {
+        try {
+            $mysqli->begin_transaction();
+            
+            $update_query = "UPDATE carriers SET license_state = ?, license_number = ?, license_expires_at = ?, verification_status = ? WHERE id = ?";
+            $types = "ssssi";
+            $params = [$license_state, $license_number, empty($license_expires_at) ? null : $license_expires_at, $verification_status_input, $carrier_id];
+
+            $stmt = $mysqli->prepare($update_query);
+            $stmt->bind_param($types, ...$params);
+            
+            if ($stmt->execute()) {
+                $mysqli->commit();
+
+                // CHANGED: Build a detailed log message with before and after values.
+                $log_message = "Admin updated licensure for carrier ID {$carrier_id}. ";
+                $changes = [];
+
+                if ($old_data['verification_status'] !== $verification_status_input) {
+                    $changes[] = "Status: '{$old_data['verification_status']}' -> '{$verification_status_input}'";
+                }
+                if ($old_data['license_state'] !== $license_state) {
+                    $changes[] = "State: '{$old_data['license_state']}' -> '{$license_state}'";
+                }
+                if ($old_data['license_number'] !== $license_number) {
+                    $changes[] = "Number: '{$old_data['license_number']}' -> '{$license_number}'";
+                }
+                // Handle date comparison carefully
+                $old_date = $old_data['license_expires_at'] ?? '';
+                if ($old_date !== $license_expires_at) {
+                    $changes[] = "Expires: '{$old_date}' -> '{$license_expires_at}'";
+                }
+
+                if (!empty($changes)) {
+                    $log_message .= "Changes: " . implode(', ', $changes) . ".";
+                } else {
+                    $log_message .= "No changes were made to the data.";
+                }
+                
+                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_updated', $log_message);
+                
+                header("location: licensure.php?update=success");
+                exit;
+            } else {
+                $mysqli->rollback();
+                $page_error = "Error updating licensure: " . $stmt->error;
+                log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Failed to update carrier licensure for ID: {$carrier_id}");
+            }
+            $stmt->close();
+        } catch (Exception $e) {
             $mysqli->rollback();
-            $page_error = "Error updating licensure: " . $stmt->error;
-            log_user_activity($mysqli, $_SESSION['user_id'], 'licensure_update_failed', "Failed to update carrier licensure for ID: {$carrier_id}");
+            $page_error = "An error occurred: " . $e->getMessage();
         }
-        $stmt->close();
-    } catch (Exception $e) {
-        $mysqli->rollback();
-        $page_error = "An error occurred: " . $e->getMessage();
     }
 }
 
@@ -81,7 +119,6 @@ $selected_carrier = $result->fetch_assoc();
 $stmt->close();
 
 if (!$selected_carrier) {
-    // If carrier not found, redirect back
     header("location: licensure.php");
     exit;
 }

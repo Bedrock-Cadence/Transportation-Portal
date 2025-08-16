@@ -94,7 +94,7 @@ if ($user_role === 'admin') {
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="licensure-details.php?carrier_id=<?= htmlspecialchars($carrier_item['id']); ?>" class="text-indigo-600 hover:text-indigo-900">
+                                <a href="licensure_details.php?carrier_id=<?= htmlspecialchars($carrier_item['id']); ?>" class="text-indigo-600 hover:text-indigo-900">
                                     View Details
                                 </a>
                             </td>
@@ -118,7 +118,7 @@ if ($user_role === 'admin') {
                  </span>
             </div>
             <div class="p-6">
-                <form id="licensure-form-superuser" method="POST" action="licensure-details.php" class="space-y-6">
+                <form id="licensure-form-superuser" method="POST" action="licensure_details.php" class="space-y-6">
                     <input type="hidden" name="carrier_id" value="<?= htmlspecialchars($selected_carrier['id']); ?>">
                      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
