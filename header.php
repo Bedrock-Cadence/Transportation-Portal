@@ -3,6 +3,7 @@
 
 // This is the ONLY line responsible for session management.
 require_once __DIR__ . '/../../app/session_config.php';
+require_once 'init.php';
 
 // --- DATABASE QUERY REMOVED ---
 // The company name is now fetched at login and stored in the session.
