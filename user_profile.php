@@ -39,70 +39,95 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && $is_admin) {
     try {
         if (isset($_POST['action'])) {
             $target_user_uuid = $_POST['uuid'];
-            
-            // Fetch the target user's data to ensure they exist and determine their status.
-            $stmt = $mysqli->prepare("SELECT id, is_active FROM users WHERE uuid = ? LIMIT 1");
-            $stmt->bind_param("s", $target_user_uuid);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $target_user = $result->fetch_assoc();
-            $stmt->close();
-            
-            if (!$target_user) {
-                $page_error = "User not found.";
-            } else {
-                switch ($_POST['action']) {
-                    case 'deactivate':
-                        if ($target_user['is_active']) {
-                            $stmt = $mysqli->prepare("UPDATE users SET is_active = 0 WHERE uuid = ?");
-                            $stmt->bind_param("s", $target_user_uuid);
-                            $stmt->execute();
-                            $stmt->close();
-                            $page_message = "User has been deactivated.";
-                        } else {
-                            $page_error = "User is already deactivated.";
-                        }
-                        break;
-                    case 'activate':
-                        if (!$target_user['is_active']) {
-                            $stmt = $mysqli->prepare("UPDATE users SET is_active = 1 WHERE uuid = ?");
-                            $stmt->bind_param("s", $target_user_uuid);
-                            $stmt->execute();
-                            $stmt->close();
-                            $page_message = "User has been activated.";
-                        } else {
-                            $page_error = "User is already active.";
-                        }
-                        break;
-                    case 'change_email':
-                        if (!$target_user['is_active']) {
-                             $page_error = "Cannot change email for a deactivated user.";
-                        } else {
-                             $new_email = $_POST['new_email'];
-                             $stmt = $mysqli->prepare("UPDATE users SET email = ? WHERE uuid = ?");
-                             $stmt->bind_param("ss", $new_email, $target_user_uuid);
-                             $stmt->execute();
-                             $stmt->close();
-                             $page_message = "User email has been updated.";
-                        }
-                        break;
-                    case 'reset_password':
-                        if (!$target_user['is_active']) {
-                            $page_error = "Cannot reset password for a deactivated user.";
-                        } else {
-                            $new_password = bin2hex(random_bytes(8)); // Generate a random 16-character hex string
-                            $password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
-                            
-                            $stmt = $mysqli->prepare("UPDATE users SET password_hash = ? WHERE uuid = ?");
-                            $stmt->bind_param("ss", $password_hash, $target_user_uuid);
-                            $stmt->execute();
-                            $stmt->close();
 
-                            // In a real-world app, you'd send an email to the user with the new password.
-                            // For this example, we'll display a temporary message.
-                            $page_message = "User password has been reset to a temporary one. The new password is: " . htmlspecialchars($new_password);
-                        }
-                        break;
+            // Prevent an admin from editing their own profile.
+            if ($target_user_uuid === $_SESSION['user_uuid']) {
+                $page_error = "You cannot perform this action on your own profile.";
+            } else {
+                // Fetch the target user's data to ensure they exist and determine their status.
+                $stmt = $mysqli->prepare("SELECT id, is_active, email FROM users WHERE uuid = ? LIMIT 1");
+                $stmt->bind_param("s", $target_user_uuid);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $target_user = $result->fetch_assoc();
+                $stmt->close();
+                
+                if (!$target_user) {
+                    $page_error = "User not found.";
+                } else {
+                    $affected_user_id = $target_user['id'];
+                    $actor_user_id = $_SESSION['user_id'];
+                    $action_type = '';
+                    $action_message = '';
+                    
+                    switch ($_POST['action']) {
+                        case 'deactivate':
+                            if ($target_user['is_active']) {
+                                $stmt = $mysqli->prepare("UPDATE users SET is_active = 0 WHERE uuid = ?");
+                                $stmt->bind_param("s", $target_user_uuid);
+                                $stmt->execute();
+                                $stmt->close();
+                                $page_message = "User has been deactivated.";
+                                $action_type = 'user_deactivated';
+                                $action_message = 'User account was deactivated by an admin.';
+                            } else {
+                                $page_error = "User is already deactivated.";
+                            }
+                            break;
+                        case 'activate':
+                            if (!$target_user['is_active']) {
+                                $stmt = $mysqli->prepare("UPDATE users SET is_active = 1 WHERE uuid = ?");
+                                $stmt->bind_param("s", $target_user_uuid);
+                                $stmt->execute();
+                                $stmt->close();
+                                $page_message = "User has been activated.";
+                                $action_type = 'user_activated';
+                                $action_message = 'User account was activated by an admin.';
+                            } else {
+                                $page_error = "User is already active.";
+                            }
+                            break;
+                        case 'change_email':
+                            if (!$target_user['is_active']) {
+                                $page_error = "Cannot change email for a deactivated user.";
+                            } else {
+                                $old_email = $target_user['email'];
+                                $new_email = $_POST['new_email'];
+                                $stmt = $mysqli->prepare("UPDATE users SET email = ? WHERE uuid = ?");
+                                $stmt->bind_param("ss", $new_email, $target_user_uuid);
+                                $stmt->execute();
+                                $stmt->close();
+                                $page_message = "User email has been updated.";
+                                $action_type = 'email_change';
+                                $action_message = "Email changed from '{$old_email}' to '{$new_email}'.";
+                            }
+                            break;
+                        case 'reset_password':
+                            if (!$target_user['is_active']) {
+                                $page_error = "Cannot reset password for a deactivated user.";
+                            } else {
+                                $new_password = bin2hex(random_bytes(8)); // Generate a random 16-character hex string
+                                $password_hash = password_hash($new_password, PASSWORD_ARGON2ID);
+                                
+                                $stmt = $mysqli->prepare("UPDATE users SET password_hash = ? WHERE uuid = ?");
+                                $stmt->bind_param("ss", $password_hash, $target_user_uuid);
+                                $stmt->execute();
+                                $stmt->close();
+
+                                $page_message = "User password has been reset. The new password is: " . htmlspecialchars($new_password);
+                                $action_type = 'password_reset';
+                                $action_message = 'Password reset by an admin.';
+                            }
+                            break;
+                    }
+                    
+                    // Log the action if a message was created.
+                    if (!empty($action_type)) {
+                        $log_stmt = $mysqli->prepare("INSERT INTO user_history (actor_user_id, target_user_id, action, message) VALUES (?, ?, ?, ?)");
+                        $log_stmt->bind_param("iiss", $actor_user_id, $affected_user_id, $action_type, $action_message);
+                        $log_stmt->execute();
+                        $log_stmt->close();
+                    }
                 }
             }
         }
@@ -218,7 +243,7 @@ function getDisplayName($role) {
                     </dl>
                 </div>
 
-                <?php if ($is_admin): ?>
+                <?php if ($is_admin && $view_user_uuid !== $_SESSION['user_uuid']): ?>
                 <div class="space-y-6">
                     <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Admin Actions</h3>
                     <div class="space-y-4">
