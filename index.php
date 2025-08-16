@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let contentHtml = `
             <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
                 <div class="px-6 py-4 border-b bg-gray-50">
-                    <h2 class="text-xl font-semibold text-gray-800">My Trips (Last 24 Hours)</h2>
+                    <h2 class="text-xl font-semibold text-gray-800">Company Trips (Last 24 Hours)</h2>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
