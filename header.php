@@ -58,12 +58,6 @@ if (isset($_SESSION['entity_type'])) {
                         <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
                             <a href="/index.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Dashboard</a>
                             
-                            <?php // Carrier User Navigation
-                            if (in_array($_SESSION['user_role'], ['carrier_user', 'carrier_superuser'])): ?>
-                                <a href="/trip_board.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">View Open Trips</a>
-                                <a href="/view_our_trips.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">View Our Trips</a>
-                            <?php endif; ?>
-                            
                             <?php // Facility User Navigation
                             if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
                                 <a href="/create_trip.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Create Trip</a>
