@@ -1,5 +1,5 @@
 <?php
-// FILE: index.php
+// FILE: user_management.php (or the name of your user management file)
 
 // 1. Set the page title for the header.
 $page_title = 'User Management';
@@ -13,81 +13,74 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-// Security Check: Only allow authorized roles to access this page.
-$allowed_roles = ['facility_superuser', 'carrier_superuser', 'bedrock_admin'];
-if (!isset($_SESSION['user_role']) || !in_array($_SESSION['user_role'], $allowed_roles)) {
-    // Redirect to a dashboard or show an unauthorized message.
-    header("location: dashboard.php");
+// 4. Security Check: Only allow 'admin' and 'superuser' roles to access this page.
+$user_role = $_SESSION['user_role'] ?? '';
+$is_admin = ($user_role === 'admin');
+$is_superuser = ($user_role === 'superuser');
+
+if (!$is_admin && !$is_superuser) {
+    // If the user's role is not authorized, redirect them to the main index page.
+    header("location: index.php");
     exit;
 }
 
-// 4. Include the database connection file. The $mysqli object is now available for use.
+// 5. Include the database connection file. The $mysqli object is now available for use.
 require_once __DIR__ . '/../../app/db_connect.php';
 
 // Initialize arrays to hold active and inactive users.
 $active_users = [];
 $inactive_users = [];
 
-// Prepare the SQL query based on the user's role.
+// Prepare and execute the SQL query based on the user's role.
 try {
+    // Base query to fetch user details.
     $sql = "SELECT uuid, first_name, last_name, email, role, is_active FROM users";
+    $stmt = null;
 
-    // If the user is a superuser (not a bedrock_admin), we need to filter by their entity ID.
-    if ($_SESSION['user_role'] === 'carrier_superuser' || $_SESSION['user_role'] === 'facility_superuser') {
-        // We're assuming the entity_id is stored in the session.
+    if ($is_superuser) {
+        // Superusers can only see users associated with their own entity.
         if (!isset($_SESSION['entity_id'])) {
-            // Log an error and handle gracefully if entity_id is missing.
-            error_log("Missing entity_id for superuser in session.");
-            // Maybe redirect or show an error message to the user.
-            echo '<p class="text-red-500">Error: Your account is missing an associated entity ID. Please contact support.</p>';
-        } else {
-            $sql .= " WHERE entity_id = ?";
-            // Use the established $mysqli connection object.
-            $stmt = $mysqli->prepare($sql);
-            $stmt->bind_param("i", $_SESSION['entity_id']);
+            // This is a critical error for a superuser, as they cannot function without an entity.
+            throw new Exception("Superuser (role: $user_role) is missing entity_id in session.");
         }
+        $sql .= " WHERE entity_id = ?";
+        $stmt = $mysqli->prepare($sql);
+        $stmt->bind_param("i", $_SESSION['entity_id']);
     } else {
-        // If the user is a bedrock_admin, query all users.
-        // Use the established $mysqli connection object.
+        // Admins can see all users globally. No WHERE clause is needed.
         $stmt = $mysqli->prepare($sql);
     }
     
-    // Check if the statement was successfully prepared before executing.
-    if (isset($stmt)) {
-        $stmt->execute();
-        $result = $stmt->get_result();
+    $stmt->execute();
+    $result = $stmt->get_result();
 
-        if ($result->num_rows > 0) {
-            while($row = $result->fetch_assoc()) {
-                // Separate users into active and inactive lists.
-                if ($row['is_active']) {
-                    $active_users[] = $row;
-                } else {
-                    $inactive_users[] = $row;
-                }
+    if ($result->num_rows > 0) {
+        while($row = $result->fetch_assoc()) {
+            // Separate users into active and inactive lists for display.
+            if ($row['is_active']) {
+                $active_users[] = $row;
+            } else {
+                $inactive_users[] = $row;
             }
         }
     }
+    $stmt->close();
 
 } catch (Exception $e) {
-    // Log the error and display a friendly message.
-    error_log("Database query error: " . $e->getMessage());
-    echo '<p class="text-red-500">A problem occurred while retrieving user data. Please try again later.</p>';
+    // Log the detailed error for troubleshooting and show a generic message to the user.
+    error_log("User Management Page Error: " . $e->getMessage());
+    echo '<p class="text-red-500">A problem occurred while retrieving user data. Please contact support.</p>';
 }
 
-// Function to translate internal roles to display names.
+// Function to translate internal role names into more user-friendly display names.
 function getDisplayName($role) {
     switch ($role) {
-        case 'carrier_superuser':
-            return 'Carrier Admin';
-        case 'carrier_user':
-            return 'Carrier Staff';
-        case 'facility_superuser':
-            return 'Facility Admin';
-        case 'facility_user':
-            return 'Facility Staff';
-        case 'bedrock_admin':
-            return 'Bedrock Employee';
+        case 'admin':
+            return 'Administrator';
+        case 'superuser':
+            return 'Super User';
+        case 'user':
+            return 'User';
         default:
             return ucfirst(str_replace('_', ' ', $role));
     }
@@ -115,7 +108,7 @@ function getDisplayName($role) {
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="20"><center><a href="/add_user.php">Add User</a></center></td></tr>
+                    <tr><td colspan="20" class="text-center py-2"><a href="/add_user.php" class="text-blue-600 hover:underline font-semibold">Add User</a></td></tr>
                     <?php if (empty($active_users)): ?>
                         <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No active users found.</td></tr>
                     <?php else: ?>
