@@ -22,6 +22,7 @@ if (isset($_SESSION['entity_type'])) {
     }
 } else {
     // A cute little crown for Bedrock Cadence leadership
+    $company_name = 'Bedrock Cadence';
     $company_icon = '<i class="fa-solid fa-crown text-amber-300 mr-2"></i>';
 }
 // --- END NEW LOGIC ---
