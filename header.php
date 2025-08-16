@@ -43,6 +43,7 @@ if (isset($_SESSION['entity_type'])) {
     
     <link rel="stylesheet" href="/assets/css/custom.css">
 </head>
+<script type="text/javascript" id="zohodeskasap">var d=document;s=d.createElement("script"),s.type="text/javascript",s.id="zohodeskasapscript",s.defer=!0,s.nonce="{place_your_nonce_value_here}",s.src="https://desk.zoho.com/portal/api/web/asapApp/1170206000000378109?orgId=896515669",t=d.getElementsByTagName("script")[0],t.parentNode.insertBefore(s,t),window.ZohoDeskAsapReady=function(s){var e=window.ZohoDeskAsap__asyncalls=window.ZohoDeskAsap__asyncalls||[];window.ZohoDeskAsapReadyStatus?(s&&e.push(s),e.forEach(s=>s&&s()),window.ZohoDeskAsap__asyncalls=null):s&&e.push(s)};</script>
 <body class="bg-gray-100">
 
 <nav class="bg-dark-gradient shadow-md sticky top-0 z-50">
