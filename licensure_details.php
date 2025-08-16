@@ -70,7 +70,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             if ($stmt->execute()) {
                 $mysqli->commit();
 
-                $log_message = "Admin updated licensure for carrier ID {$carrier_id}. ";
+                $log_message = "Updated licensure for carrier ID {$carrier_id}. ";
                 $changes = [];
 
                 if ($old_data['verification_status'] !== $verification_status_input) {
