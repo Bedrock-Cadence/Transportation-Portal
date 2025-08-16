@@ -54,90 +54,102 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $ch = curl_init('https://challenges.cloudflare.com/turnstile/v0/siteverify');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    // IMPORTANT: Cloudflare expects the data as a URL-encoded string.
+    // http_build_query() correctly formats the data.
+    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+    
     $response = curl_exec($ch);
-    curl_close($ch);
-    $result = json_decode($response, true);
 
-    if (!isset($result['success']) || !$result['success']) {
-        $login_error = "Security check failed. Please try again.";
-        log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Cloudflare Turnstile failed');
-    } elseif (empty(trim($_POST["email"])) || empty($_POST["password"])) {
-        $login_error = "Email and password are required.";
-        log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Empty email or password');
+    // Add cURL error handling for better debugging.
+    if (curl_errno($ch)) {
+        error_log('cURL error when verifying Turnstile: ' . curl_error($ch));
+        $login_error = "A security service error occurred. Please try again later.";
+        log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'cURL error to Cloudflare');
+        curl_close($ch);
     } else {
-        $email = trim($_POST["email"]);
-        $password = $_POST["password"];
-        $user = null;
+        curl_close($ch);
+        $result = json_decode($response, true);
 
-        // --- STEP 1 & 2: Fetch User and Entity Details ---
-        // This single query gets all necessary user and entity data in one go.
-        $sql = "SELECT 
-                    u.id, u.uuid, u.email, u.password_hash, u.first_name, u.last_name, 
-                    u.role, u.is_active AS user_is_active, u.entity_id, u.entity_type,
-                    COALESCE(c.name, f.name) AS entity_name,
-                    COALESCE(c.is_active, f.is_active, 1) AS entity_is_active -- Default to 1 (active) for admins/superusers with no entity
-                FROM users u
-                LEFT JOIN carriers c ON u.entity_id = c.id AND u.entity_type = 'carrier'
-                LEFT JOIN facilities f ON u.entity_id = f.id AND u.entity_type = 'facility'
-                WHERE u.email = ?
-                LIMIT 1";
-
-        if ($stmt = $mysqli->prepare($sql)) {
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($result->num_rows === 1) {
-                $user = $result->fetch_assoc();
-            }
-            $stmt->close();
-        }
-
-        // --- VALIDATION SEQUENCE ---
-
-        // Check 1: Does the user exist?
-        if (!$user) {
-            $login_error = "The email or password you entered is incorrect.";
-            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User not found');
-        
-        // Check 2: Is the user's own account active? (Applies to all roles)
-        } elseif (!$user['user_is_active']) {
-            $login_error = "This account is inactive or pending activation.";
-            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User account inactive');
-
-        // Check 3: Is the user's associated entity active? (Bypassed for 'superuser')
-        } elseif ($user['role'] === 'user' && !$user['entity_is_active']) {
-            $login_error = "Your company's account is currently inactive. Please contact support.";
-            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Entity inactive');
-
-        // Check 4: Does the password match? (This is checked last for security)
-        } elseif (!password_verify($password, $user['password_hash'])) {
-            $login_error = "The email or password you entered is incorrect.";
-            log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Incorrect password');
-        
-        // --- FINAL STEP: LOGIN SUCCESS ---
+        if (!isset($result['success']) || !$result['success']) {
+            $login_error = "Security check failed. Please try again.";
+            log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Cloudflare Turnstile failed');
+        } elseif (empty(trim($_POST["email"])) || empty($_POST["password"])) {
+            $login_error = "Email and password are required.";
+            log_login_attempt($mysqli, $email_for_logging, $ip_address, 'fail', 'Empty email or password');
         } else {
-            // If we got here, all checks passed.
+            $email = trim($_POST["email"]);
+            $password = $_POST["password"];
+            $user = null;
+
+            // --- STEP 1 & 2: Fetch User and Entity Details ---
+            // This single query gets all necessary user and entity data in one go.
+            $sql = "SELECT 
+                        u.id, u.uuid, u.email, u.password_hash, u.first_name, u.last_name, 
+                        u.role, u.is_active AS user_is_active, u.entity_id, u.entity_type,
+                        COALESCE(c.name, f.name) AS entity_name,
+                        COALESCE(c.is_active, f.is_active, 1) AS entity_is_active -- Default to 1 (active) for admins/superusers with no entity
+                    FROM users u
+                    LEFT JOIN carriers c ON u.entity_id = c.id AND u.entity_type = 'carrier'
+                    LEFT JOIN facilities f ON u.entity_id = f.id AND u.entity_type = 'facility'
+                    WHERE u.email = ?
+                    LIMIT 1";
+
+            if ($stmt = $mysqli->prepare($sql)) {
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($result->num_rows === 1) {
+                    $user = $result->fetch_assoc();
+                }
+                $stmt->close();
+            }
+
+            // --- VALIDATION SEQUENCE ---
+
+            // Check 1: Does the user exist?
+            if (!$user) {
+                $login_error = "The email or password you entered is incorrect.";
+                log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User not found');
             
-            // Step 5: Log the successful attempt.
-            log_login_attempt($mysqli, $email, $ip_address, 'success');
+            // Check 2: Is the user's own account active? (Applies to all roles)
+            } elseif (!$user['user_is_active']) {
+                $login_error = "This account is inactive or pending activation.";
+                log_login_attempt($mysqli, $email, $ip_address, 'fail', 'User account inactive');
 
-            // Step 6: Set session variables and redirect.
-            session_regenerate_id(true);
+            // Check 3: Is the user's associated entity active? (Bypassed for 'superuser')
+            } elseif ($user['role'] === 'user' && !$user['entity_is_active']) {
+                $login_error = "Your company's account is currently inactive. Please contact support.";
+                log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Entity inactive');
 
-            $_SESSION["loggedin"] = true;
-            $_SESSION["user_id"] = $user['id'];
-            $_SESSION["user_uuid"] = $user['uuid'];
-            $_SESSION["first_name"] = $user['first_name'];
-            $_SESSION["last_name"] = $user['last_name'];
-            $_SESSION["email"] = $user['email'];
-            $_SESSION["user_role"] = $user['role'];
-            $_SESSION["entity_id"] = $user['entity_id'];
-            $_SESSION["entity_type"] = $user['entity_type'];
-            $_SESSION["entity_name"] = $user['entity_name'];
+            // Check 4: Does the password match? (This is checked last for security)
+            } elseif (!password_verify($password, $user['password_hash'])) {
+                $login_error = "The email or password you entered is incorrect.";
+                log_login_attempt($mysqli, $email, $ip_address, 'fail', 'Incorrect password');
+            
+            // --- FINAL STEP: LOGIN SUCCESS ---
+            } else {
+                // If we got here, all checks passed.
+                
+                // Step 5: Log the successful attempt.
+                log_login_attempt($mysqli, $email, $ip_address, 'success');
 
-            header("location: index.php");
-            exit;
+                // Step 6: Set session variables and redirect.
+                session_regenerate_id(true);
+
+                $_SESSION["loggedin"] = true;
+                $_SESSION["user_id"] = $user['id'];
+                $_SESSION["user_uuid"] = $user['uuid'];
+                $_SESSION["first_name"] = $user['first_name'];
+                $_SESSION["last_name"] = $user['last_name'];
+                $_SESSION["email"] = $user['email'];
+                $_SESSION["user_role"] = $user['role'];
+                $_SESSION["entity_id"] = $user['entity_id'];
+                $_SESSION["entity_type"] = $user['entity_type'];
+                $_SESSION["entity_name"] = $user['entity_name'];
+
+                header("location: index.php");
+                exit;
+            }
         }
     }
 }
