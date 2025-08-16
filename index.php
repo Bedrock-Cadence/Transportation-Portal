@@ -9,7 +9,7 @@ require_once 'header.php';
 
 // 3. Security Check: If the user isn't logged in, send them to the login page.
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
+    header("location: logout.php");
     exit;
 }
 

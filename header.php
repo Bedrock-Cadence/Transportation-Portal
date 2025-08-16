@@ -1,29 +1,26 @@
 <?php
 // FILE: public/includes/header.php
 
-// This is the ONLY line responsible for session management.
-require_once __DIR__ . '/../../app/session_config.php';
-require_once 'init.php';
+// CORRECTED: init.php is the single source of truth for all setup,
+// including session management, database connections, and error handling.
+// The path is also corrected to point up one directory from 'includes' to 'public'.
+require_once __DIR__ . '/../init.php';
 
-// --- DATABASE QUERY REMOVED ---
-// The company name is now fetched at login and stored in the session.
-
-// Set the company name from the session, with a fallback to Bedrock Cadence.
+// Set the company name from the session, with a fallback.
 $company_name = $_SESSION['entity_name'] ?? '';
 
 // --- NEW LOGIC FOR DYNAMIC ICONS ---
 $company_icon = '';
 if (isset($_SESSION['entity_type'])) {
     if ($_SESSION['entity_type'] === 'carrier') {
-        // A cute little ambulance for carriers
         $company_icon = '<i class="fa-solid fa-truck-medical text-blue-300 mr-2"></i>';
     } elseif ($_SESSION['entity_type'] === 'facility') {
-        // A cute little hospital for facilities
         $company_icon = '<i class="fa-solid fa-house-medical text-green-300 mr-2"></i>';
     } elseif ($_SESSION['entity_type'] === 'bedrock' && $_SESSION['user_role'] === 'admin') {
         $company_name = 'Bedrock Cadence';
         $company_icon = '<i class="fa-solid fa-user-shield text-purple-600 mr-2"></i>';
-    } }
+    }
+}
 // --- END NEW LOGIC ---
 
 ?>
