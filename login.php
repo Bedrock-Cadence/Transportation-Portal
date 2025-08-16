@@ -258,6 +258,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             background-color: #a0c7ff;
             cursor: not-allowed;
         }
+
+        /* Styling for the HIPAA warning */
+        .hipaa-warning {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-align: center;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -293,6 +304,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <button type="submit" id="submitBtn" disabled>Log In</button>
 
         </form>
+
+        <div class="hipaa-warning">
+            <strong>System Access Warning:</strong> Access is restricted to authorized users. Data within this system is protected under HIPAA. Unauthorized use is punishable by law. Your use of this system is subject to our BAA and other contracts. All activity is tracked, logged, and may be audited by Bedrock Cadence and government entities.
+        </div>
     </div>
 
     <!-- This script should be placed at the bottom of your page -->
