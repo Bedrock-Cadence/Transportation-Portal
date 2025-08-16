@@ -24,12 +24,12 @@ $email = ''; // Keep email in the form field on a failed attempt
  * @param string $attempt_result The result of the login attempt ('success', 'fail').
  * @param string $failure_reason A brief description of why the login failed.
  */
-function log_login_attempt($mysqli, $user_id, $ip_address, $attempt_result, $failure_reason = '') {
-    $sql = "INSERT INTO login_history (user_id, ip_address, attempt_result, failure_reason) VALUES (?, ?, ?, ?)";
+function log_login_attempt($mysqli, $email, $ip_address, $attempt_result, $failure_reason = '') {
+    $sql = "INSERT INTO login_history (email, ip_address, attempt_result, failure_reason) VALUES (?, ?, ?, ?)";
     if ($stmt = $mysqli->prepare($sql)) {
         // For failed attempts where user_id is unknown, we'll insert NULL.
         // The database column for user_id must allow NULL values.
-        $stmt->bind_param("isss", $user_id, $ip_address, $attempt_result, $failure_reason);
+        $stmt->bind_param("isss", $email, $ip_address, $attempt_result, $failure_reason);
         $stmt->execute();
         $stmt->close();
     }
