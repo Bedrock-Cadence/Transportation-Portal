@@ -54,25 +54,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Renders the HTML for the Carrier's dashboard using Tailwind CSS classes.
+     * Can either set the innerHTML of the dashboard directly or return the HTML string.
      */
-    function renderCarrierDashboard(openTrips, awardedTrips) {
+    function renderCarrierDashboard(openTrips, awardedTrips, returnHtml = false) {
         let contentHtml = `
-            <div class="grid grid-cols-1 gap-8">
-                <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-                    <div class="px-6 py-4 border-b bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800">Open Trips for Bidding</h2>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">`;
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-800">Open Trips for Bidding</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">`;
         if (openTrips && openTrips.length > 0) {
             openTrips.forEach(trip => {
                 contentHtml += `
@@ -89,27 +89,27 @@ document.addEventListener('DOMContentLoaded', () => {
             contentHtml += `<tr><td colspan="4" class="text-center py-6 text-gray-500">No open trips at this time.</td></tr>`;
         }
         contentHtml += `
-                            </tbody>
-                        </table>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
+            </div>
 
-                <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
-                    <div class="px-6 py-4 border-b bg-gray-50">
-                        <h2 class="text-xl font-semibold text-gray-800">My Awarded Trips</h2>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ETA</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">`;
+            <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
+                <div class="px-6 py-4 border-b bg-gray-50">
+                    <h2 class="text-xl font-semibold text-gray-800">My Awarded Trips</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ETA</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">`;
         if (awardedTrips && awardedTrips.length > 0) {
             awardedTrips.forEach(trip => {
                 const awarded_eta = new Date(trip.awarded_eta + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
@@ -128,18 +128,22 @@ document.addEventListener('DOMContentLoaded', () => {
             contentHtml += `<tr><td colspan="5" class="text-center py-6 text-gray-500">No trips have been awarded to you yet.</td></tr>`;
         }
         contentHtml += `
-                            </tbody>
-                        </table>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>`;
-        dashboardContent.innerHTML = contentHtml;
+        
+        if (returnHtml) {
+            return `<div class="grid grid-cols-1 gap-8">${contentHtml}</div>`;
+        }
+        dashboardContent.innerHTML = `<div class="grid grid-cols-1 gap-8">${contentHtml}</div>`;
     }
 
     /**
      * Renders the HTML for the Facility's dashboard using Tailwind CSS classes.
+     * Can either set the innerHTML of the dashboard directly or return the HTML string.
      */
-    function renderFacilityDashboard(recentTrips) {
+    function renderFacilityDashboard(recentTrips, returnHtml = false) {
         let contentHtml = `
             <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
                 <div class="px-6 py-4 border-b bg-gray-50">
@@ -179,13 +183,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     </table>
                 </div>
             </div>`;
+        
+        if (returnHtml) {
+            return contentHtml;
+        }
         dashboardContent.innerHTML = contentHtml;
     }
 
     /**
-     * Renders the HTML for the Admin's dashboard.
+     * Renders the HTML for the Admin's activity feed.
+     * Can either set the innerHTML of the dashboard directly or return the HTML string.
      */
-    function renderAdminDashboard(activityFeed) {
+    function renderAdminDashboard(activityFeed, returnHtml = false) {
         let contentHtml = `
             <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
                 <div class="px-6 py-4 border-b bg-gray-50">
@@ -198,10 +207,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const timestamp = new Date(activity.timestamp + 'Z').toLocaleString('en-US', { timeZone: 'America/Chicago', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true });
                 const userIdentifier = activity.email ? activity.email : 'An unknown user';
                 contentHtml += `
-                            <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
-                                <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
-                            </li>`;
+                                <li class="px-6 py-4 hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                                    <p class="text-sm text-gray-800"><strong>${userIdentifier}</strong>: ${activity.message}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${timestamp}</p>
+                                </li>`;
             });
         } else {
             contentHtml += `<li class="text-center py-6 text-gray-500">No recent activity.</li>`;
@@ -210,13 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     </ul>
                 </div>
             </div>`;
+
+        if (returnHtml) {
+            return contentHtml;
+        }
         dashboardContent.innerHTML = contentHtml;
     }
 
     /**
      * Fetches data from the server and updates the dashboard.
      */
-async function updateDashboard() {
+    async function updateDashboard() {
         try {
             const response = await fetch('https://bedrockcadence.com/api/dashboard_data.php', {
                 method: 'POST',
@@ -228,35 +241,48 @@ async function updateDashboard() {
             });
             
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
-            const data = await response.json();
+            const result = await response.json();
             
-            if (data.success) {
-                switch (userRole) {
-                    case 'carrier_user':
-                    case 'carrier_superuser':
-                        renderCarrierDashboard(data.data.openTrips, data.data.awardedTrips);
-                        break;
-                    case 'facility_user':
-                    case 'facility_superuser':
-                        renderFacilityDashboard(data.data.recentTrips);
-                        break;
-                    case 'bedrock_admin':
-                        renderAdminDashboard(data.data.activityFeed);
-                        break;
+            if (result.success) {
+                const data = result.data;
+                // --- FIX: Use entity_type to determine which dashboard to render ---
+                if (userEntityType === 'admin') {
+                    let adminHtml = '<div class="space-y-8">';
+                    // Admin sees all relevant sections
+                    if (data.recentTrips) {
+                        adminHtml += renderFacilityDashboard(data.recentTrips, true);
+                    }
+                    if (data.openTrips || data.awardedTrips) {
+                        adminHtml += renderCarrierDashboard(data.openTrips, data.awardedTrips, true);
+                    }
+                    if (data.activityFeed) {
+                        adminHtml += renderAdminDashboard(data.activityFeed, true);
+                    }
+                    adminHtml += '</div>';
+                    dashboardContent.innerHTML = adminHtml;
+
+                } else if (userEntityType === 'facility') {
+                    renderFacilityDashboard(data.recentTrips);
+
+                } else if (userEntityType === 'carrier') {
+                    renderCarrierDashboard(data.openTrips, data.awardedTrips);
+
+                } else {
+                    dashboardContent.innerHTML = `<div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">Your user role does not have a dashboard view.</div>`;
                 }
             } else {
-                dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: ${data.error}</div>`;
+                dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">Error: ${result.error}</div>`;
             }
         } catch (error) {
             console.error('Failed to fetch dashboard data:', error);
             dashboardContent.innerHTML = `<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">A network error occurred. Please try again later.</div>`;
-} finally {
-    if (lastUpdatedElement) {
-        lastUpdatedElement.textContent = `Last Update: ${new Date().toLocaleTimeString('en-US', { timeZone: userTimeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short', hour12: false })}`;
-    }
-             // Schedule the next update
+        } finally {
+            if (lastUpdatedElement) {
+                lastUpdatedElement.textContent = `Last Update: ${new Date().toLocaleTimeString('en-US', { timeZone: userTimeZone, hour: '2-digit', minute: '2-digit', second: '2-digit', timeZoneName: 'short', hour12: false })}`;
+            }
+            // Schedule the next update
             setTimeout(updateDashboard, 10000);
-}   
+        }   
     }
 
     // Initial call to load the dashboard
