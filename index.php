@@ -4,7 +4,7 @@
 // 1. Set the page title for the header.
 $page_title = 'Dashboard';
 
-// 2. Include the header, which also handles session startup.
+// 2. Include the header, which also handles session startup and database connection.
 require_once 'header.php';
 
 // 3. Security Check: If the user isn't logged in, send them to the login page.
@@ -13,7 +13,9 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
     exit;
 }
 
-require_once __DIR__ . '/../../app/db_connect.php';
+// NOTE: The database connection is already established by header.php -> init.php.
+// The following line is redundant and has been removed to prevent errors.
+// require_once __DIR__ . '/../../app/db_connect.php';
 
 // 4. Get necessary user data from the session for the JavaScript below.
 $user_role = $_SESSION['user_role'];
