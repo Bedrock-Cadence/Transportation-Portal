@@ -31,17 +31,15 @@ require_once __DIR__ . '/../../app/db_connect.php';
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-100">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trip ID</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origin</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                     <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800 font-mono"></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
