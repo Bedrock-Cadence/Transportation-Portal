@@ -114,7 +114,7 @@ $turnstile_response = $_POST['cf-turnstile-response'] ?? null;
             $_SESSION["user_role"] = $user['role'];
             $_SESSION["entity_id"] = $user['entity_id'];
             $_SESSION["entity_type"] = $user['entity_type'];
-            $_SESSION["entity_name"] = $user['entity_name'] ?: 'Bedrock Cadence'; // Use entity name or default
+            $_SESSION["entity_name"] = $user['entity_name'];
 
             // Redirect to the dashboard
             header("location: index.php");

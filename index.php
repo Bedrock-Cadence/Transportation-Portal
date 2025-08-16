@@ -16,8 +16,8 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 require_once __DIR__ . '/../../app/db_connect.php';
 
 // 4. Get necessary user data from the session for the JavaScript below.
-$user_role = $_SESSION['user_role'] ?? 'guest';
-$entity_name = $_SESSION['entity_name'] ?? 'Bedrock Cadence';
+$user_role = $_SESSION['user_role'];
+$entity_name = $_SESSION['entity_name'];
 $user_timezone = USER_TIMEZONE;
 
 ?>

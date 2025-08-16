@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../app/session_config.php';
 // The company name is now fetched at login and stored in the session.
 
 // Set the company name from the session, with a fallback to Bedrock Cadence.
-$company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'] : 'Bedrock Cadence';
+$company_name = isset($_SESSION['entity_name']) ? $_SESSION['entity_name'];
 
 // --- NEW LOGIC FOR DYNAMIC ICONS ---
 $company_icon = '';
@@ -58,13 +58,13 @@ if (isset($_SESSION['entity_type'])) {
                         <?php if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true): ?>
                             <a href="/index.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Dashboard</a>
                             
-                            <?php // Facility User Navigation
-                            if (in_array($_SESSION['user_role'], ['facility_user', 'facility_superuser'])): ?>
+                            <?php
+                            if ( (in_array($_SESSION['user_role'], ['user', 'superuser']) && $_SESSION['entity_type'] === 'facility') || $_SESSION['user_role'] === 'admin' ): ?>
                                 <a href="/create_trip.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Create Trip</a>
                             <?php endif; ?>
 
-                            <?php // Admin and Superuser Dropdown
-                            if (in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser', 'bedrock_admin'])) : ?>
+                            <?php
+                            if ( (in_array($_SESSION['user_role'], ['superuser', 'admin']))): ?>
                                 <div class="relative">
                                     <button data-dropdown-toggle="admin-menu" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">
                                         Admin Tools <i class="fas fa-caret-down text-gray-400 ml-1"></i>
@@ -72,10 +72,11 @@ if (isset($_SESSION['entity_type'])) {
                                     <div id="admin-menu" class="absolute left-0 mt-2 w-56 dropdown-menu-custom hidden">
                                         <div class="py-1">
                                             <a href="/user_management.php" class="dropdown-item-custom">User Management</a>
-                                            <?php if (in_array($_SESSION['user_role'], ['carrier_superuser', 'facility_superuser'])) : ?>
+                                            <?php if (in_array($_SESSION['user_role'], ['superuser', 'admin'])) : ?>
                                                 <a href="/system_configuration.php" class="dropdown-item-custom">System Configuration</a>
                                             <?php endif; ?>
-                                            <?php if ($_SESSION['user_role'] == 'carrier_superuser') : ?>
+                                            <?php
+                            if ( (in_array($_SESSION['user_role'], ['superuser']) && $_SESSION['entity_type'] === 'carrier')): ?>
                                                 <a href="/licensure.php" class="dropdown-item-custom">Licensure</a>
                                             <?php endif; ?>
                                         </div>
