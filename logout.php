@@ -1,21 +1,20 @@
 <?php
-// FILE: public/logout.php
+// FILE: public_html/portal/logout.php
 
-require_once 'init.php'; // Ensures session is properly started before destroying
+require_once __DIR__ . '/../../app/init.php';
 
-// Unset all session variables.
-$_SESSION = [];
-
-// Destroy the session cookie.
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params["path"], $params["domain"],
-        $params["secure"], $params["httponly"]
-    );
+// First, check if a user is actually logged in before proceeding.
+if (Auth::isLoggedIn()) {
+    // Get the user's ID for logging *before* we destroy the session data.
+    $userId = Auth::user('user_id');
+    
+    // Use our central logging service to create a clear audit trail of the logout event.
+    LoggingService::log($userId, null, 'logout_success', 'User successfully logged out.');
 }
 
-// Finally, destroy the session.
-session_destroy();
+// Use our central SessionManager to securely destroy the session.
+// This single method handles unsetting variables, deleting the cookie, and destroying the session.
+SessionManager::destroy();
 
-redirect('login.php');
+// Use our central redirect utility to send the user to the login page.
+Utils::redirect('login.php');
