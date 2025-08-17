@@ -80,6 +80,8 @@ require_once 'header.php';
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 mb-8">
         <div class="px-6 py-4 border-b bg-gray-50">
             <h2 class="text-xl font-semibold text-gray-800">Active Users</h2>
+            <p><?php echo $sql ?></p>
+            <p><?php print_r($all_users); ?>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
@@ -99,11 +101,11 @@ require_once 'header.php';
     <?php else: ?>
         <?php foreach ($active_users as $user): ?>
             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e($user['first_name'] . ' ' . $user['last_name']); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e($user['email']); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e(getDisplayName($user['role'])); ?></td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                    <a href="user_profile.php?uuid=<?= Utils::e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
                 </td>
             </tr>
         <?php endforeach; ?>
@@ -133,11 +135,11 @@ require_once 'header.php';
                     <?php else: ?>
                         <?php foreach ($inactive_users as $user): ?>
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e($user['email']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= Utils::e(getDisplayName($user['role'])); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="user_profile.php?uuid=<?= Utils::e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
