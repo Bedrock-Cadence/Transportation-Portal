@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-            const response = await fetch('/api/dashboard_data.php');
+            const response = await fetch('../api/dashboard_data.php');
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
             const result = await response.json();
             
