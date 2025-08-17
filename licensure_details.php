@@ -1,109 +1,100 @@
 <?php
-// FILE: public/licensure_details.php
+// FILE: public_html/portal/licensure_details.php
 
-require_once 'init.php';
+require_once __DIR__ . '/../../app/init.php';
 
-// --- Security & Permission Check ---
-if (!isset($_SESSION["loggedin"]) || $_SESSION['user_role'] !== 'admin') {
-    redirect('dashboard.php');
-}
-
-$page_title = 'Edit Carrier Licensure';
-$db = Database::getInstance();
+$page_title = 'Licensure Details';
 $page_error = '';
-$selected_carrier = null;
-$carrier_id = $_GET['carrier_id'] ?? $_POST['carrier_id'] ?? null;
+$page_message = '';
+$carrierService = new CarrierService();
+$carrierId = $_GET['carrier_id'] ?? (Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null);
 
-if ($carrier_id === null) {
-    redirect("licensure.php");
+if (!$carrierId) {
+    Utils::redirect('index.php?error=no_carrier');
 }
 
-// --- Form Submission Handling ---
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $verification_status = $_POST['verification_status'] ?? '';
-    $license_state = trim($_POST['license_state'] ?? '');
-    $license_number = trim($_POST['license_number'] ?? '');
-    $license_expires_at = empty($_POST['license_expires_at']) ? null : trim($_POST['license_expires_at']);
+$carrier = $carrierService->getCarrierById((int)$carrierId);
 
+// Security Check: Can the current user manage this specific carrier?
+if (!$carrier || !Auth::can('manage_licensure', $carrier)) {
+    Utils::redirect('index.php?error=unauthorized');
+}
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $db->pdo()->beginTransaction();
-
-        $sql = "UPDATE carriers SET license_state = ?, license_number = ?, license_expires_at = ?, verification_status = ? WHERE id = ?";
-        $params = [$license_state, $license_number, $license_expires_at, $verification_status, $carrier_id];
-        $db->query($sql, $params);
-        
-        log_user_action('licensure_updated', "Admin updated licensure details for carrier ID: {$carrier_id}. New status: {$verification_status}.");
-
-        $db->pdo()->commit();
-        redirect("licensure.php?update=success");
-
+        $carrierService->updateLicensure((int)$carrierId, $_POST);
+        $page_message = "Licensure information updated successfully.";
+        // Refresh carrier data after update
+        $carrier = $carrierService->getCarrierById((int)$carrierId);
     } catch (Exception $e) {
-        if ($db->pdo()->inTransaction()) $db->pdo()->rollBack();
-        $page_error = "Error updating licensure: " . $e->getMessage();
-        error_log("Licensure Details Update Error: " . $e->getMessage());
+        $page_error = $e->getMessage();
     }
 }
 
-// --- Data Retrieval for Display ---
-try {
-    $selected_carrier = $db->query("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1", [$carrier_id])->fetch();
-    if (!$selected_carrier) {
-        redirect("licensure.php");
-    }
-} catch (Exception $e) {
-    $page_error = "Could not retrieve carrier details.";
-    error_log("Licensure Details Fetch Error: " . $e->getMessage());
-}
+$isEditable = Auth::hasRole('admin') || ($carrier['verification_status'] === 'waiting');
 
 require_once 'header.php';
 ?>
 
-<div class="p-6">
-    <h1 class="text-3xl font-bold text-gray-800 mb-6">Edit Licensure for <?= e($selected_carrier['name'] ?? 'Carrier'); ?></h1>
-
-    <?php if (!empty($page_error)): ?>
-    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-        <p class="font-bold">Error</p>
-        <p><?= e($page_error); ?></p>
+<div class="max-w-2xl mx-auto">
+    <div class="flex justify-between items-center mb-4">
+        <h1 class="text-2xl font-bold text-gray-800">Licensure Details for <?= Utils::e($carrier['name']) ?></h1>
+        <?php if (Auth::hasRole('admin')): ?>
+            <a href="licensure.php" class="text-blue-600 hover:text-blue-800">&larr; Back to Carrier List</a>
+        <?php endif; ?>
     </div>
-    <?php endif; ?>
+    
+    <?php if ($page_message): ?><div class="bg-green-100 text-green-700 p-4 rounded mb-4"><?= Utils::e($page_message) ?></div><?php endif; ?>
+    <?php if ($page_error): ?><div class="bg-red-100 text-red-700 p-4 rounded mb-4"><?= Utils::e($page_error) ?></div><?php endif; ?>
 
-    <?php if ($selected_carrier): ?>
-    <div class="bg-white shadow-md rounded-lg p-6 border border-gray-200">
-        <form id="licensure-form-details" method="POST" action="licensure_details.php" class="space-y-6">
-            <input type="hidden" name="carrier_id" value="<?= e($selected_carrier['id']); ?>">
+    <form method="POST" action="licensure_details.php?carrier_id=<?= Utils::e($carrierId) ?>" class="bg-white shadow-md rounded-lg p-6 border border-gray-200 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="license_state" class="block text-sm font-medium text-gray-700">License State</label>
+                <input type="text" id="license_state" name="license_state" value="<?= Utils::e($carrier['license_state'] ?? '') ?>" <?= !$isEditable ? 'readonly' : '' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+            </div>
+            <div>
+                <label for="license_number" class="block text-sm font-medium text-gray-700">License Number</label>
+                <input type="text" id="license_number" name="license_number" value="<?= Utils::e($carrier['license_number'] ?? '') ?>" <?= !$isEditable ? 'readonly' : '' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+            </div>
+        </div>
+        <div>
+            <label for="license_expires_at" class="block text-sm font-medium text-gray-700">Expiration Date</label>
+            <input type="date" id="license_expires_at" name="license_expires_at" value="<?= Utils::e($carrier['license_expires_at'] ?? '') ?>" <?= !$isEditable ? 'readonly' : '' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+        </div>
+
+        <?php if (Auth::hasRole('admin')): ?>
             <div>
                 <label for="verification_status" class="block text-sm font-medium text-gray-700">Verification Status</label>
-                <select id="verification_status" name="verification_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                    <option value="waiting" <?= ($selected_carrier['verification_status'] ?? '') === 'waiting' ? 'selected' : ''; ?>>Waiting</option>
-                    <option value="pending" <?= ($selected_carrier['verification_status'] ?? '') === 'pending' ? 'selected' : ''; ?>>Pending Review</option>
-                    <option value="verified" <?= ($selected_carrier['verification_status'] ?? '') === 'verified' ? 'selected' : ''; ?>>Verified</option>
-                    <option value="failed" <?= ($selected_carrier['verification_status'] ?? '') === 'failed' ? 'selected' : ''; ?>>Failed</option>
-                    <option value="expired" <?= ($selected_carrier['verification_status'] ?? '') === 'expired' ? 'selected' : ''; ?>>Expired</option>
-                    <option value="suspended" <?= ($selected_carrier['verification_status'] ?? '') === 'suspended' ? 'selected' : ''; ?>>Suspended</option>
+                <select id="verification_status" name="verification_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                    <?php $statuses = ['pending', 'verified', 'expired', 'suspended', 'failed', 'waiting']; ?>
+                    <?php foreach ($statuses as $status): ?>
+                        <option value="<?= $status ?>" <?= ($carrier['verification_status'] == $status) ? 'selected' : '' ?>><?= ucfirst($status) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="license_state" class="block text-sm font-medium text-gray-700">License State</label>
-                    <input type="text" id="license_state" name="license_state" value="<?= e($selected_carrier['license_state'] ?? ''); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label for="license_number" class="block text-sm font-medium text-gray-700">License Number</label>
-                    <input type="text" id="license_number" name="license_number" value="<?= e($selected_carrier['license_number'] ?? ''); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
+        <?php else: ?>
+             <div>
+                <label class="block text-sm font-medium text-gray-700">Verification Status</label>
+                <p class="mt-1 text-base p-2 bg-gray-100 rounded-md"><?= Utils::e(ucfirst($carrier['verification_status'])) ?></p>
             </div>
-            <div>
-                <label for="license_expires_at" class="block text-sm font-medium text-gray-700">Expiration Date</label>
-                <input type="date" id="license_expires_at" name="license_expires_at" value="<?= e($selected_carrier['license_expires_at'] ?? ''); ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <?php endif; ?>
+
+        <?php if (!$isEditable && Auth::user('entity_type') === 'carrier'): ?>
+            <div class="bg-blue-100 text-blue-700 p-4 rounded text-sm">
+                Your licensure information has been submitted and is currently under review. To make changes, please contact Bedrock Cadence support.
             </div>
-            <div class="flex justify-end items-center gap-x-4 border-t pt-6">
-                <a href="licensure.php" class="py-2 px-4 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</a>
-                <button type="submit" class="py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">Save Changes</button>
+        <?php endif; ?>
+
+        <?php if ($isEditable): ?>
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Save Changes
+                </button>
             </div>
-        </form>
-    </div>
-    <?php endif; ?>
+        <?php endif; ?>
+    </form>
 </div>
 
 <?php require_once 'footer.php'; ?>

@@ -1,58 +1,48 @@
 <?php
-// FILE: public/licensure.php
+// FILE: public_html/portal/licensure.php
 
-require_once 'init.php';
+require_once __DIR__ . '/../../app/init.php';
 
-// --- Security & Permission Check ---
-$user_role = $_SESSION['user_role'] ?? null;
-if (!isset($_SESSION["loggedin"]) || !in_array($user_role, ['superuser', 'admin'])) {
-    redirect('dashboard.php');
-}
-// Further check for superuser to ensure they are part of a carrier entity
-if ($user_role === 'superuser' && $_SESSION['entity_type'] !== 'carrier') {
-    redirect('dashboard.php');
+// Security Check: Only admins can see this list view.
+if (!Auth::hasRole('admin')) {
+    // If a carrier superuser lands here, send them to their specific details page.
+    if (Auth::hasRole('superuser') && Auth::user('entity_type') === 'carrier') {
+        Utils::redirect('licensure_details.php?carrier_id=' . Auth::user('entity_id'));
+    }
+    Utils::redirect('index.php');
 }
 
 $page_title = 'Licensure Management';
-$db = Database::getInstance();
-$page_message = '';
-$page_error = '';
-$carriers = [];
-$selected_carrier = null; 
-$is_editable = false;
-
-if (isset($_GET['update']) && $_GET['update'] === 'success') {
-    $page_message = "Carrier information has been updated successfully.";
-}
-
-// --- Data Retrieval ---
-try {
-    if ($user_role === 'admin') {
-        $carriers = $db->query("SELECT id, name, verification_status FROM carriers WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
-    } elseif ($user_role === 'superuser') {
-        $selected_carrier = $db->query("SELECT id, name, verification_status, license_state, license_number, license_expires_at FROM carriers WHERE id = ? LIMIT 1", [$_SESSION['entity_id']])->fetch();
-        if ($selected_carrier) {
-            $is_editable = ($selected_carrier['verification_status'] === 'waiting');
-        } else {
-            $page_error = "Your carrier record could not be found.";
-        }
-    }
-} catch (Exception $e) {
-    $page_error = "An error occurred while fetching licensure data.";
-    error_log("Licensure Page Error: " . $e->getMessage());
-}
+$carrierService = new CarrierService();
+$carriers = $carrierService->getAllCarriers();
 
 require_once 'header.php';
 ?>
 
-<div id="licensure-container" class="p-6">
-    <?php if ($user_role === 'admin'): ?>
-        <a href="licensure_details.php?carrier_id=<?= e($carrier_item['id']); ?>" class="text-indigo-600 hover:text-indigo-900">View Details</a>
-    <?php endif; ?>
-
-    <?php if ($user_role === 'superuser' && $selected_carrier): ?>
-        <input type="text" id="license_state" name="license_state" value="<?= e($selected_carrier['license_state'] ?? ''); ?>" <?= !$is_editable ? 'readonly' : ''; ?> >
-    <?php endif; ?>
+<div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-800 mb-6">Carrier Licensure Management</h1>
+    <div class="bg-white shadow-md rounded-lg border border-gray-200">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Carrier Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verification Status</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                <?php foreach ($carriers as $carrier): ?>
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900"><?= Utils::e($carrier['name']) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= Utils::e(ucfirst($carrier['verification_status'])) ?></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="licensure_details.php?carrier_id=<?= Utils::e($carrier['id']) ?>" class="text-indigo-600 hover:text-indigo-900">View/Edit Details</a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <?php require_once 'footer.php'; ?>
