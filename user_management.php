@@ -82,7 +82,7 @@ require_once 'header.php';
             <h2 class="text-xl font-semibold text-gray-800">Active Users</h2>
         </div>
         <p><?php echo $sql ?></p>
-        <p><php print_r($all_users); ?></p>
+        <p><?php print_r($all_users); ?></p>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-100">
