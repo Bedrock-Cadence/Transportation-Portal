@@ -17,7 +17,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $authService = new AuthService();
         $loginData = $authService->login($_POST);
 
-        // ** CLEANUP: Pass both the user and entity name to the SessionManager **
         SessionManager::establish($loginData['user'], $loginData['entity_name']);
 
         Utils::redirect('index.php');
