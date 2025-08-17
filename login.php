@@ -9,7 +9,7 @@ if (Auth::isLoggedIn()) {
 
 $page_title = 'Login';
 $login_error = '';
-$email = ''; // To repopulate form field on failure
+$email = ''; 
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($_POST['email'] ?? '');
@@ -17,8 +17,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $authService = new AuthService();
         $loginData = $authService->login($_POST);
 
-        // LOGIN SUCCESS - Establish the session
-        SessionManager::establish($loginData['user']);
+        // ** CLEANUP: Pass both the user and entity name to the SessionManager **
+        SessionManager::establish($loginData['user'], $loginData['entity_name']);
 
         Utils::redirect('index.php');
 
@@ -27,10 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-// Generate a secure, single-use nonce for the Content Security Policy.
 $cspNonce = bin2hex(random_bytes(16));
-
-// Set the Content Security Policy header to enhance security.
 header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$cspNonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
 ?>
 <!DOCTYPE html>
