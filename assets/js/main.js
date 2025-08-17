@@ -1,43 +1,90 @@
-// FILE: /assets/js/main.js
+// FILE: /public_html/assets/js/main.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // --- Live Clock Functionality ---
-    const liveClock = document.getElementById('liveClock');
-    if (liveClock) {
-        function updateClock() {
-            const now = new Date();
-            const formattedDate = now.toLocaleString('en-US', {
-                timeZone: 'America/Chicago', // Central Time
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
+document.addEventListener('DOMContentLoaded', function () {
+
+    /**
+     * Handles all dropdown menus in the header.
+     */
+    function initializeDropdowns() {
+        const dropdownToggles = document.querySelectorAll('[data-dropdown-toggle]');
+        if (dropdownToggles.length === 0) return;
+
+        dropdownToggles.forEach(toggle => {
+            toggle.addEventListener('click', function (event) {
+                event.stopPropagation(); // Prevents the window click listener from firing immediately
+                const targetMenuId = this.getAttribute('data-dropdown-toggle');
+                const targetMenu = document.getElementById(targetMenuId);
+
+                // Close all other open dropdowns
+                document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+                    if (menu !== targetMenu && !menu.classList.contains('hidden')) {
+                        menu.classList.add('hidden');
+                    }
+                });
+
+                // Toggle the clicked dropdown
+                if (targetMenu) {
+                    targetMenu.classList.toggle('hidden');
+                }
             });
-            liveClock.textContent = formattedDate;
-        }
-        setInterval(updateClock, 1000);
-        updateClock(); // Initial call
-    }
+        });
 
-    // --- Mobile Menu Toggle ---
-    const mobileMenuButton = document.getElementById('mobile-menu-button');
-    const mobileMenu = document.getElementById('mobile-menu');
-    const menuOpenIcon = document.getElementById('menu-open-icon');
-    const menuClosedIcon = document.getElementById('menu-closed-icon');
-
-    if (mobileMenuButton && mobileMenu) {
-        mobileMenuButton.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-            menuOpenIcon.classList.toggle('hidden');
-            menuOpenIcon.classList.toggle('block');
-            menuClosedIcon.classList.toggle('hidden');
-            menuClosedIcon.classList.toggle('block');
+        // Add a listener to close dropdowns when clicking anywhere else on the page
+        window.addEventListener('click', function () {
+            document.querySelectorAll('.dropdown-menu-custom').forEach(menu => {
+                if (!menu.classList.contains('hidden')) {
+                    menu.classList.add('hidden');
+                }
+            });
         });
     }
 
+    /**
+     * Initializes the live clock in the header.
+     */
+    function initializeLiveClock() {
+        const clockElement = document.getElementById('liveClock');
+        if (!clockElement) return;
+
+        function updateClock() {
+            const now = new Date();
+            const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true };
+            const dateOptions = { weekday: 'short', month: 'short', day: 'numeric' };
+            
+            // Timezone is automatically handled by the user's browser, reflecting their local time.
+            const timeString = now.toLocaleTimeString('en-US', timeOptions);
+            const dateString = now.toLocaleDateString('en-US', dateOptions);
+
+            clockElement.innerHTML = `${dateString} &bull; ${timeString}`;
+        }
+
+        updateClock(); // Run once immediately
+        setInterval(updateClock, 1000); // Update every second
+    }
+
+    /**
+     * Handles the mobile menu toggle.
+     */
+    function initializeMobileMenu() {
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const openIcon = document.getElementById('menu-open-icon');
+        const closedIcon = document.getElementById('menu-closed-icon');
+
+        if (!menuButton || !mobileMenu) return;
+
+        menuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+            openIcon.classList.toggle('hidden');
+            closedIcon.classList.toggle('hidden');
+        });
+    }
+
+    // Initialize all components if the user is logged in.
+    // This check is duplicated from PHP to ensure JS only runs when the elements exist.
+    if (document.querySelectorAll('[data-dropdown-toggle]').length > 0) {
+        initializeDropdowns();
+        initializeLiveClock();
+        initializeMobileMenu();
+    }
 });
