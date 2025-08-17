@@ -8,10 +8,20 @@ if (!isset($_SESSION["loggedin"]) || !in_array($_SESSION['user_role'], ['admin',
     redirect('index.php');
 }
 
+// --- NEW CODE: Immediate redirection for superusers missing session data ---
+if ($_SESSION['user_role'] === 'superuser' && !isset($_SESSION['entity_id'])) {
+    // Log the error for debugging purposes.
+    error_log("Superuser login failed: missing entity_id for user UUID " . $_SESSION['user_uuid']);
+
+    // Redirect to a logout or general error page to prevent the broken page from loading.
+    redirect('index.php?error=no_entity_id');
+}
+
 $page_title = 'User Management';
 $db = Database::getInstance();
 $active_users = [];
 $inactive_users = [];
+$all_users = []; // Initialize to an empty array to prevent fatal errors
 
 try {
     $sql = "SELECT uuid, first_name, last_name, email, role, is_active FROM users";
@@ -19,9 +29,6 @@ try {
 
     // Superusers can only see users associated with their own entity.
     if ($_SESSION['user_role'] === 'superuser') {
-        if (!isset($_SESSION['entity_id'])) {
-            throw new Exception("Superuser is missing required entity_id in session.");
-        }
         $sql .= " WHERE entity_id = ?";
         $params[] = $_SESSION['entity_id'];
     }
