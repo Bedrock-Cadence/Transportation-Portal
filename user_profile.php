@@ -109,21 +109,21 @@ require_once 'header.php';
 
 <div class="max-w-4xl mx-auto">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">User Profile: <?= Utils::e($targetUser['first_name'] . ' ' . $targetUser['last_name']); ?></h1>
+        <h1 class="text-3xl font-bold text-gray-800">User Profile: <?= e($targetUser['first_name'] . ' ' . $targetUser['last_name']); ?></h1>
         <a href="user_management.php" class="text-blue-600 hover:text-blue-800">&larr; Back to User Management</a>
     </div>
 
     <?php if ($page_message): ?>
         <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
             <p class="font-bold">Success</p>
-            <p><?= Utils::e($page_message); ?></p>
+            <p><?= e($page_message); ?></p>
         </div>
     <?php endif; ?>
 
     <?php if ($page_error): ?>
         <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
             <p class="font-bold">Error</p>
-            <p><?= Utils::e($page_error); ?></p>
+            <p><?= e($page_error); ?></p>
         </div>
     <?php endif; ?>
 
@@ -138,28 +138,28 @@ require_once 'header.php';
                 </div>
             <?php endif; ?>
 
-            <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>" class="space-y-6">
+            <form method="POST" action="user_profile.php?uuid=<?= e($targetUser['uuid']); ?>" class="space-y-6">
                 <input type="hidden" name="action" value="update_profile">
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
-                        <input type="text" id="first_name" name="first_name" value="<?= Utils::e($targetUser['first_name']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+                        <input type="text" id="first_name" name="first_name" value="<?= e($targetUser['first_name']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
                     </div>
                     <div>
                         <label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
-                        <input type="text" id="last_name" name="last_name" value="<?= Utils::e($targetUser['last_name']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+                        <input type="text" id="last_name" name="last_name" value="<?= e($targetUser['last_name']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                        <input type="email" id="email" name="email" value="<?= Utils::e($targetUser['email']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+                        <input type="email" id="email" name="email" value="<?= e($targetUser['email']); ?>" required <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
                     </div>
                     <div>
                         <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number (Optional)</label>
-                        <input type="tel" id="phone_number" name="phone_number" value="<?= Utils::e($targetUser['phone_number']); ?>" <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
+                        <input type="tel" id="phone_number" name="phone_number" value="<?= e($targetUser['phone_number']); ?>" <?= $canEdit ? '' : 'readonly' ?> class="mt-1 block w-full rounded-md border-gray-300 shadow-sm read-only:bg-gray-100">
                     </div>
                 </div>
 
@@ -193,13 +193,13 @@ require_once 'header.php';
         <div class="p-6 space-y-4">
             <h2 class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2">User Actions</h2>
             <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-                <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>">
+                <form method="POST" action="user_profile.php?uuid=<?= e($targetUser['uuid']); ?>">
                     <input type="hidden" name="action" value="send_password">
                     <button type="submit" class="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
                         Send Password Reset
                     </button>
                 </form>
-                <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>" onsubmit="return confirm('Are you sure you want to deactivate this user? This cannot be undone easily.');">
+                <form method="POST" action="user_profile.php?uuid=<?= e($targetUser['uuid']); ?>" onsubmit="return confirm('Are you sure you want to deactivate this user? This cannot be undone easily.');">
                     <input type="hidden" name="action" value="deactivate_user">
                     <button type="submit" class="w-full sm:w-auto inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700">
                         Deactivate User
