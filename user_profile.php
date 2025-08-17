@@ -18,8 +18,13 @@ $currentUser = Auth::user();
 
 // The UUID is required to identify the profile.
 $targetUuid = $_GET['uuid'] ?? ($currentUser['user_uuid'] ?? null);
-if (empty($targetUuid)) {
-    Utils::redirect('index.php?error=user_not_found');
+
+// --- NEW FIX: Validate UUID format to prevent fatal errors ---
+$uuidPattern = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+if (empty($targetUuid) || !preg_match($uuidPattern, $targetUuid)) {
+    // Log the invalid access attempt.
+    LoggingService::log($currentUser['user_id'], null, 'view_profile_fail', 'Attempted to view with invalid UUID format: ' . $targetUuid);
+    Utils::redirect('user_management.php?error=invalid_uuid');
 }
 
 try {
