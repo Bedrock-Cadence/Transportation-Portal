@@ -2,10 +2,8 @@
 // FILE: public_html/portal/login.php
 
 require_once __DIR__ . '/../../app/init.php';
-trace_log("login.php loaded.");
 
 if (Auth::isLoggedIn()) {
-    trace_log("User already logged in, redirecting to index.");
     Utils::redirect('index.php');
 }
 
@@ -14,24 +12,13 @@ $login_error = '';
 $email = ''; 
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    trace_log("POST request received for login.");
     $email = trim($_POST['email'] ?? '');
     try {
-        trace_log("Instantiating AuthService...");
         $authService = new AuthService();
-        trace_log("Calling AuthService->login()...");
         $loginData = $authService->login($_POST);
-        trace_log("AuthService->login() returned successfully.");
-
-        trace_log("Calling SessionManager->establish()...");
         SessionManager::establish($loginData['user'], $loginData['entity_name']);
-        trace_log("SessionManager->establish() returned successfully.");
-
-        trace_log("Redirecting to index.php...");
         Utils::redirect('index.php');
-
     } catch (Exception $e) {
-        trace_log("Caught exception: " . $e->getMessage());
         $login_error = $e->getMessage();
     }
 }
