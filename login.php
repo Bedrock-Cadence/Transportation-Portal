@@ -1,8 +1,12 @@
 <?php
-// FILE: public_html/portal/login.php
+// --- TEMPORARY DEBUGGING ---
+// This forces PHP to display any and all errors directly on the screen.
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// This init file should handle autoloading our classes and starting the session manager
-require_once __DIR__ . '/../../app/init.php'; 
+// The rest of your file starts below...
+require_once __DIR__ . '/../../app/init.php';
 
 // If the user is already logged in, send them to the main page.
 if (Auth::isLoggedIn()) {
