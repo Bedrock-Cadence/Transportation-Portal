@@ -2,7 +2,7 @@
 // FILE: public_html/portal/login.php
 
 // This init file should handle autoloading our classes and starting the session manager
-require_once __DIR__ . '/../../../app/init.php'; 
+require_once __DIR__ . '/../app/init.php'; 
 
 // If the user is already logged in, send them to the main page.
 if (Auth::isLoggedIn()) {
