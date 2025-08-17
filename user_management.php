@@ -1,7 +1,7 @@
 <?php
 // FILE: public/user_management.php
 
-require_once 'init.php';
+require_once __DIR__ . '/../../app/init.php';
 
 // --- Security Check: Only allow 'admin' and 'superuser' roles ---
 if (!isset($_SESSION["loggedin"]) || !in_array($_SESSION['user_role'], ['admin', 'superuser'])) {
