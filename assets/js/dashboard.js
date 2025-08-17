@@ -99,7 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-        const response = await fetch('../api/dashboard_data.php', {
+        const response = await fetch(__DIR__ . '/../api/dashboard_data.php';
+', {
     credentials: 'include'
 });
         const data = await response.json();
