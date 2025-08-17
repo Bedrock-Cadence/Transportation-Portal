@@ -2,8 +2,10 @@
 // FILE: public_html/portal/login.php
 
 require_once __DIR__ . '/../../app/init.php';
+trace_log("login.php loaded.");
 
 if (Auth::isLoggedIn()) {
+    trace_log("User already logged in, redirecting to index.");
     Utils::redirect('index.php');
 }
 
@@ -12,16 +14,24 @@ $login_error = '';
 $email = ''; 
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    trace_log("POST request received for login.");
     $email = trim($_POST['email'] ?? '');
     try {
+        trace_log("Instantiating AuthService...");
         $authService = new AuthService();
+        trace_log("Calling AuthService->login()...");
         $loginData = $authService->login($_POST);
+        trace_log("AuthService->login() returned successfully.");
 
+        trace_log("Calling SessionManager->establish()...");
         SessionManager::establish($loginData['user'], $loginData['entity_name']);
+        trace_log("SessionManager->establish() returned successfully.");
 
+        trace_log("Redirecting to index.php...");
         Utils::redirect('index.php');
 
     } catch (Exception $e) {
+        trace_log("Caught exception: " . $e->getMessage());
         $login_error = $e->getMessage();
     }
 }
@@ -30,8 +40,7 @@ $cspNonce = bin2hex(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$cspNonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
 ?>
 <!DOCTYPE html>
-<html lang="en" class="h-full bg-gray-50">
-<head>
+<html lang="en" class="h-full bg-gray-50"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= Utils::e($page_title) ?> - Bedrock Cadence</title>
@@ -43,48 +52,20 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
             <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
         </div>
-
         <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
                 <form class="space-y-6" id="loginForm" action="login.php" method="POST">
-                    
                     <?php if (!empty($login_error)): ?>
-                        <div class="rounded-md bg-red-50 p-4">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-sm font-medium text-red-800"><?= Utils::e($login_error) ?></p>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="rounded-md bg-red-50 p-4"><div class="flex"><div class="flex-shrink-0"><svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path></svg></div><div class="ml-3"><p class="text-sm font-medium text-red-800"><?= Utils::e($login_error) ?></p></div></div></div>
                     <?php endif; ?>
-
-                    <div>
-                        <label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label>
-                        <div class="mt-2">
-                            <input id="email" name="email" type="email" autocomplete="email" required value="<?= Utils::e($email) ?>" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="password" class="block text-sm font-medium leading-6 text-gray-900">Password</label>
-                        <div class="mt-2">
-                            <input id="password" name="password" type="password" autocomplete="current-password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                        </div>
-                    </div>
-
+                    <div><label for="email" class="block text-sm font-medium leading-6 text-gray-900">Email address</label><div class="mt-2"><input id="email" name="email" type="email" autocomplete="email" required value="<?= Utils::e($email) ?>" class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></div></div>
+                    <div><label for="password" class="block text-sm font-medium leading-6 text-gray-900">Password</label><div class="mt-2"><input id="password" name="password" type="password" autocomplete="current-password" required class="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"></div></div>
                     <div class="cf-turnstile" data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR" data-callback="onTurnstileSuccess"></div>
-
-                    <div>
-                        <button type="submit" id="submitBtn" disabled class="flex w-full justify-center rounded-md bg-indigo-600 py-2 px-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-indigo-300 disabled:cursor-not-allowed">Sign in</button>
-                    </div>
+                    <div><button type="submit" id="submitBtn" disabled class="flex w-full justify-center rounded-md bg-indigo-600 py-2 px-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-indigo-300 disabled:cursor-not-allowed">Sign in</button></div>
                 </form>
             </div>
         </div>
     </div>
-
     <script nonce="<?= $cspNonce ?>">
       function onTurnstileSuccess(token) {
         const submitButton = document.getElementById('submitBtn');
