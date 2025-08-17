@@ -99,9 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-            const response = await fetch('/dashboard_proxy.php');
-const data = await response.json();
-console.log(data);
+        const response = await fetch('../api/dashboard_data.php', {
+    credentials: 'include'
+});
+        const data = await response.json();
+        console.log(data);
             if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
             const result = await response.json();
             
