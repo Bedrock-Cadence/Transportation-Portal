@@ -1,15 +1,12 @@
 <?php
-// FILE: public/includes/header.php
+// FILE: public/header.php
 
-// CORRECTED: init.php is the single source of truth for all setup,
-// including session management, database connections, and error handling.
-// The path is also corrected to point up one directory from 'includes' to 'public'.
-require_once __DIR__ . '/../init.php';
+// This is now the ONLY file that needs to be included.
+// It handles the DB connection, session start, utilities, etc.
+require_once __DIR__ . '/init.php';
 
-// Set the company name from the session, with a fallback.
-$company_name = $_SESSION['entity_name'] ?? '';
-
-// --- NEW LOGIC FOR DYNAMIC ICONS ---
+// The rest of your header logic remains the same...
+$company_name = $_SESSION['entity_name'] ?? 'Bedrock Cadence';
 $company_icon = '';
 if (isset($_SESSION['entity_type'])) {
     if ($_SESSION['entity_type'] === 'carrier') {

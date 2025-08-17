@@ -1,29 +1,58 @@
 <?php
-// FILE: public/init.php
+// FILE: public_html/portal/init.php
 
-// 1. Load Secrets
-// The path goes up two directory levels to find the 'app' directory.
-require_once __DIR__ . '/../../app/secrets.php';
+/**
+ * Bedrock Cadence Application Initializer
+ *
+ * This file is the single entry point for setting up the application environment.
+ * It handles configuration, autoloading, error handling, and session management.
+ */
 
-// 2. Set Up Error Handling
-ini_set('display_errors', 0);
-ini_set('display_startup_errors', 0);
+// Start output buffering to prevent accidental output before headers are sent.
+ob_start();
+
+// --- 1. Define Core Paths ---
+// This makes file includes reliable, regardless of where the script is called from.
+define('APP_PATH', realpath(__DIR__ . '/../../app'));
+
+// --- 2. Load Core Configuration ---
+// The secrets file is the only file we need to manually include.
+require_once APP_PATH . '/secrets.php';
+
+// --- 3. Set Up PSR-4 Autoloader ---
+// This function automatically loads any class from the `app` directory when it's first used.
+// No more manual `require_once` statements are needed for our classes.
+spl_autoload_register(function ($class_name) {
+    // Sanitize the class name to prevent directory traversal attacks
+    $class_name = str_replace('..', '', $class_name);
+    $file = APP_PATH . '/' . str_replace('\\', '/', lcfirst($class_name)) . '.php';
+    
+    if (file_exists($file)) {
+        require_once $file;
+    }
+});
+
+// --- 4. Configure Environment Settings ---
+// Use the APP_ENV from secrets.php to control error visibility.
+if (defined('APP_ENV') && APP_ENV === 'development') {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+} else {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+}
 error_reporting(E_ALL);
-require_once __DIR__ . '/../../app/error_handler.php';
-set_error_handler('log_error_to_database');
-register_shutdown_function('handle_fatal_errors');
 
-// 3. Configure and Start a Secure Session
-require_once __DIR__ . '/../../app/session_config.php';
+// --- 5. Register Global Error & Exception Handler ---
+// This must be registered early to catch any errors during the rest of the startup process.
+ErrorHandler::register();
 
-// 4. Establish the Database Connection
-require_once __DIR__ . '/../../app/db_connect.php'; // Creates the $mysqli object
+// --- 6. Set Default Timezone ---
+// Ensures all date/time functions in the application use a consistent timezone.
+if (defined('USER_TIMEZONE')) {
+    date_default_timezone_set(USER_TIMEZONE);
+}
 
-// 5. Other global services
-require_once __DIR__ . '/../../app/encryption_service.php';
-require_once __DIR__ . '/../../app/logging_service.php';
-
-// 6. Define Global Constants
-define('SYSTEM_TIMEZONE', 'UTC');
-// You should also define USER_TIMEZONE here or in another config file.
-define('USER_TIMEZONE', 'America/Chicago');
+// --- 7. Start Secure Session Management ---
+// Initializes our secure, class-based session manager for every page load.
+SessionManager::start();

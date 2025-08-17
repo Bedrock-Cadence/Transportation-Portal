@@ -1,90 +1,61 @@
 <?php
-// FILE: user_management.php (or the name of your user management file)
+// FILE: public/user_management.php
 
-// 1. Set the page title for the header.
+require_once 'init.php';
+
+// --- Security Check: Only allow 'admin' and 'superuser' roles ---
+if (!isset($_SESSION["loggedin"]) || !in_array($_SESSION['user_role'], ['admin', 'superuser'])) {
+    redirect('index.php');
+}
+
 $page_title = 'User Management';
-
-// 2. Include the header, which also handles session startup.
-require_once 'header.php';
-
-// 3. Security Check: If the user isn't logged in, send them to the login page.
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
-}
-
-// 4. Security Check: Only allow 'admin' and 'superuser' roles to access this page.
-$user_role = $_SESSION['user_role'] ?? '';
-$is_admin = ($user_role === 'admin');
-$is_superuser = ($user_role === 'superuser');
-
-if (!$is_admin && !$is_superuser) {
-    // If the user's role is not authorized, redirect them to the main index page.
-    header("location: index.php");
-    exit;
-}
-
-// 5. Include the database connection file. The $mysqli object is now available for use.
-require_once __DIR__ . '/../../app/db_connect.php';
-
-// Initialize arrays to hold active and inactive users.
+$db = Database::getInstance();
 $active_users = [];
 $inactive_users = [];
 
-// Prepare and execute the SQL query based on the user's role.
 try {
-    // Base query to fetch user details.
     $sql = "SELECT uuid, first_name, last_name, email, role, is_active FROM users";
-    $stmt = null;
+    $params = [];
 
-    if ($is_superuser) {
-        // Superusers can only see users associated with their own entity.
+    // Superusers can only see users associated with their own entity.
+    if ($_SESSION['user_role'] === 'superuser') {
         if (!isset($_SESSION['entity_id'])) {
-            // This is a critical error for a superuser, as they cannot function without an entity.
-            throw new Exception("Superuser (role: $user_role) is missing entity_id in session.");
+            throw new Exception("Superuser is missing required entity_id in session.");
         }
         $sql .= " WHERE entity_id = ?";
-        $stmt = $mysqli->prepare($sql);
-        $stmt->bind_param("i", $_SESSION['entity_id']);
-    } else {
-        // Admins can see all users globally. No WHERE clause is needed.
-        $stmt = $mysqli->prepare($sql);
+        $params[] = $_SESSION['entity_id'];
     }
     
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $sql .= " ORDER BY last_name ASC, first_name ASC";
 
-    if ($result->num_rows > 0) {
-        while($row = $result->fetch_assoc()) {
-            // Separate users into active and inactive lists for display.
-            if ($row['is_active']) {
-                $active_users[] = $row;
-            } else {
-                $inactive_users[] = $row;
-            }
+    $stmt = $db->query($sql, $params);
+    $all_users = $stmt->fetchAll();
+
+    foreach ($all_users as $user) {
+        if ($user['is_active']) {
+            $active_users[] = $user;
+        } else {
+            $inactive_users[] = $user;
         }
     }
-    $stmt->close();
 
 } catch (Exception $e) {
-    // Log the detailed error for troubleshooting and show a generic message to the user.
     error_log("User Management Page Error: " . $e->getMessage());
-    echo '<p class="text-red-500">A problem occurred while retrieving user data. Please contact support.</p>';
+    // This message is safe to show the user.
+    $page_error = "A problem occurred while retrieving user data. Please contact support.";
 }
 
-// Function to translate internal role names into more user-friendly display names.
+// Function to translate internal role names into user-friendly display names.
 function getDisplayName($role) {
     switch ($role) {
-        case 'admin':
-            return 'Administrator';
-        case 'superuser':
-            return 'Super User';
-        case 'user':
-            return 'User';
-        default:
-            return ucfirst(str_replace('_', ' ', $role));
+        case 'admin': return 'Administrator';
+        case 'superuser': return 'Super User';
+        case 'user': return 'User';
+        default: return ucfirst(str_replace('_', ' ', $role));
     }
 }
+
+require_once 'header.php';
 ?>
 
 <div id="dashboard-container" class="p-6">
@@ -92,7 +63,13 @@ function getDisplayName($role) {
         <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
     </div>
 
-    <!-- Active Users Section -->
+    <?php if (isset($page_error)): ?>
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+            <p class="font-bold">Error</p>
+            <p><?= e($page_error); ?></p>
+        </div>
+    <?php endif; ?>
+
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 mb-8">
         <div class="px-6 py-4 border-b bg-gray-50">
             <h2 class="text-xl font-semibold text-gray-800">Active Users</h2>
@@ -108,17 +85,17 @@ function getDisplayName($role) {
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="20" class="text-center py-2"><a href="/add_user.php" class="text-blue-600 hover:underline font-semibold">Add User</a></td></tr>
+                    <tr><td colspan="4" class="text-center py-2"><a href="/add_user.php" class="text-blue-600 hover:underline font-semibold">Add User</a></td></tr>
                     <?php if (empty($active_users)): ?>
                         <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No active users found.</td></tr>
                     <?php else: ?>
                         <?php foreach ($active_users as $user): ?>
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars(getDisplayName($user['role'])); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="user_profile.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -128,7 +105,6 @@ function getDisplayName($role) {
         </div>
     </div>
 
-    <!-- Inactive Users Section -->
     <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200">
         <div class="px-6 py-4 border-b bg-gray-50">
             <h2 class="text-xl font-semibold text-gray-800">Inactive Users</h2>
@@ -149,11 +125,11 @@ function getDisplayName($role) {
                     <?php else: ?>
                         <?php foreach ($inactive_users as $user): ?>
                             <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?php echo htmlspecialchars(getDisplayName($user['role'])); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="user_profile.php?uuid=<?php echo htmlspecialchars($user['uuid']); ?>" class="btn btn-info text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -164,7 +140,4 @@ function getDisplayName($role) {
     </div>
 </div>
 
-<?php
-// This includes the footer and necessary closing tags.
-require_once 'footer.php';
-?>
+<?php require_once 'footer.php'; ?>

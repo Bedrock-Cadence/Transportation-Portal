@@ -1,32 +1,37 @@
 <?php
-$page_title = 'Case Management';
-require_once 'header.php';
-require_once __DIR__ . '/../../app/db_connect.php';
+// FILE: public/case_management.php
+
+require_once 'init.php';
 
 // --- Permission Check for Bedrock Admin ---
-if (!isset($_SESSION["loggedin"]) || $_SESSION['user_role'] !== 'bedrock_admin') {
-    header("location: login.php");
-    exit;
+if (!isset($_SESSION["loggedin"]) || $_SESSION['user_role'] !== 'admin') {
+    redirect('login.php');
 }
 
-// --- Fetch all open cases ---
+$page_title = 'Case Management';
+$db = Database::getInstance();
 $open_cases = [];
-$sql = "SELECT c.id, c.case_type, c.created_at, t.uuid AS trip_uuid
-        FROM cases c
-        JOIN trips t ON c.trip_id = t.id
-        WHERE c.status = 'open'
-        ORDER BY c.created_at ASC";
 
-$result = $mysqli->query($sql);
-if ($result && $result->num_rows > 0) {
-    while($row = $result->fetch_assoc()){
-        $open_cases[] = $row;
-    }
+try {
+    $sql = "SELECT c.id, c.case_type, c.created_at, t.uuid AS trip_uuid
+            FROM cases c
+            JOIN trips t ON c.trip_id = t.id
+            WHERE c.status = 'open'
+            ORDER BY c.created_at ASC";
+    $open_cases = $db->query($sql)->fetchAll();
+} catch (Exception $e) {
+    error_log("Case Management Page Error: " . $e->getMessage());
+    $page_error = "A database error occurred while fetching open cases.";
 }
-$mysqli->close();
+
+require_once 'header.php';
 ?>
 
 <h2 class="mb-4">Open Case Queue</h2>
+
+<?php if (isset($page_error)): ?>
+    <div class="alert alert-danger" role="alert"><?= e($page_error); ?></div>
+<?php endif; ?>
 
 <div class="card shadow-sm">
     <div class="card-body">
@@ -45,12 +50,12 @@ $mysqli->close();
                     <?php if (!empty($open_cases)): ?>
                         <?php foreach ($open_cases as $case): ?>
                             <tr>
-                                <td><?php echo $case['id']; ?></td>
-                                <td><code><?php echo substr($case['trip_uuid'], 0, 8); ?>...</code></td>
-                                <td><?php echo htmlspecialchars($case['case_type']); ?></td>
-                                <td><?php echo date('M j, Y g:i A', strtotime($case['created_at'])); ?></td>
+                                <td><?= e($case['id']); ?></td>
+                                <td><code><?= e(substr($case['trip_uuid'], 0, 8)); ?>...</code></td>
+                                <td><?= e($case['case_type']); ?></td>
+                                <td><?= e(date('M j, Y g:i A', strtotime($case['created_at']))); ?></td>
                                 <td>
-                                    <a href="view_case.php?id=<?php echo $case['id']; ?>" class="btn btn-primary btn-sm">Review Case</a>
+                                    <a href="view_case.php?id=<?= e($case['id']); ?>" class="btn btn-primary btn-sm">Review Case</a>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -63,6 +68,4 @@ $mysqli->close();
     </div>
 </div>
 
-<?php
-require_once 'footer.php';
-?>
+<?php require_once 'footer.php'; ?>

@@ -1,103 +1,47 @@
 <?php
-// FILE: system_configuration.php
+// FILE: public/system_configuration.php
 
-// 1. Set the page title for the header.
+require_once 'init.php';
+
+// --- Security & Permission Check ---
+if (!isset($_SESSION["loggedin"]) || !in_array($_SESSION['user_role'], ['superuser', 'admin'])) {
+    redirect('index.php');
+}
+
 $page_title = 'System Configuration';
-
-// 2. Include the header, which also handles session startup.
-require_once 'header.php';
-
-// 3. Security Check: Redirect if the user isn't logged in.
-if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
-    header("location: login.php");
-    exit;
-}
-
-// 4. Security Check: Only allow 'superuser' and 'admin' roles to access this page.
-$allowed_roles = ['superuser', 'admin'];
-$user_role = $_SESSION['user_role'] ?? null;
-if (!in_array($user_role, $allowed_roles)) {
-    header("location: dashboard.php");
-    exit;
-}
-
-// Check if this is an AJAX request from the front-end.
-$is_ajax = isset($_GET['ajax']) && $_GET['ajax'] === 'true';
-
-// 5. Include the database connection file.
-require_once __DIR__ . '/../../app/db_connect.php';
-
-// Initialize variables for messages and errors.
+$db = Database::getInstance();
 $page_message = '';
 $page_error = '';
 $all_facilities = [];
 $all_carriers = [];
 $selected_entity = null;
 $config_data = [];
+$user_role = $_SESSION['user_role'];
 
-// --- Start of Utility Functions ---
-
-/**
- * Logs an action to the user_activity_logs table.
- * @param mysqli $conn The database connection object.
- * @param int $user_id The ID of the user performing the action.
- * @param string $action The type of action (e.g., 'config_updated').
- * @param string $message A detailed message about the action.
- */
-function log_user_activity($conn, $user_id, $action, $message) {
-    $ip_address = $_SERVER['REMOTE_ADDR'] ?? 'Unknown';
-    $log_stmt = $conn->prepare("INSERT INTO user_activity_logs (user_id, action, message, ip_address) VALUES (?, ?, ?, ?)");
-    if ($log_stmt) {
-        $log_stmt->bind_param("isss", $user_id, $action, $message, $ip_address);
-        $log_stmt->execute();
-        $log_stmt->close();
-    }
-}
-
-/**
- * Compares old and new config data and generates a detailed log message.
- * @param array $old_data The original configuration data.
- * @param array $new_data The new configuration data.
- * @return string The detailed log message.
- */
-function generate_config_log_message($old_data, $new_data) {
-    $changes = [];
-    foreach ($new_data as $key => $value) {
-        if (!isset($old_data[$key]) || json_encode($old_data[$key]) !== json_encode($value)) {
-            $old_value = isset($old_data[$key]) ? (is_array($old_data[$key]) ? json_encode($old_data[$key]) : $old_data[$key]) : 'N/A';
-            $new_value = is_array($value) ? json_encode($value) : $value;
-            $changes[] = "{$key}: '{$old_value}' -> '{$new_value}'";
-        }
-    }
-    return implode(', ', $changes);
-}
-
-// --- End of Utility Functions ---
-
-// --- Start of Form Submission Handling ---
+// --- Form Submission Handling ---
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $entity_id = $_POST['entity_id'] ?? null;
     $entity_type = $_POST['entity_type'] ?? null;
-    $table_name = ($entity_type === 'facility') ? 'facilities' : 'carriers';
+    
+    // Superusers can only edit their own entity
+    if ($user_role === 'superuser') {
+        $entity_id = $_SESSION['entity_id'];
+        $entity_type = $_SESSION['entity_type'];
+    }
 
-    $target_entity_id = ($user_role === 'superuser') ? $_SESSION['entity_id'] : $entity_id;
-    $target_entity_type = ($user_role === 'superuser') ? $_SESSION['entity_type'] : $entity_type;
-
-    if ($target_entity_id === null || $target_entity_type === null) {
-        $page_error = "Invalid entity selected.";
+    if (empty($entity_id) || empty($entity_type)) {
+        $page_error = "Invalid entity selected for configuration.";
     } else {
+        $table_name = ($entity_type === 'facility') ? 'facilities' : 'carriers';
         try {
-            // Fetch the old config data for logging.
-            $stmt = $mysqli->prepare("SELECT config_settings FROM {$table_name} WHERE id = ? LIMIT 1");
-            $stmt->bind_param("i", $target_entity_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $old_config_json = $result->fetch_assoc()['config_settings'] ?? '{}';
-            $old_config_data = json_decode($old_config_json, true);
-            $stmt->close();
-            
-            // Build the new config data based on the form submission.
-            if ($target_entity_type === 'facility') {
+            $db->pdo()->beginTransaction();
+
+            $stmt_old = $db->query("SELECT config_settings FROM `{$table_name}` WHERE id = ? LIMIT 1", [$entity_id]);
+            $old_config_json = $stmt_old->fetchColumn();
+            $old_config_data = json_decode($old_config_json, true) ?: [];
+
+            $new_config_data = [];
+            if ($entity_type === 'facility') {
                 $new_config_data = [
                     'short_bid_duration' => $_POST['short_bid_duration'] ?? 15,
                     'long_bid_duration' => $_POST['long_bid_duration'] ?? 30,
@@ -116,157 +60,41 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     'special_equipment' => $_POST['special_equipment'] ?? []
                 ];
             }
-            
-            // Serialize the new config data to JSON.
             $new_config_json = json_encode($new_config_data);
+
+            $db->query("UPDATE `{$table_name}` SET config_settings = ? WHERE id = ?", [$new_config_json, $entity_id]);
             
-            // Update the database.
-            $stmt = $mysqli->prepare("UPDATE {$table_name} SET config_settings = ? WHERE id = ?");
-            $stmt->bind_param("si", $new_config_json, $target_entity_id);
-            if ($stmt->execute()) {
-                $page_message = "Configuration updated successfully.";
-                $log_message = "Configuration for {$target_entity_type} ID: {$target_entity_id} updated. " . generate_config_log_message($old_config_data, $new_config_data);
-                log_user_activity($mysqli, $_SESSION['user_id'], 'config_updated', $log_message);
-            } else {
-                $page_error = "Error updating configuration: " . $stmt->error;
-            }
-            $stmt->close();
-
+            log_user_action('config_updated', "Configuration for {$entity_type} ID: {$entity_id} was modified.");
+            
+            $db->pdo()->commit();
+            $page_message = "Configuration updated successfully.";
         } catch (Exception $e) {
-            $page_error = "An error occurred: " . $e->getMessage();
+            if ($db->pdo()->inTransaction()) $db->pdo()->rollBack();
+            $page_error = "An error occurred while saving the configuration.";
+            error_log("System Config Error: " . $e->getMessage());
         }
     }
 }
-// --- End of Form Submission Handling ---
 
-// --- Start of Page Data Retrieval ---
-// Fetch all active facilities and carriers for the admin lists and select options.
-$facilities_stmt = $mysqli->prepare("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC");
-$facilities_stmt->execute();
-$facilities_result = $facilities_stmt->get_result();
-while ($row = $facilities_result->fetch_assoc()) {
-    $all_facilities[] = $row;
-}
-$facilities_stmt->close();
+// --- Data Retrieval for Page Display ---
+try {
+    $all_facilities = $db->query("SELECT id, name FROM facilities WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
+    $all_carriers = $db->query("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC")->fetchAll();
 
-$carriers_stmt = $mysqli->prepare("SELECT id, name FROM carriers WHERE is_active = 1 ORDER BY name ASC");
-$carriers_stmt->execute();
-$carriers_result = $carriers_stmt->get_result();
-while ($row = $carriers_result->fetch_assoc()) {
-    $all_carriers[] = $row;
-}
-$carriers_stmt->close();
-
-if ($user_role === 'admin') {
-    $entity_type = $_GET['entity_type'] ?? null;
-    $entity_id = $_GET['entity_id'] ?? null;
-    
-    if ($is_ajax && $entity_type && $entity_id) {
-        $table_name = ($entity_type === 'facility') ? 'facilities' : 'carriers';
-        $stmt = $mysqli->prepare("SELECT id, name, config_settings FROM {$table_name} WHERE id = ? LIMIT 1");
-        $stmt->bind_param("i", $entity_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $selected_entity = $result->fetch_assoc();
-        $stmt->close();
-        
+    if ($user_role === 'superuser') {
+        $table_name = $_SESSION['entity_type'] . 's';
+        $selected_entity = $db->query("SELECT id, name, config_settings FROM `{$table_name}` WHERE id = ? LIMIT 1", [$_SESSION['entity_id']])->fetch();
         if ($selected_entity) {
-            $config_data = json_decode($selected_entity['config_settings'], true) ?? [];
-            header('Content-Type: application/json');
-            echo json_encode([
-                'id' => $selected_entity['id'],
-                'name' => $selected_entity['name'],
-                'type' => $entity_type,
-                'config' => $config_data
-            ]);
-            exit;
-        } else {
-            http_response_code(404);
-            echo json_encode(['error' => 'Entity not found.']);
-            exit;
+            $config_data = json_decode($selected_entity['config_settings'], true) ?: [];
         }
     }
-} elseif ($user_role === 'superuser') {
-    $entity_type = $_SESSION['entity_type'];
-    $entity_id = $_SESSION['entity_id'];
-    $table_name = ($entity_type === 'facility') ? 'facilities' : 'carriers';
-
-    $stmt = $mysqli->prepare("SELECT id, name, config_settings FROM {$table_name} WHERE id = ? LIMIT 1");
-    $stmt->bind_param("i", $entity_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $selected_entity = $result->fetch_assoc();
-    $stmt->close();
-
-    if ($selected_entity) {
-        $config_data = json_decode($selected_entity['config_settings'], true) ?? [];
-    } else {
-        $page_error = "Your entity record was not found.";
-    }
+} catch (Exception $e) {
+    $page_error = "Could not load configuration data.";
+    error_log("System Config Page Load Error: " . $e->getMessage());
 }
-$mysqli->close();
+
+require_once 'header.php';
 ?>
-
-<div id="config-container" class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">System Configuration</h1>
-    </div>
-
-    <?php if (!empty($page_message)): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-            <p class="font-bold">Success</p>
-            <p><?= htmlspecialchars($page_message); ?></p>
-        </div>
-    <?php endif; ?>
-    <?php if (!empty($page_error)): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-            <p class="font-bold">Error</p>
-            <p><?= htmlspecialchars($page_error); ?></p>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($user_role === 'admin'): ?>
-    <!-- Admin View: List of Entities -->
-    <div id="admin-entity-list" class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 mb-6">
-        <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-800">Select an Entity to Configure</h2>
-        </div>
-        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <h3 class="font-bold text-lg mb-2">Facilities</h3>
-                <div class="overflow-y-auto max-h-64 border rounded-md">
-                    <ul class="divide-y divide-gray-200">
-                        <?php if (empty($all_facilities)): ?>
-                            <li class="px-4 py-2 text-sm text-gray-500">No active facilities found.</li>
-                        <?php else: ?>
-                            <?php foreach ($all_facilities as $facility): ?>
-                                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm" onclick="fetchEntityConfig('facility', <?= htmlspecialchars($facility['id']); ?>)">
-                                    <?= htmlspecialchars($facility['name']); ?>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg mb-2">Carriers</h3>
-                <div class="overflow-y-auto max-h-64 border rounded-md">
-                    <ul class="divide-y divide-gray-200">
-                        <?php if (empty($all_carriers)): ?>
-                            <li class="px-4 py-2 text-sm text-gray-500">No active carriers found.</li>
-                        <?php else: ?>
-                            <?php foreach ($all_carriers as $carrier): ?>
-                                <li class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm" onclick="fetchEntityConfig('carrier', <?= htmlspecialchars($carrier['id']); ?>)">
-                                    <?= htmlspecialchars($carrier['name']); ?>
-                                </li>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
 
     <!-- Configuration Form Section -->
     <div id="config-form-section" class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200" style="display: <?= ($user_role === 'admin' && !$selected_entity) ? 'none' : 'block'; ?>;">

@@ -1,62 +1,52 @@
 <?php
-// Start output buffering to capture and discard any stray output or errors.
-ob_start();
+// FILE: public/check_address.php
+
+ob_start(); // Start output buffering to prevent any stray output from breaking JSON
+
+require_once __DIR__ . '/../../app/init.php'; // Use the main init file
 
 header('Content-Type: application/json');
 
-require_once __DIR__ . '/../../app/db_connect.php';
+$response_data = ['prompt_room_number' => false]; // Default response
 
-// Get the raw POST data
-$json = file_get_contents('php://input');
-$data = json_decode($json);
-$address = $data->address ?? '';
+try {
+    $json = file_get_contents('php://input');
+    $data = json_decode($json);
+    $address = $data->address ?? '';
 
-if (empty($address)) {
-    ob_end_clean();
-    echo json_encode(['error' => 'Missing address data.']);
-    exit;
-}
+    if (empty($address)) {
+        throw new Exception('Missing address data.');
+    }
 
-// Prepare the address for the database query.
-$address_for_db = '%' . $address . '%';
+    $db = Database::getInstance();
+    $address_for_db = '%' . $address . '%';
 
-// Use a prepared statement for security to query the database.
-$sql = "SELECT dropoff_room, pickup_room FROM trips WHERE origin_address LIKE ? OR destination_address LIKE ?";
-$total_records = 0;
-$records_with_room = 0;
+    // This query is an approximation. For better accuracy, you might need geospatial data.
+    $sql = "SELECT destination_room, origin_room FROM trips WHERE destination_street LIKE ? OR origin_street LIKE ?";
+    $stmt = $db->query($sql, [$address_for_db, $address_for_db]);
+    $results = $stmt->fetchAll();
 
-if ($stmt = $mysqli->prepare($sql)) {
-    $stmt->bind_param("ss", $address_for_db, $address_for_db);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $total_records = count($results);
+    $records_with_room = 0;
 
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $total_records++;
-            if (!empty($row['dropoff_room']) || !empty($row['pickup_room'])) {
+    if ($total_records > 0) {
+        foreach ($results as $row) {
+            if (!empty($row['destination_room']) || !empty($row['origin_room'])) {
                 $records_with_room++;
             }
         }
+        // If over 80% of past trips to a similar street have a room number, prompt the user.
+        if (($records_with_room / $total_records) > 0.8) {
+            $response_data['prompt_room_number'] = true;
+        }
     }
-    $stmt->close();
+
+} catch (Exception $e) {
+    error_log("Check Address API Error: " . $e->getMessage());
+    // Do not expose error details in the API response
+    // The default response of 'false' is safe.
 }
 
-$prompt_room_number = false;
-if ($total_records > 0) {
-    $percentage = ($records_with_room / $total_records) * 100;
-    if ($percentage > 80) {
-        $prompt_room_number = true;
-    }
-}
-
-// End output buffering and discard its contents.
-ob_end_clean();
-
-echo json_encode([
-    'prompt_room_number' => $prompt_room_number
-]);
-
-// Ensure no other output is sent after the JSON.
-die();
-
-?>
+ob_end_clean(); // Discard any buffer content
+echo json_encode($response_data);
+exit();

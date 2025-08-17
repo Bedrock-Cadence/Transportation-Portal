@@ -1,114 +1,100 @@
 <?php
-$page_title = 'Review Trip Update';
-require_once 'header.php';
-require_once __DIR__ . '/../../app/db_connect.php';
+// FILE: public/review_details_change.php
+
+require_once 'init.php';
 
 // --- Permission Check & Data Fetch ---
-if (!isset($_SESSION["loggedin"])) { header("location: login.php"); exit; }
-if (!isset($_GET['id'])) { header("location: dashboard.php"); exit; }
+if (!isset($_SESSION["loggedin"])) { redirect('login.php'); }
+if (empty($_GET['id'])) { redirect('dashboard.php'); }
 
-$change_request_id = $_GET['id'];
+$page_title = 'Review Trip Update';
+$db = Database::getInstance();
+$change_request_id = (int)$_GET['id'];
 $request_details = null;
 $is_authorized = false;
 
-$sql = "SELECT tcr.*, t.uuid AS trip_uuid, t.carrier_id 
-        FROM trip_change_requests tcr
-        JOIN trips t ON tcr.trip_id = t.id
-        WHERE tcr.id = ? AND tcr.status = 'pending' AND tcr.request_type = 'details_change'";
+try {
+    $sql = "SELECT tcr.*, t.uuid AS trip_uuid, t.carrier_id
+            FROM trip_change_requests tcr
+            JOIN trips t ON tcr.trip_id = t.id
+            WHERE tcr.id = ? AND tcr.status = 'pending' AND tcr.request_type = 'details_change'";
+    $request_details = $db->query($sql, [$change_request_id])->fetch();
 
-if ($stmt = $mysqli->prepare($sql)) {
-    $stmt->bind_param("i", $change_request_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    if ($result->num_rows == 1) {
-        $request_details = $result->fetch_assoc();
-    } else {
-        header("location: dashboard.php?error=notfound"); exit;
+    if (!$request_details) {
+        redirect("dashboard.php?error=notfound");
     }
-    $stmt->close();
-}
 
-if ($_SESSION['user_role'] === 'bedrock_admin' || (isset($_SESSION['entity_id']) && $_SESSION['entity_id'] == $request_details['carrier_id'])) {
-    $is_authorized = true;
-}
+    if ($_SESSION['user_role'] === 'admin' || (isset($_SESSION['entity_id']) && $_SESSION['entity_id'] == $request_details['carrier_id'])) {
+        $is_authorized = true;
+    }
+    if (!$is_authorized) {
+        redirect("dashboard.php?error=unauthorized");
+    }
 
-if (!$is_authorized) { header("location: dashboard.php?error=unauthorized"); exit; }
+} catch (Exception $e) {
+    error_log("Review Details Change Page Error: " . $e->getMessage());
+    die("A database error occurred.");
+}
 
 // --- Handle Form Submission (Accept/Reject) ---
-if ($_SERVER["REQUEST_METHOD"] == "POST" && $_SESSION['user_role'] !== 'bedrock_admin') {
+if ($_SERVER["REQUEST_METHOD"] == "POST" && $_SESSION['user_role'] !== 'admin') {
     $decision = $_POST['decision'];
     $user_id = $_SESSION['user_id'];
     $trip_id = $request_details['trip_id'];
     $requesting_user_id = $request_details['requested_by_user_id'];
     $trip_uuid = $request_details['trip_uuid'];
-    $changes = json_decode($request_details['proposed_data'], true);
-
-    $mysqli->begin_transaction();
+    
     try {
+        $db->pdo()->beginTransaction();
+
         if ($decision == 'accept') {
-            $update_sql = "UPDATE trips SET ";
+            $changes = json_decode($request_details['proposed_data'], true);
+            $update_parts = [];
             $update_params = [];
-            $param_types = '';
+
+            // IMPORTANT: In a real-world scenario, you MUST have a whitelist of editable fields for security
+            $allowed_fields = ['patient_first_name', 'patient_last_name', 'patient_weight_kg', 'appointment_at'];
             foreach ($changes as $field => $values) {
-                // IMPORTANT: Whitelist of editable fields is crucial for security in production
-                $update_sql .= "$field = ?, ";
-                $update_params[] = $values['new'];
-                $param_types .= 's';
+                if (in_array($field, $allowed_fields)) {
+                    $update_parts[] = "`$field` = ?";
+                    $update_params[] = $values['new'];
+                }
             }
-            $update_sql = rtrim($update_sql, ', ') . " WHERE id = ?";
-            $update_params[] = $trip_id;
-            $param_types .= 'i';
 
-            $stmt1 = $mysqli->prepare($update_sql);
-            $stmt1->bind_param($param_types, ...$update_params);
-            $stmt1->execute();
-            $stmt1->close();
-
-            $stmt2 = $mysqli->prepare("UPDATE trip_change_requests SET status = 'accepted', resolved_at = NOW(), resolved_by_user_id = ? WHERE id = ?");
-            $stmt2->bind_param("ii", $user_id, $change_request_id);
-            $stmt2->execute();
-            $stmt2->close();
+            if (!empty($update_parts)) {
+                $update_params[] = $trip_id;
+                $update_sql = "UPDATE trips SET " . implode(', ', $update_parts) . " WHERE id = ?";
+                $db->query($update_sql, $update_params);
+            }
             
-            // --- NEW: Notify facility of approval ---
+            $db->query("UPDATE trip_change_requests SET status = 'accepted', resolved_at = NOW(), resolved_by_user_id = ? WHERE id = ?", [$user_id, $change_request_id]);
+            
             $message = "Your requested changes for Trip ".substr($trip_uuid, 0, 8)." were APPROVED.";
             $link = "awarded_trip_details.php?uuid=" . $trip_uuid;
-            $sql_notify = "INSERT INTO notifications (user_id, event_type, message, link) VALUES (?, 'details_change_approved', ?, ?)";
-            $stmt_notify = $mysqli->prepare($sql_notify);
-            $stmt_notify->bind_param("iss", $requesting_user_id, $message, $link);
-            $stmt_notify->execute();
-            $stmt_notify->close();
-
+            $db->query("INSERT INTO notifications (user_id, event_type, message, link) VALUES (?, 'details_change_approved', ?, ?)", [$requesting_user_id, $message, $link]);
+        
         } else { // Reject
-            $stmt1 = $mysqli->prepare("UPDATE trip_change_requests SET status = 'rejected', resolved_at = NOW(), resolved_by_user_id = ? WHERE id = ?");
-            $stmt1->bind_param("ii", $user_id, $change_request_id);
-            $stmt1->execute();
-            $stmt1->close();
+            $db->query("UPDATE trip_change_requests SET status = 'rejected', resolved_at = NOW(), resolved_by_user_id = ? WHERE id = ?", [$user_id, $change_request_id]);
             
             $new_bidding_closes_at = date('Y-m-d H:i:s', strtotime('+2 hours'));
-            $stmt2 = $mysqli->prepare("UPDATE trips SET status = 'bidding', carrier_id = NULL, awarded_eta = NULL, bidding_closes_at = ? WHERE id = ?");
-            $stmt2->bind_param("si", $new_bidding_closes_at, $trip_id);
-            $stmt2->execute();
-            $stmt2->close();
+            $db->query("UPDATE trips SET status = 'bidding', carrier_id = NULL, awarded_eta = NULL, bidding_closes_at = ? WHERE id = ?", [$new_bidding_closes_at, $trip_id]);
 
-            // --- NEW: Notify facility of rejection and re-broadcast ---
             $message = "Your changes for Trip ".substr($trip_uuid, 0, 8)." were REJECTED. The trip has been re-broadcast.";
             $link = "dashboard.php";
-            $sql_notify = "INSERT INTO notifications (user_id, event_type, message, link) VALUES (?, 'details_change_rejected', ?, ?)";
-            $stmt_notify = $mysqli->prepare($sql_notify);
-            $stmt_notify->bind_param("iss", $requesting_user_id, $message, $link);
-            $stmt_notify->execute();
-            $stmt_notify->close();
+            $db->query("INSERT INTO notifications (user_id, event_type, message, link) VALUES (?, 'details_change_rejected', ?, ?)", [$requesting_user_id, $message, $link]);
         }
         
-        $mysqli->commit();
-        header("location: dashboard.php?status=review_complete");
-        exit;
+        $db->pdo()->commit();
+        redirect("dashboard.php?status=review_complete");
 
-    } catch (mysqli_sql_exception $exception) {
-        $mysqli->rollback();
-        die("An error occurred: " . $exception->getMessage());
+    } catch (Exception $e) {
+        if ($db->pdo()->inTransaction()) $db->pdo()->rollBack();
+        error_log("Review Details Change Submission Error: " . $e->getMessage());
+        // Handle error display
     }
 }
+
+require_once 'header.php';
 ?>
 
 <h2 class="mb-4">Review Trip Update Request</h2>
