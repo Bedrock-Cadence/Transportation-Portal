@@ -17,10 +17,6 @@ if ($_SESSION['user_role'] === 'superuser' && !isset($_SESSION['entity_id'])) {
     redirect('index.php?error=no_entity_id');
 }
 
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 $page_title = 'User Management';
 $db = Database::getInstance();
 $active_users = [];
@@ -71,7 +67,7 @@ require_once 'header.php';
 
 <div id="dashboard-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
+        <h1 class="text-3xl font-bold text-gray-800">User Management (EID: <?php echo $_SESSION['entity_id']; ?>)</h1>
     </div>
 
     <?php if (isset($page_error)): ?>
