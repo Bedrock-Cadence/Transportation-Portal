@@ -81,8 +81,6 @@ require_once 'header.php';
         <div class="px-6 py-4 border-b bg-gray-50">
             <h2 class="text-xl font-semibold text-gray-800">Active Users</h2>
         </div>
-        <p><?php echo $sql ?></p>
-        <p><?php print_r($all_users); ?></p>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-100">
@@ -94,22 +92,23 @@ require_once 'header.php';
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    <tr><td colspan="4" class="text-center py-2"><a href="/add_user.php" class="text-blue-600 hover:underline font-semibold">Add User</a></td></tr>
-                    <?php if (empty($active_users)): ?>
-                        <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No active users found.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($active_users as $user): ?>
-                            <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
-                                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
+    <tr><td colspan="4" class="text-center py-2"><a href="/add_user.php" class="text-blue-600 hover:underline font-semibold">Add User</a></td></tr>
+    
+    <?php if (empty($active_users)): ?>
+        <tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No active users found.</td></tr>
+    <?php else: ?>
+        <?php foreach ($active_users as $user): ?>
+            <tr class="hover:bg-gray-50 transition-colors duration-150 ease-in-out">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['first_name'] . ' ' . $user['last_name']); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e($user['email']); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><?= e(getDisplayName($user['role'])); ?></td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">
+                    <a href="user_profile.php?uuid=<?= e($user['uuid']); ?>" class="text-blue-600 hover:text-blue-800 font-semibold">View</a>
+                </td>
+            </tr>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</tbody>
             </table>
         </div>
     </div>
