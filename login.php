@@ -1,14 +1,8 @@
 <?php
-// --- TEMPORARY DEBUGGING ---
-// This forces PHP to display any and all errors directly on the screen.
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+// FILE: public_html/portal/login.php
 
-// The rest of your file starts below...
 require_once __DIR__ . '/../../app/init.php';
 
-// If the user is already logged in, send them to the main page.
 if (Auth::isLoggedIn()) {
     Utils::redirect('index.php');
 }
@@ -24,19 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $loginData = $authService->login($_POST);
 
         // LOGIN SUCCESS - Establish the session
-        $_SESSION["loggedin"] = true;
-        $_SESSION["user_id"] = $loginData['user']['id'];
-        $_SESSION["user_uuid"] = $loginData['user']['uuid'];
-        $_SESSION["first_name"] = $loginData['user']['first_name'];
-        $_SESSION["last_name"] = $loginData['user']['last_name'];
-        $_SESSION["email"] = $loginData['user']['email'];
-        $_SESSION["user_role"] = $loginData['user']['role'];
-        $_SESSION["entity_id"] = $loginData['user']['entity_id'];
-        $_SESSION["entity_type"] = $loginData['user']['entity_type'];
-        $_SESSION["entity_name"] = $loginData['entity_name'];
-        
-        // Lock the session to the new user's IP/User Agent for security.
-        SessionManager::setSessionLocks();
+        SessionManager::establish($loginData['user']);
 
         Utils::redirect('index.php');
 
@@ -50,7 +32,6 @@ $cspNonce = bin2hex(random_bytes(16));
 
 // Set the Content Security Policy header to enhance security.
 header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$cspNonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
-
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-50">
@@ -64,7 +45,6 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$
 <body class="h-full">
     <div class="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <!-- You can place a logo here -->
             <h2 class="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">Sign in to your account</h2>
         </div>
 
@@ -76,9 +56,7 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$
                         <div class="rounded-md bg-red-50 p-4">
                             <div class="flex">
                                 <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
-                                    </svg>
+                                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" /></svg>
                                 </div>
                                 <div class="ml-3">
                                     <p class="text-sm font-medium text-red-800"><?= Utils::e($login_error) ?></p>
@@ -107,20 +85,6 @@ header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$
                         <button type="submit" id="submitBtn" disabled class="flex w-full justify-center rounded-md bg-indigo-600 py-2 px-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-indigo-300 disabled:cursor-not-allowed">Sign in</button>
                     </div>
                 </form>
-
-                <div class="mt-6">
-                    <div class="relative">
-                        <div class="absolute inset-0 flex items-center">
-                            <div class="w-full border-t border-gray-300"></div>
-                        </div>
-                        <div class="relative flex justify-center text-sm">
-                            <span class="bg-white px-2 text-gray-500">System Access Warning</span>
-                        </div>
-                    </div>
-                    <p class="mt-4 text-center text-xs text-gray-500">
-                        Access is restricted to authorized users. Data within this system is protected under HIPAA. Unauthorized use is punishable by law. Your use of this system is subject to our BAA and other contracts. All activity is tracked, logged, and may be audited by Bedrock Cadence and government entities.
-                    </p>
-                </div>
             </div>
         </div>
     </div>
