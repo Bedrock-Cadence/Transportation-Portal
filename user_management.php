@@ -38,13 +38,13 @@ try {
     $stmt = $db->query($sql, $params);
     $all_users = $stmt->fetchAll();
 
-    foreach ($all_users as $user) {
-        if ($user['is_active']) {
-            $active_users[] = $user;
-        } else {
-            $inactive_users[] = $user;
-        }
+foreach ($all_users as $user) {
+    if ($user['is_active'] === '1' || $user['is_active'] === 1) {
+        $active_users[] = $user;
+    } else {
+        $inactive_users[] = $user;
     }
+}
 
 } catch (Exception $e) {
     error_log("User Management Page Error: " . $e->getMessage());
@@ -67,7 +67,7 @@ require_once 'header.php';
 
 <div id="dashboard-container" class="p-6">
     <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">User Management (EID: <?php echo $_SESSION['entity_id']; ?>)</h1>
+        <h1 class="text-3xl font-bold text-gray-800">User Management</h1>
     </div>
 
     <?php if (isset($page_error)): ?>
