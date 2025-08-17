@@ -5,7 +5,7 @@
 require_once __DIR__ . '/../../app/init.php'; 
 
 // If the user is already logged in, send them to the main page.
-if (isset($_SESSION["loggedin"]) && $_SESSION["loggedin"] === true) {
+if (Auth::isLoggedIn()) {
     Utils::redirect('index.php');
 }
 
@@ -20,7 +20,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $loginData = $authService->login($_POST);
 
         // LOGIN SUCCESS - Establish the session
-        // Our SessionManager handles regeneration and security locks automatically
         $_SESSION["loggedin"] = true;
         $_SESSION["user_id"] = $loginData['user']['id'];
         $_SESSION["user_uuid"] = $loginData['user']['uuid'];
@@ -32,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION["entity_type"] = $loginData['user']['entity_type'];
         $_SESSION["entity_name"] = $loginData['entity_name'];
         
-        // The SessionManager needs to be called to lock the session to the new user's IP/User Agent
+        // Lock the session to the new user's IP/User Agent for security.
         SessionManager::setSessionLocks();
 
         Utils::redirect('index.php');
@@ -41,6 +40,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $login_error = $e->getMessage();
     }
 }
+
+// Generate a secure, single-use nonce for the Content Security Policy.
+$cspNonce = bin2hex(random_bytes(16));
+
+// Set the Content Security Policy header to enhance security.
+header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$cspNonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
+
 ?>
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-gray-50">
@@ -49,7 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= Utils::e($page_title) ?> - Bedrock Cadence</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script nonce="<?= $cspNonce ?>" src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 <body class="h-full">
     <div class="flex min-h-full flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -115,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
     </div>
 
-    <script>
+    <script nonce="<?= $cspNonce ?>">
       function onTurnstileSuccess(token) {
         const submitButton = document.getElementById('submitBtn');
         if (submitButton) {
