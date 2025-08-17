@@ -1,11 +1,10 @@
 <?php
-// --- TEMPORARY DEBUGGING ---
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-echo "Attempting to include init.php...<br>";
+echo "Attempting to include the test file...<br>";
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/test_include.php';
 
-echo "init.php was included successfully!";
+echo "<br>This message will only appear if the include worked.";
