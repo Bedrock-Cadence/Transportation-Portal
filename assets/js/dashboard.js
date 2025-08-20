@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="p-4 text-sm text-gray-700">${formatStatus(trip.status)}</td>
                 <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.origin_street)} to ${escapeHTML(trip.destination_street)}</td>
                 <td class="p-4 text-sm text-gray-500">${formatDateTime(trip.created_at)}</td>
-                <td class="p-4 text-right"><a href="trip_details.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View</a></td>
+                <td class="p-4 text-right"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View</a></td>
             </tr>
         `).join('');
 
