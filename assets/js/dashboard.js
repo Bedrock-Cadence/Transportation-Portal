@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderDashboard(data) {
         if (userData.userRole === 'admin') {
-             dashboardContent.innerHTML = renderAdminDashboard(data);
+             dashboardContent.innerHTML = `Admin dashboard coming soon.`;
         } else if (userData.entityType === 'facility') {
             dashboardContent.innerHTML = renderFacilityDashboard(data);
         } else if (userData.entityType === 'carrier') {
@@ -94,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-            // CORRECTED: Use a relative path to navigate from the /portal/ page to the /api/ directory.
-            const response = await fetch('../api/dashboard_data.php', {
+            // CORRECTED: Use the full, absolute URL from the userData object
+            const response = await fetch(`${userData.apiBaseUrl}/dashboard_data.php`, {
                 credentials: 'include'
             });
             

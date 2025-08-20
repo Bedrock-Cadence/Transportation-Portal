@@ -14,7 +14,9 @@ $page_title = 'Dashboard';
 $userDataForJs = json_encode([
     'userRole' => Auth::user('user_role'),
     'entityType' => Auth::user('entity_type'),
-    'userTimezone' => USER_TIMEZONE // From secrets.php
+    'userTimezone' => USER_TIMEZONE, // From secrets.php
+    // ADDED: Define the absolute base URL for your API
+    'apiBaseUrl' => 'https://www.bedrockcadence.com/api' 
 ]);
 
 require_once 'header.php';
