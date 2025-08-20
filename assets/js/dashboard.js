@@ -42,15 +42,28 @@ function renderCarrierDashboard(data) {
         if (!data.open_trips || data.open_trips.length === 0) {
             openTripsRows = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No open trips to bid on.</td></tr>`;
         } else {
-            openTripsRows = data.open_trips.map(trip => `
+            openTripsRows = data.open_trips.map(trip => {
+                // Combine address parts for display and for the URL
+                const fullOrigin = `${trip.origin_street}, ${trip.origin_city}, ${trip.origin_state} ${trip.origin_zip}`;
+                const fullDestination = `${trip.destination_street}, ${trip.destination_city}, ${trip.destination_state} ${trip.destination_zip}`;
+
+                // Create URL-safe versions of the addresses
+                const originUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullOrigin)}`;
+                const destinationUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullDestination)}`;
+
+                return `
                 <tr class="hover:bg-gray-50">
-                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.origin_street)}</td>
-                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.destination_street)}</td>
-                    <td class="p-4 text-sm text-gray-500">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
-                    <td class="p-4 text-sm text-gray-500">${formatTripTime(trip)}</td>
-                    <td class="p-4 text-right"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View & Bid</a></td>
-                </tr>
-            `).join('');
+                    <td class="p-4 text-sm text-gray-600 align-top">
+                        <a href="${originUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHTML(fullOrigin)}</a>
+                    </td>
+                    <td class="p-4 text-sm text-gray-600 align-top">
+                        <a href="${destinationUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHTML(fullDestination)}</a>
+                    </td>
+                    <td class="p-4 text-sm text-gray-500 align-top">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
+                    <td class="p-4 text-sm text-gray-500 align-top">${formatTripTime(trip)}</td>
+                    <td class="p-4 text-right align-top"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View & Bid</a></td>
+                </tr>`;
+            }).join('');
         }
 
         const openTripsTable = `
@@ -75,16 +88,29 @@ function renderCarrierDashboard(data) {
         if (!data.awarded_trips || data.awarded_trips.length === 0) {
             awardedTripsRows = `<tr><td colspan="6" class="p-4 text-center text-gray-500">You have no awarded trips.</td></tr>`;
         } else {
-            awardedTripsRows = data.awarded_trips.map(trip => `
+            awardedTripsRows = data.awarded_trips.map(trip => {
+                // Combine address parts for display and for the URL
+                const fullOrigin = `${trip.origin_street}, ${trip.origin_city}, ${trip.origin_state} ${trip.origin_zip}`;
+                const fullDestination = `${trip.destination_street}, ${trip.destination_city}, ${trip.destination_state} ${trip.destination_zip}`;
+                
+                // Create URL-safe versions of the addresses
+                const originUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullOrigin)}`;
+                const destinationUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullDestination)}`;
+                
+                return `
                 <tr class="hover:bg-gray-50">
-                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.origin_street)}</td>
-                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.destination_street)}</td>
-                    <td class="p-4 text-sm text-gray-500">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
-                    <td class="p-4 text-sm text-gray-500">${formatTripTime(trip)}</td>
-                    <td class="p-4 text-sm font-semibold text-gray-700">${formatDateTime(trip.awarded_eta)}</td>
-                    <td class="p-4 text-right"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View Details</a></td>
-                </tr>
-            `).join('');
+                    <td class="p-4 text-sm text-gray-600 align-top">
+                        <a href="${originUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHTML(fullOrigin)}</a>
+                    </td>
+                    <td class="p-4 text-sm text-gray-600 align-top">
+                        <a href="${destinationUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHTML(fullDestination)}</a>
+                    </td>
+                    <td class="p-4 text-sm text-gray-500 align-top">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
+                    <td class="p-4 text-sm text-gray-500 align-top">${formatTripTime(trip)}</td>
+                    <td class="p-4 text-sm font-semibold text-gray-700 align-top">${formatDateTime(trip.awarded_eta)}</td>
+                    <td class="p-4 text-right align-top"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View Details</a></td>
+                </tr>`;
+            }).join('');
         }
 
         const awardedTripsTable = `
