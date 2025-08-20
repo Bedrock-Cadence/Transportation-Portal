@@ -36,18 +36,80 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
 
-    function renderCarrierDashboard(data) {
-        let openTripsHtml = data.open_trips.length > 0 ? data.open_trips.map(trip => `<li><a href="view_trip.php?uuid=${trip.uuid}">Trip from ${escapeHTML(trip.origin_city)} to ${escapeHTML(trip.destination_city)}</a></li>`).join('') : '<li>No open trips to bid on.</li>';
-        
-        return `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white shadow rounded-lg p-4">
-                    <h2 class="text-lg font-semibold border-b pb-2 mb-2">Open Trips for Bidding</h2>
-                    <ul class="list-disc pl-5">${openTripsHtml}</ul>
+function renderCarrierDashboard(data) {
+        // --- Table for Open Trips ---
+        let openTripsRows = '';
+        if (!data.open_trips || data.open_trips.length === 0) {
+            openTripsRows = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No open trips to bid on.</td></tr>`;
+        } else {
+            openTripsRows = data.open_trips.map(trip => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.origin_street)}</td>
+                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.destination_street)}</td>
+                    <td class="p-4 text-sm text-gray-500">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
+                    <td class="p-4 text-sm text-gray-500">${formatTripTime(trip)}</td>
+                    <td class="p-4 text-right"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View & Bid</a></td>
+                </tr>
+            `).join('');
+        }
+
+        const openTripsTable = `
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <h2 class="text-lg font-semibold p-4 border-b">Open Trips for Bidding</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50"><tr>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Pickup</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Dropoff</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Distance</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Requested Time</th>
+                            <th class="p-4"></th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-gray-200">${openTripsRows}</tbody>
+                    </table>
                 </div>
-                <div class="bg-white shadow rounded-lg p-4">
-                     <h2 class="text-lg font-semibold border-b pb-2 mb-2">Your Awarded Trips</h2>
-                     </div>
+            </div>`;
+
+        // --- Table for Awarded Trips ---
+        let awardedTripsRows = '';
+        if (!data.awarded_trips || data.awarded_trips.length === 0) {
+            awardedTripsRows = `<tr><td colspan="6" class="p-4 text-center text-gray-500">You have no awarded trips.</td></tr>`;
+        } else {
+            awardedTripsRows = data.awarded_trips.map(trip => `
+                <tr class="hover:bg-gray-50">
+                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.origin_street)}</td>
+                    <td class="p-4 text-sm text-gray-600">${escapeHTML(trip.destination_street)}</td>
+                    <td class="p-4 text-sm text-gray-500">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
+                    <td class="p-4 text-sm text-gray-500">${formatTripTime(trip)}</td>
+                    <td class="p-4 text-sm font-semibold text-gray-700">${formatDateTime(trip.awarded_eta)}</td>
+                    <td class="p-4 text-right"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View Details</a></td>
+                </tr>
+            `).join('');
+        }
+
+        const awardedTripsTable = `
+            <div class="bg-white shadow rounded-lg overflow-hidden">
+                <h2 class="text-lg font-semibold p-4 border-b">Your Awarded Trips</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50"><tr>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Pickup</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Dropoff</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Distance</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Requested Time</th>
+                            <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">My ETA</th>
+                            <th class="p-4"></th>
+                        </tr></thead>
+                        <tbody class="divide-y divide-gray-200">${awardedTripsRows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        
+        // --- Combine and Return ---
+        return `
+            <div class="space-y-6">
+                ${openTripsTable}
+                ${awardedTripsTable}
             </div>`;
     }
 
@@ -70,6 +132,23 @@ document.addEventListener('DOMContentLoaded', () => {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: 'numeric', minute: '2-digit', timeZone: userData.userTimezone
         });
+    }
+
+    function formatTripTime(trip) {
+        if (trip.asap) {
+            return '<span class="font-semibold text-red-600">ASAP</span>';
+        }
+        if (trip.appointment_at) {
+            // Re-uses your existing formatDateTime helper for consistency
+            return `Appt: ${formatDateTime(trip.appointment_at)}`;
+        }
+        if (trip.requested_pickup_time) {
+            // Creates a dummy date to parse and format just the time portion
+            const today = new Date().toISOString().slice(0, 10);
+            const time = new Date(`${today}T${trip.requested_pickup_time}Z`);
+            return `Pickup: ${time.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone: userData.userTimezone })}`;
+        }
+        return 'N/A';
     }
 
     function escapeHTML(str) {
