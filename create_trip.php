@@ -148,6 +148,39 @@ require_once 'header.php';
                 </div>
             </fieldset>
 
+            <fieldset>
+                <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Drop-Off Details</legend>
+                <div class="grid grid-cols-12 gap-6">
+                    <div class="col-span-12 sm:col-span-9">
+                        <label for="dropoff_address_street" class="block text-sm font-medium text-gray-700">Street Address</label>
+                        <input type="text" id="dropoff_address_street" name="dropoff_address_street" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                    </div>
+                    <div class="col-span-12 sm:col-span-3">
+                        <label for="dropoff_address_room" class="block text-sm font-medium text-gray-700">Room/Apt #</label>
+                        <input type="text" name="dropoff_address_room" id="dropoff_address_room" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                    </div>
+                    <div class="col-span-12 sm:col-span-6">
+                        <label for="dropoff_address_city" class="block text-sm font-medium text-gray-700">City</label>
+                        <input type="text" name="dropoff_address_city" id="dropoff_address_city" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                    </div>
+                    <div class="col-span-12 sm:col-span-3">
+                        <label for="dropoff_address_state" class="block text-sm font-medium text-gray-700">State</label>
+                        <select name="dropoff_address_state" id="dropoff_address_state" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                            <option value="">Choose...</option>
+                            <?php foreach ($states as $abbreviation => $name) : ?>
+                                <option value="<?= Utils::e($abbreviation) ?>" <?= (($preloadData['facility_address']['address_state'] ?? '') == $abbreviation) ? 'selected' : '' ?>>
+                                    <?= Utils::e($name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-span-12 sm:col-span-3">
+                        <label for="dropoff_address_zip" class="block text-sm font-medium text-gray-700">Zip Code</label>
+                        <input type="text" name="dropoff_address_zip" id="dropoff_address_zip" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                    </div>
+                </div>
+            </fieldset>
+
 <fieldset>
     <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Pick-up and Appointment Time</legend>
     <div class="grid grid-cols-12 gap-6 items-center">
