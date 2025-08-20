@@ -147,6 +147,109 @@ require_once 'header.php';
                     </div>
                 </div>
             </fieldset>
+
+<fieldset>
+    <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Patient Clinical Details</legend>
+    <div class="grid grid-cols-12 gap-6">
+
+        <!-- Primary Diagnosis -->
+        <div class="col-span-12">
+            <label for="primary_diagnosis" class="block text-sm font-medium text-gray-700">Primary Diagnosis</label>
+            <input type="text" id="primary_diagnosis" name="primary_diagnosis" placeholder="e.g., Pneumonia, Congestive Heart Failure, STEMI" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+        </div>
+
+        <!-- Special Equipment Checkboxes -->
+        <div class="col-span-12">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
+                <div class="flex items-center">
+                    <input id="equipment_o2" name="equipment_o2" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_o2" class="ml-2 block text-sm text-gray-900">O2</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="equipment_iv" name="equipment_iv" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_iv" class="ml-2 block text-sm text-gray-900">IV</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="equipment_cardiac_monitor" name="equipment_cardiac_monitor" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_cardiac_monitor" class="ml-2 block text-sm text-gray-900">Cardiac Monitor</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="equipment_ecmo" name="equipment_ecmo" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_ecmo" class="ml-2 block text-sm text-gray-900">ECMO</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="equipment_vent" name="equipment_vent" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_vent" class="ml-2 block text-sm text-gray-900">Vent</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="equipment_other" name="equipment_other" type="checkbox" class="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+                    <label for="equipment_other" class="ml-2 block text-sm text-gray-900">Other</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conditional O2 Details -->
+        <div id="o2_details" class="col-span-12 hidden">
+            <div class="grid grid-cols-12 gap-6">
+                <div class="col-span-12 sm:col-span-6">
+                    <label for="o2_amount" class="block text-sm font-medium text-gray-700">Amount of O2 (LPM)</label>
+                    <input type="number" step="0.1" id="o2_amount" name="o2_amount" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                </div>
+                <div class="col-span-12 sm:col-span-6">
+                    <label for="o2_route" class="block text-sm font-medium text-gray-700">Route</label>
+                    <select id="o2_route" name="o2_route" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        <option value="">Select...</option>
+                        <option value="nc">Nasal Cannula (NC)</option>
+                        <option value="nrb">Non-Rebreather Mask (NRB)</option>
+                        <option value="bvm">Bag-Valve Mask (BVM)</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Conditional IV Details -->
+        <div id="iv_details" class="col-span-12 hidden">
+            <label class="block text-sm font-medium text-gray-700 mb-2">IV Status</label>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <input id="iv_type_locked" name="iv_type" type="radio" value="locked" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                    <label for="iv_type_locked" class="ml-2 block text-sm text-gray-900">Saline Locked</label>
+                </div>
+                <div class="flex items-center">
+                    <input id="iv_type_flowing" name="iv_type" type="radio" value="flowing" class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                    <label for="iv_type_flowing" class="ml-2 block text-sm text-gray-900">Flowing Medication</label>
+                </div>
+            </div>
+            <!-- Conditional IV Medication Input -->
+            <div id="iv_meds" class="col-span-12 mt-4 hidden">
+                <label for="iv_medications" class="block text-sm font-medium text-gray-700">Medication(s)</label>
+                <textarea id="iv_medications" name="iv_medications" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+            </div>
+        </div>
+
+        <!-- Conditional Vent Details -->
+        <div id="vent_details" class="col-span-12 hidden">
+            <label for="ventilator_settings" class="block text-sm font-medium text-gray-700">Ventilator Settings</label>
+            <textarea id="ventilator_settings" name="ventilator_settings" rows="3" placeholder="e.g., Mode, Rate, Tidal Volume, PEEP" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+        </div>
+
+        <!-- Isolation Precautions -->
+        <div class="col-span-12">
+            <label for="isolation_precautions" class="block text-sm font-medium text-gray-700">Isolation Precautions</label>
+            <select id="isolation_precautions" name="isolation_precautions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                <option value="">Select...</option>
+                <option value="airborne">Airborne</option>
+                <option value="droplet">Droplet</option>
+                <option value="contact">Contact</option>
+                <option value="standard">Standard</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+    </div>
+</fieldset>            
             
             <div class="cf-turnstile" data-sitekey="0x4AAAAAABsE3bLaSnTnuUzR"></div>
             
@@ -157,7 +260,48 @@ require_once 'header.php';
     </div>
 </div>
 
-<script nonce="<?= $cspNonce ?>" src="/assets/js/create_trip.js" defer></script>
+<script>
+    // Get the checkboxes and conditional sections
+    const o2Checkbox = document.getElementById('equipment_o2');
+    const ivCheckbox = document.getElementById('equipment_iv');
+    const ventCheckbox = document.getElementById('equipment_vent');
+
+    const o2Details = document.getElementById('o2_details');
+    const ivDetails = document.getElementById('iv_details');
+    const ventDetails = document.getElementById('vent_details');
+
+    // Get the IV radio buttons and medication input
+    const ivRadioLocked = document.getElementById('iv_type_locked');
+    const ivRadioFlowing = document.getElementById('iv_type_flowing');
+    const ivMeds = document.getElementById('iv_meds');
+
+    // Event listeners to toggle conditional sections
+    o2Checkbox.addEventListener('change', () => {
+        o2Details.classList.toggle('hidden', !o2Checkbox.checked);
+    });
+
+    ivCheckbox.addEventListener('change', () => {
+        ivDetails.classList.toggle('hidden', !ivCheckbox.checked);
+        if (!ivCheckbox.checked) {
+            ivRadioLocked.checked = false;
+            ivRadioFlowing.checked = false;
+            ivMeds.classList.add('hidden');
+        }
+    });
+
+    ventCheckbox.addEventListener('change', () => {
+        ventDetails.classList.toggle('hidden', !ventCheckbox.checked);
+    });
+
+    // Event listener for IV radio buttons
+    ivRadioLocked.addEventListener('change', () => {
+        ivMeds.classList.add('hidden');
+    });
+
+    ivRadioFlowing.addEventListener('change', () => {
+        ivMeds.classList.remove('hidden');
+    });
+</script>
 
 <?php
 require_once 'footer.php';
