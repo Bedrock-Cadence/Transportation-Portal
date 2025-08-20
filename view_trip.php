@@ -1,5 +1,5 @@
 <?php
-// FILE: public_html/portal/trip_details.php
+// FILE: public_html/portal/view_trip.php
 
 require_once __DIR__ . '/../../app/init.php';
 
@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 break;
             case 'update_eta':
                 if ($viewMode === 'carrier_awarded') $tripService->updateAwardedEta($trip['id'], $_POST['awarded_eta']);
-                Utils::redirect("trip_details.php?uuid={$trip['uuid']}&status=eta_updated");
+                Utils::redirect("view_trip.php?uuid={$trip['uuid']}&status=eta_updated");
                 break;
         }
     } catch (Exception $e) {
@@ -115,7 +115,7 @@ require_once 'header.php';
     <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
         <?php if ($viewMode === 'facility' && $trip['status'] === 'bidding'): ?>
             <div class="flex justify-end items-center space-x-3">
-                <form action="trip_details.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post" onsubmit="return confirm('Are you sure you want to cancel this trip?');">
+                <form action="view_trip.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post" onsubmit="return confirm('Are you sure you want to cancel this trip?');">
                     <input type="hidden" name="action" value="cancel_trip">
                     <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded">Cancel Trip</button>
                 </form>
@@ -123,7 +123,7 @@ require_once 'header.php';
         <?php endif; ?>
 
         <?php if ($viewMode === 'carrier_unawarded' && $trip['status'] === 'bidding' && $biddingIsOpen): ?>
-            <form action="trip_details.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post">
+            <form action="view_trip.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post">
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Place Your Bid</h3>
                 <div class="sm:flex sm:items-end sm:space-x-3">
                     <div class="w-full sm:w-auto flex-grow">
@@ -137,7 +137,7 @@ require_once 'header.php';
         <?php endif; ?>
 
         <?php if ($viewMode === 'carrier_awarded' && in_array($trip['status'], ['awarded'])): ?>
-            <form action="trip_details.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post">
+            <form action="view_trip.php?uuid=<?= Utils::e($trip['uuid']) ?>" method="post">
                 <h3 class="text-lg font-medium text-gray-900 mb-2">Manage Trip</h3>
                 <div class="sm:flex sm:items-end sm:space-x-3">
                     <div class="w-full sm:w-auto flex-grow">
