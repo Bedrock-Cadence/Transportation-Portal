@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCarrierDashboard(data) {
-        let openTripsHtml = data.open_trips.length > 0 ? data.open_trips.map(trip => `<li><a href="trip_details.php?uuid=${trip.uuid}">Trip from ${escapeHTML(trip.origin_city)} to ${escapeHTML(trip.destination_city)}</a></li>`).join('') : '<li>No open trips to bid on.</li>';
+        let openTripsHtml = data.open_trips.length > 0 ? data.open_trips.map(trip => `<li><a href="view_trip.php?uuid=${trip.uuid}">Trip from ${escapeHTML(trip.origin_city)} to ${escapeHTML(trip.destination_city)}</a></li>`).join('') : '<li>No open trips to bid on.</li>';
         
         return `
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
