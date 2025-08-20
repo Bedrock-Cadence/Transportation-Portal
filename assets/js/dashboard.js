@@ -37,8 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderCarrierDashboard(data) {
-        // Carrier dashboard would have more complex rendering for open vs. awarded trips
-        // This is a simplified example.
         let openTripsHtml = data.open_trips.length > 0 ? data.open_trips.map(trip => `<li><a href="trip_details.php?uuid=${trip.uuid}">Trip from ${escapeHTML(trip.origin_city)} to ${escapeHTML(trip.destination_city)}</a></li>`).join('') : '<li>No open trips to bid on.</li>';
         
         return `
@@ -53,8 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
 
-    // A similar renderAdminDashboard function would go here
-    
     // --- HELPER FUNCTIONS ---
     
     function formatStatus(status) {
@@ -69,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatDateTime(utcString) {
         if (!utcString) return 'N/A';
-        const date = new Date(utcString + 'Z'); // Append Z to ensure it's parsed as UTC
+        const date = new Date(utcString + 'Z');
         return date.toLocaleString(undefined, {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: 'numeric', minute: '2-digit', timeZone: userData.userTimezone
@@ -86,8 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderDashboard(data) {
         if (userData.userRole === 'admin') {
-            // dashboardContent.innerHTML = renderAdminDashboard(data);
-             dashboardContent.innerHTML = `Admin dashboard coming soon.`;
+             dashboardContent.innerHTML = renderAdminDashboard(data);
         } else if (userData.entityType === 'facility') {
             dashboardContent.innerHTML = renderFacilityDashboard(data);
         } else if (userData.entityType === 'carrier') {
@@ -99,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-            // CORRECTED: Use a valid, root-relative path for the API endpoint.
-            const response = await fetch('/api/dashboard_data.php', {
+            // CORRECTED: Use a relative path to navigate from the /portal/ page to the /api/ directory.
+            const response = await fetch('../api/dashboard_data.php', {
                 credentials: 'include'
             });
             
@@ -108,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`Server responded with status: ${response.status}`);
             }
 
-            // CORRECTED: Read the JSON response only ONCE.
             const result = await response.json();
             
             if (result.success) {
