@@ -18,14 +18,14 @@ $trip = $tripService->getTripByUuid($_GET['uuid']);
 
 if (!$trip) {
     LoggingService::log(Auth::user('user_id'), null, 'trip_not_found', 'User attempted to view non-existent UUID: ' . $_GET['uuid']);
-    Utils::redirect('trip_board.php?error=notfound');
+    Utils::redirect('view_trip.php?error=notfound');
 }
 
 $viewMode = $tripService->determineViewMode($trip);
 
 if ($viewMode === 'unauthorized') {
     LoggingService::log(Auth::user('user_id'), null, 'unauthorized_trip_view', "User denied access to Trip ID: {$trip['id']}.");
-    Utils::redirect('trip_board.php?error=unauthorized');
+    Utils::redirect('view_trip.php?error=unauthorized');
 }
 
 // --- 2. POST REQUEST HANDLING (ACTIONS) ---
@@ -35,11 +35,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         switch ($action) {
             case 'cancel_trip':
                 if ($viewMode === 'facility') $tripService->cancelTrip($trip['id']);
-                Utils::redirect("trip_board.php?status=trip_cancelled");
+                Utils::redirect("view_trip.php?status=trip_cancelled");
                 break;
             case 'place_bid':
                 if ($viewMode === 'carrier_unawarded') $tripService->placeBid($trip['id'], $trip['bidding_closes_at'], $_POST['eta']);
-                Utils::redirect("trip_board.php?status=bid_placed");
+                Utils::redirect("view_trip.php?status=bid_placed");
                 break;
             case 'update_eta':
                 if ($viewMode === 'carrier_awarded') $tripService->updateAwardedEta($trip['id'], $_POST['awarded_eta']);
