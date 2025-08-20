@@ -99,13 +99,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateDashboard() {
         try {
-        const response = await fetch(__DIR__ . '/../api/dashboard_data.php';
-', {
-    credentials: 'include'
-});
-        const data = await response.json();
-        console.log(data);
-            if (!response.ok) throw new Error(`Server responded with status: ${response.status}`);
+            // CORRECTED: Use a valid, root-relative path for the API endpoint.
+            const response = await fetch('/api/dashboard_data.php', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+
+            // CORRECTED: Read the JSON response only ONCE.
             const result = await response.json();
             
             if (result.success) {
