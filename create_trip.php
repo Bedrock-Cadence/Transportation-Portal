@@ -149,6 +149,31 @@ require_once 'header.php';
             </fieldset>
 
 <fieldset>
+    <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Pick-up and Appointment Time</legend>
+    <div class="grid grid-cols-12 gap-6 items-center">
+        <!-- ASAP Checkbox -->
+        <div class="col-span-12 sm:col-span-4">
+            <div class="flex items-center">
+                <input id="asap_checkbox" name="asap_checkbox" type="checkbox" checked class="h-4 w-4 rounded border-gray-300 accent-red-600 focus:ring-red-500">
+                <label for="asap_checkbox" class="ml-2 block text-base font-bold text-red-600">ASAP</label>
+            </div>
+        </div>
+
+        <!-- Pick-up Time -->
+        <div class="col-span-12 sm:col-span-4">
+            <label for="pickup_time" class="block text-sm font-medium text-gray-700">Pick-up Time</label>
+            <input type="datetime-local" id="pickup_time" name="pickup_time" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+        </div>
+
+        <!-- Appointment Time -->
+        <div class="col-span-12 sm:col-span-4">
+            <label for="appointment_time" class="block text-sm font-medium text-gray-700">Appointment Time</label>
+            <input type="datetime-local" id="appointment_time" name="appointment_time" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+        </div>
+    </div>
+</fieldset>
+
+<fieldset>
     <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Patient Clinical Details</legend>
     <div class="grid grid-cols-12 gap-6">
 
@@ -259,6 +284,38 @@ require_once 'header.php';
         </form>
     </div>
 </div>
+
+<script>
+    // Get the ASAP checkbox and the time inputs
+    const asapCheckbox = document.getElementById('asap_checkbox');
+    const pickupTimeInput = document.getElementById('pickup_time');
+    const appointmentTimeInput = document.getElementById('appointment_time');
+
+    // Function to handle the state of the time inputs
+    function handleAsapChange() {
+        // Check if the ASAP checkbox is checked
+        const isAsap = asapCheckbox.checked;
+
+        // Disable or enable the time inputs
+        pickupTimeInput.disabled = isAsap;
+        appointmentTimeInput.disabled = isAsap;
+
+        // Set or remove the 'required' attribute based on the checkbox state
+        if (isAsap) {
+            pickupTimeInput.removeAttribute('required');
+            appointmentTimeInput.removeAttribute('required');
+        } else {
+            pickupTimeInput.setAttribute('required', 'required');
+            appointmentTimeInput.setAttribute('required', 'required');
+        }
+    }
+
+    // Call the function on page load to set the initial state
+    handleAsapChange();
+
+    // Add event listener to the ASAP checkbox
+    asapCheckbox.addEventListener('change', handleAsapChange);
+</script>
 
 <script>
     // Get the checkboxes and conditional sections
