@@ -1,6 +1,19 @@
 <?php
 // FILE: public_html/portal/view_trip.php
 
+// PASTE THIS HELPER FUNCTION AT THE TOP
+function trace($message, $data = null) {
+    echo '<pre style="background-color: #f0f0f0; border: 1px solid #ccc; padding: 10px; margin: 5px; font-family: monospace;">';
+    echo '<strong>TRACE:</strong> ' . htmlspecialchars($message);
+    if ($data !== null) {
+        echo "<br>---<br>";
+        print_r($data);
+    }
+    echo '</pre>';
+    flush(); // This forces PHP to send the output to the browser immediately
+}
+// END OF HELPER FUNCTION
+
 require_once __DIR__ . '/../../app/init.php';
 
 // --- 1. AUTHORIZATION & DATA FETCHING ---
