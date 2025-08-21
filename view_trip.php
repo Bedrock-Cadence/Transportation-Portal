@@ -109,6 +109,8 @@ if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = 'N/A';
 }
 
+echo $phi['weight_lbs'];
+
 // --- End of Corrected Block ---
 
 
