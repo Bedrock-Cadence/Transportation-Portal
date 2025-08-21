@@ -61,10 +61,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-die('DEBUG: Checkpoint Passed');
 
 // --- 3. DATA PREPARATION FOR DISPLAY (Hardened Version) ---
 $phi = [];
+die('DEBUG: Checkpoint Passed');
 $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
 $myBid = null;
 $hasUpdatedEta = false;
