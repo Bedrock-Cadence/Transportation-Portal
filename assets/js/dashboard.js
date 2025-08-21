@@ -181,30 +181,30 @@ function renderCarrierDashboard(data) {
 
         const errorsTableHtml = `
             <div class="bg-white rounded-2xl shadow-md overflow-hidden">
-                <h2 class="text-xl font-semibold p-6 border-b border-gray-200">Recent System Errors</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Level</th>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Message</th>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Location</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            ${data.recent_errors && data.recent_errors.length > 0 ? 
-                                data.recent_errors.map(error => `
-                                <tr class="hover:bg-gray-50 transition-colors">
-                                    <td class="p-4 text-sm font-medium text-gray-700">${escapeHTML(error.error_level)}</td>
-                                    <td class="p-4 text-sm text-gray-600">${escapeHTML(error.message)}</td>
-                                    <td class="p-4 text-sm text-gray-500">${formatDateTime(error.log_time)}</td>
-                                    <td class="p-4 text-sm text-gray-500 hidden sm:table-cell">${escapeHTML(error.file_path)}:${escapeHTML(error.line_number.toString())}</td>
-                                </tr>`).join('') : `<tr><td colspan="4" class="p-4 text-center text-gray-500">No recent errors to display.</td></tr>`}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <h2 class="text-xl font-semibold p-6 border-b border-gray-200">Recent System Errors</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-th">Level</th>
+                        <th class="table-th">Message</th>
+                        <th class="table-th">Time</th>
+                        <th class="table-th hidden sm:table-cell">Location</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    ${data.recent_errors && data.recent_errors.length > 0 ? 
+                        data.recent_errors.map(error => `
+                        <tr class="table-row-hover">
+                            <td class="table-td font-medium text-gray-700">${escapeHTML(error.error_level)}</td>
+                            <td class="table-td text-gray-600">${escapeHTML(error.message)}</td>
+                            <td class="table-td text-gray-500">${formatDateTime(error.log_time)}</td>
+                            <td class="table-td text-gray-500 hidden sm:table-cell">${escapeHTML(error.file_path)}:${escapeHTML(error.line_number.toString())}</td>
+                        </tr>`).join('') : `<tr><td colspan="4" class="p-4 text-center text-gray-500">No recent errors to display.</td></tr>`}
+                </tbody>
+            </table>
+        </div>
+    </div>
         `;
         
         const recentActivityRows = data.recent_activity.map(activity => `
@@ -217,22 +217,30 @@ function renderCarrierDashboard(data) {
 
         const recentActivityTableHtml = `
             <div class="bg-white rounded-2xl shadow-md overflow-hidden">
-                <h2 class="text-xl font-semibold p-6 border-b border-gray-200">Recent User Activity</h2>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                                <th class="p-4 text-left text-xs font-medium text-gray-500 uppercase">Message</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                            ${recentActivityRows.length > 0 ? recentActivityRows : `<tr><td colspan="3" class="p-4 text-center text-gray-500">No recent activity to display.</td></tr>`}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <h2 class="text-xl font-semibold p-6 border-b border-gray-200">Recent User Activity</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="table-th">Time</th>
+                        <th class="table-th">Action</th>
+                        <th class="table-th">Message</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    ${data.recent_activity && data.recent_activity.length > 0 ? 
+                        data.recent_activity.map(activity => `
+                        <tr class="table-row-hover">
+                            <td class="table-td text-gray-700">${formatDateTime(activity.created_at)}</td>
+                            <td class="table-td font-medium text-gray-600">${escapeHTML(activity.action.replace(/_/g, ' '))}</td>
+                            <td class="table-td text-gray-500">${escapeHTML(activity.message)}</td>
+                        </tr>
+                    `).join('') : `<tr><td colspan="3" class="p-4 text-center text-gray-500">No recent activity to display.</td></tr>`}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
         `;
 
         return kpiHtml + errorsTableHtml + recentActivityTableHtml;
