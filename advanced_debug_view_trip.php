@@ -97,6 +97,8 @@ if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = 'N/A';
 }
 
+die('DEBUG: Checkpoint Passed');
+
 // Fetch user-specific data
 if ($viewMode === 'carrier_unawarded') {
     $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
@@ -105,7 +107,6 @@ if ($viewMode === 'carrier_awarded') {
     $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
 }
 
-die('DEBUG: Checkpoint Passed');
 
 
 require_once 'header.php';
