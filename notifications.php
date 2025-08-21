@@ -12,6 +12,7 @@ $notificationService = new NotificationService(); // Using the service
 $notifications = []; // Initialize to prevent errors
 
 echo "HI!";
+echo $_SESSION["user_id"];
 
 // This is a placeholder for fetching ALL notifications (read and unread)
 // For now, we'll just get the unread ones to build the page structure.
