@@ -126,8 +126,42 @@ if (in_array($viewMode, ['facility', 'admin'])) {
     $tripHistory = $tripService->getTripHistory($trip['id']);
 }
 
+// --- NEW: Fetch awarded carrier details for the facility view ---
+$awardedCarrier = null;
+if ($viewMode === 'facility' && $trip['status'] === 'awarded' && !empty($trip['carrier_id'])) {
+    $db = Database::getInstance(); // Make sure you have the DB instance
+    $awardedCarrier = $db->fetch(
+        "SELECT name, phone_number FROM carriers WHERE id = :carrier_id",
+        [':carrier_id' => $trip['carrier_id']]
+    );
+}
+
 require_once 'header.php';
 ?>
+
+<?php if (isset($awardedCarrier) && $awardedCarrier): ?>
+<div class="max-w-4xl mx-auto mb-6">
+    <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-800 p-4 rounded-lg shadow-md" role="alert">
+        <div class="flex items-center">
+            <div class="py-1">
+                <svg class="h-6 w-6 text-blue-500 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="font-bold text-lg">Trip Awarded</p>
+                <div class="text-md mt-1">
+                    <span><strong>Carrier:</strong> <?= Utils::e($awardedCarrier['name']); ?></span>
+                    <span class="mx-2">|</span>
+                    <span><strong>ETA:</strong> <?= Utils::formatUtcToUserTime($trip['awarded_eta']); ?></span>
+                    <span class="mx-2">|</span>
+                    <span><strong>Contact:</strong> <?= Utils::e(Utils::formatPhoneNumber($awardedCarrier['phone_number'])); ?></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <div class="bg-white shadow-md rounded-lg overflow-hidden border border-gray-200 max-w-4xl mx-auto">
     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
