@@ -73,6 +73,7 @@ $phi = [];
 $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
 $myBid = null;
 $hasUpdatedEta = false; // Default value
+$tripHistory = []; // Initialize history array
 
 // --- Start of Corrected Block ---
 
@@ -120,6 +121,10 @@ if ($viewMode === 'carrier_awarded') {
     $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
 }
 
+// --- NEW: Fetch trip history for authorized viewers ---
+if (in_array($viewMode, ['facility', 'admin'])) {
+    $tripHistory = $tripService->getTripHistory($trip['id']);
+}
 
 require_once 'header.php';
 ?>
@@ -273,6 +278,34 @@ require_once 'header.php';
         <?php endif; ?>
     </div>
 </div>
+
+<?php if (!empty($tripHistory)): ?>
+<div class="max-w-4xl mx-auto mt-8">
+    <h3 class="text-xl font-semibold text-gray-800 mb-4">Trip History</h3>
+    <div class="timeline">
+        <?php foreach ($tripHistory as $event): ?>
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <time class="timeline-time"><?= Utils::formatUtcToUserTime($event['log_time']) ?></time>
+                    <div class="timeline-title"><?= Utils::e(ucwords(str_replace('_', ' ', $event['event_type']))) ?></div>
+                    <?php 
+                        $details = json_decode($event['details'], true);
+                        if (json_last_error() === JSON_ERROR_NONE && !empty($details)):
+                    ?>
+                        <div class="timeline-body">
+                            <?= Utils::e($details['message'] ?? ($details['decision_reason'] ?? '')) ?>
+                            <?php if(isset($details['new_bidding_closes_at'])): ?>
+                                <br>New Bidding End: <strong><?= Utils::formatUtcToUserTime($details['new_bidding_closes_at']) ?></strong>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- Retraction Modal -->
 <div id="retraction-modal" class="hidden fixed z-10 inset-0 overflow-y-auto">
