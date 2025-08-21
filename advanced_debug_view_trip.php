@@ -23,7 +23,7 @@ if (!$trip) {
 
 $viewMode = $tripService->determineViewMode($trip);
 
-LoggingService::log(Auth::user('user_id'), null, 'trip_viewed', "User viewed Trip ID: {$trip['id']}.", ['trip_id' => $trip['id']]);
+//LoggingService::log(Auth::user('user_id'), null, 'trip_viewed', "User viewed Trip ID: {$trip['id']}.", ['trip_id' => $trip['id']]);
 
 if ($viewMode === 'unauthorized') {
     LoggingService::log(Auth::user('user_id'), null, 'unauthorized_trip_view', "User denied access to Trip ID: {$trip['id']}.");
