@@ -19,6 +19,8 @@ if (!$trip) {
     Utils::redirect('index.php?error=notfound');
 }
 
+echo "I made it here!";
+
 // Determine the user's role and view mode
 $user = Auth::user();
 $viewMode = 'unauthorized';
