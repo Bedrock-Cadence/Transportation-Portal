@@ -184,7 +184,6 @@ require_once 'header.php';
 <fieldset>
     <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Pick-up and Appointment Time</legend>
     <div class="grid grid-cols-12 gap-6 items-center">
-        <!-- ASAP Checkbox -->
         <div class="col-span-12 sm:col-span-4">
             <div class="flex items-center">
                 <input id="asap_checkbox" name="asap_checkbox" type="checkbox" checked class="h-4 w-4 rounded border-gray-300 accent-red-600 focus:ring-red-500">
@@ -192,16 +191,14 @@ require_once 'header.php';
             </div>
         </div>
 
-        <!-- Pick-up Time -->
         <div class="col-span-12 sm:col-span-4">
             <label for="pickup_time" class="block text-sm font-medium text-gray-700">Pick-up Time</label>
-            <input type="datetime-local" id="pickup_time" name="pickup_time" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <input type="datetime-local" id="pickup_time" name="pickup_time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
         </div>
 
-        <!-- Appointment Time -->
         <div class="col-span-12 sm:col-span-4">
             <label for="appointment_time" class="block text-sm font-medium text-gray-700">Appointment Time</label>
-            <input type="datetime-local" id="appointment_time" name="appointment_time" disabled class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+            <input type="datetime-local" id="appointment_time" name="appointment_time" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
         </div>
     </div>
 </fieldset>
@@ -210,13 +207,11 @@ require_once 'header.php';
     <legend class="text-xl font-semibold text-gray-800 border-b border-gray-200 pb-2 mb-4">Patient Clinical Details</legend>
     <div class="grid grid-cols-12 gap-6">
 
-        <!-- Primary Diagnosis -->
         <div class="col-span-12">
             <label for="primary_diagnosis" class="block text-sm font-medium text-gray-700">Primary Diagnosis</label>
             <input type="text" id="primary_diagnosis" name="primary_diagnosis" placeholder="e.g., Pneumonia, Congestive Heart Failure, STEMI" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
         </div>
 
-        <!-- Special Equipment Checkboxes -->
         <div class="col-span-12">
             <label class="block text-sm font-medium text-gray-700 mb-2">Special Equipment</label>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
@@ -247,7 +242,6 @@ require_once 'header.php';
             </div>
         </div>
 
-        <!-- Conditional O2 Details -->
         <div id="o2_details" class="col-span-12 hidden">
             <div class="grid grid-cols-12 gap-6">
                 <div class="col-span-12 sm:col-span-6">
@@ -267,7 +261,6 @@ require_once 'header.php';
             </div>
         </div>
 
-        <!-- Conditional IV Details -->
         <div id="iv_details" class="col-span-12 hidden">
             <label class="block text-sm font-medium text-gray-700 mb-2">IV Status</label>
             <div class="flex items-center space-x-4">
@@ -280,20 +273,17 @@ require_once 'header.php';
                     <label for="iv_type_flowing" class="ml-2 block text-sm text-gray-900">Flowing Medication</label>
                 </div>
             </div>
-            <!-- Conditional IV Medication Input -->
             <div id="iv_meds" class="col-span-12 mt-4 hidden">
                 <label for="iv_medications" class="block text-sm font-medium text-gray-700">Medication(s)</label>
                 <textarea id="iv_medications" name="iv_medications" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
             </div>
         </div>
 
-        <!-- Conditional Vent Details -->
         <div id="vent_details" class="col-span-12 hidden">
             <label for="ventilator_settings" class="block text-sm font-medium text-gray-700">Ventilator Settings</label>
             <textarea id="ventilator_settings" name="ventilator_settings" rows="3" placeholder="e.g., Mode, Rate, Tidal Volume, PEEP" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
         </div>
 
-        <!-- Isolation Precautions -->
         <div class="col-span-12">
             <label for="isolation_precautions" class="block text-sm font-medium text-gray-700">Isolation Precautions</label>
             <select id="isolation_precautions" name="isolation_precautions" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
@@ -319,35 +309,45 @@ require_once 'header.php';
 </div>
 
 <script>
-    // Get the ASAP checkbox and the time inputs
+document.addEventListener('DOMContentLoaded', function () {
+    // Get the form elements
     const asapCheckbox = document.getElementById('asap_checkbox');
     const pickupTimeInput = document.getElementById('pickup_time');
     const appointmentTimeInput = document.getElementById('appointment_time');
 
-    // Function to handle the state of the time inputs
-    function handleAsapChange() {
-        // Check if the ASAP checkbox is checked
+    // This function will be called to update the required and disabled states
+    function updateDateTimeRequirements() {
         const isAsap = asapCheckbox.checked;
+        const hasPickupTime = pickupTimeInput.value !== '';
+        const hasAppointmentTime = appointmentTimeInput.value !== '';
 
-        // Disable or enable the time inputs
+        // 1. Enable or disable inputs based on ASAP checkbox
         pickupTimeInput.disabled = isAsap;
         appointmentTimeInput.disabled = isAsap;
 
-        // Set or remove the 'required' attribute based on the checkbox state
         if (isAsap) {
-            pickupTimeInput.removeAttribute('required');
-            appointmentTimeInput.removeAttribute('required');
+            // 2. If ASAP is checked, nothing is required and values are cleared
+            pickupTimeInput.required = false;
+            appointmentTimeInput.required = false;
+            pickupTimeInput.value = '';
+            appointmentTimeInput.value = '';
         } else {
-            pickupTimeInput.setAttribute('required', 'required');
-            appointmentTimeInput.setAttribute('required', 'required');
+            // 3. If ASAP is NOT checked, manage the 'required' state dynamically
+            // The appointment time is required only if there is NO pickup time
+            appointmentTimeInput.required = !hasPickupTime;
+            // The pickup time is required only if there is NO appointment time
+            pickupTimeInput.required = !hasAppointmentTime;
         }
     }
 
-    // Call the function on page load to set the initial state
-    handleAsapChange();
+    // Add event listeners to all three controls
+    asapCheckbox.addEventListener('change', updateDateTimeRequirements);
+    pickupTimeInput.addEventListener('input', updateDateTimeRequirements);
+    appointmentTimeInput.addEventListener('input', updateDateTimeRequirements);
 
-    // Add event listener to the ASAP checkbox
-    asapCheckbox.addEventListener('change', handleAsapChange);
+    // Run the function once on page load to set the initial correct state
+    updateDateTimeRequirements();
+});
 </script>
 
 <script>
