@@ -14,7 +14,7 @@ $notifications = []; // Initialize to prevent errors
 echo "HI!";
 echo $_SESSION["user_id"];
 
-$notifications = $notificationService->getAllNotificationsForUser($user->id);
+$notifications = $notificationService->getAllNotificationsForUser($_SESSION["user_id"]);
 
 require_once 'header.php';
 ?>
