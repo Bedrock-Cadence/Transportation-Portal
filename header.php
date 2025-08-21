@@ -57,6 +57,12 @@ if ($entityType === 'carrier') {
                     <div class="ml-10 flex items-baseline space-x-4">
                         <?php if (Auth::isLoggedIn()): ?>
                             <a href="/index.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Dashboard</a>
+
+                            <a href="/index.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Dashboard</a>
+<a href="/notifications.php" id="nav-notifications-link" class="relative text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">
+    <span>Notifications</span>
+    <span id="notification-badge" class="hidden absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs font-bold rounded-full flex items-center justify-center"></span>
+</a>
                             
                             <?php if (Auth::can('create_trip')): ?>
                                 <a href="/create_trip.php" class="text-gray-300 hover:text-white px-3 py-2 rounded-md font-medium">Create Trip</a>
