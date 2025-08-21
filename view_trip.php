@@ -76,25 +76,30 @@ $hasUpdatedEta = false; // Default value
 
 // --- Start of Corrected Block ---
 
-// --- A. Decrypt Sensitive PHI Fields ---
-// This block is assumed to be working correctly per your debugging.
-$phi = [];
+// Decrypt sensitive PHI fields based on view mode.
 if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
+    // Full PHI for authorized viewers
     $phi['first_name'] = $encryption->decrypt($trip['patient_first_name_encrypted']);
     $phi['last_name'] = $encryption->decrypt($trip['patient_last_name_encrypted']);
     $decrypted_dob = $encryption->decrypt($trip['patient_dob_encrypted']);
     $phi['ssn_last4'] = $encryption->decrypt($trip['patient_ssn_last4_encrypted']);
+
+    // DEFENSIVE CHECK: Ensure the decrypted DOB is a valid date before trying to format it.
     if (!empty($decrypted_dob) && ($timestamp = strtotime($decrypted_dob)) !== false) {
         $phi['dob_formatted'] = date('m/d/Y', $timestamp);
     } else {
         $phi['dob_formatted'] = '[N/A]';
     }
 }
+
+// Common, less-sensitive fields for all authorized viewers
 $phi['diagnosis'] = $encryption->decrypt($trip['diagnosis_encrypted']);
 $phi['equipment'] = $encryption->decrypt($trip['special_equipment_encrypted']);
 $phi['isolation'] = $encryption->decrypt($trip['isolation_precautions_encrypted']);
 $decrypted_weight_kg = $encryption->decrypt($trip['patient_weight_kg_encrypted']);
 $decrypted_height_in = $encryption->decrypt($trip['patient_height_in_encrypted']);
+
+// DEFENSIVE CHECK: Ensure weight and height are numeric before doing calculations.
 $phi['weight_lbs'] = is_numeric($decrypted_weight_kg) ? round($decrypted_weight_kg * 2.20462) : 'N/A';
 if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = floor($decrypted_height_in / 12) . "' " . ($decrypted_height_in % 12) . '"';
@@ -102,50 +107,18 @@ if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = 'N/A';
 }
 
+// --- End of Corrected Block ---
 
-// --- B. Fetch Carrier-Specific Information with DIRECT DEBUGGING ---
-$myBid = null;
-$hasUpdatedEta = false;
 
-echo "<pre style='background: #eee; padding: 10px; border: 1px solid #ccc;'>";
-echo "<strong>DEBUGGING OUTPUT:</strong>\n";
-echo "Current viewMode: " . htmlspecialchars($viewMode) . "\n";
-
+// Fetch existing bid for the current carrier
 if ($viewMode === 'carrier_unawarded') {
-    $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
-    if ($userCarrierId) {
-        echo "-> Calling getBidByCarrier for Trip ID: {$trip['id']} and Carrier ID: {$userCarrierId}...\n";
-        
-        // The script will die here if the method fails.
-        $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
-        
-        echo "-> Successfully completed getBidByCarrier call.\n";
-        echo "-> Result of getBidByCarrier: ";
-        var_dump($myBid);
-    } else {
-        echo "-> User is not a carrier or has no entity_id. Skipping getBidByCarrier.\n";
-    }
+    $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
 }
 
+// Check if the awarded carrier has already updated their ETA
 if ($viewMode === 'carrier_awarded') {
-    $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
-    if ($userCarrierId) {
-        echo "-> Calling hasCarrierUpdatedEta for Trip ID: {$trip['id']} and Carrier ID: {$userCarrierId}...\n";
-        
-        // The script will die here if the method fails.
-        $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
-        
-        echo "-> Successfully completed hasCarrierUpdatedEta call.\n";
-        echo "-> Result of hasCarrierUpdatedEta: ";
-        var_dump($hasUpdatedEta);
-    } else {
-        echo "-> User is not a carrier or has no entity_id. Skipping hasCarrierUpdatedEta.\n";
-    }
+    $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
 }
-
-echo "\n<strong>END OF DEBUGGING.</strong> Script halted intentionally.";
-echo "</pre>";
-die(); // Stop the script here to see the output.
 
 
 require_once 'header.php';
