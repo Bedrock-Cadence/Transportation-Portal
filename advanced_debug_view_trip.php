@@ -64,7 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 // --- 3. DATA PREPARATION FOR DISPLAY (Hardened Version) ---
 $phi = [];
-die('DEBUG: Checkpoint Passed');
 $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
 $myBid = null;
 $hasUpdatedEta = false;
@@ -82,6 +81,8 @@ if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
         $phi['dob_formatted'] = '[N/A]';
     }
 }
+
+die('DEBUG: Checkpoint Passed');
 
 // Decrypt common fields only if they exist
 $phi['diagnosis'] = !empty($trip['diagnosis_encrypted']) ? $encryption->decrypt($trip['diagnosis_encrypted']) : null;
