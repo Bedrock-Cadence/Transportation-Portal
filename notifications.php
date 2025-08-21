@@ -11,13 +11,14 @@ $page_title = 'My Notifications';
 $notificationService = new NotificationService(); // Using the service
 $notifications = []; // Initialize to prevent errors
 
+echo "HI!";
+
 // This is a placeholder for fetching ALL notifications (read and unread)
 // For now, we'll just get the unread ones to build the page structure.
 // You would expand this later.
 $notifications = $notificationService->getUnreadNotificationsForUser(Auth::user('user_id'));
 
 require_once 'header.php';
-echo "HI!";
 ?>
 
 <div class="max-w-4xl mx-auto">
