@@ -62,6 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // --- 3. DATA PREPARATION FOR DISPLAY (Hardened Version) ---
+die('DEBUG: Checkpoint Passed');
 $phi = [];
 $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
 $myBid = null;
