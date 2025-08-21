@@ -21,7 +21,7 @@ $userDataForJs = json_encode([
 
 // Call the service with the user ID
 
-echo $user->id;
+echo $userId;
 
 require_once 'header.php';
 ?>
