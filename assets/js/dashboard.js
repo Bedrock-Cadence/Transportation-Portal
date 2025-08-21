@@ -227,5 +227,5 @@ function renderCarrierDashboard(data) {
     }
 
     updateDashboard(); // Initial load
-    setInterval(updateDashboard, 1000); // Refresh every 60 seconds
+    setInterval(updateDashboard, 10000); // Refresh every 60 seconds
 });
