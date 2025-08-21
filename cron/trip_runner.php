@@ -23,7 +23,7 @@ foreach ($tripsToProcess as $trip) {
     try {
         $bids = $db->fetchAll("SELECT * FROM bids WHERE trip_id = ? ORDER BY eta ASC", [$tripId]);
 
-        // --- NEW LOGIC FOR HANDLING NO BIDS ---
+// --- NEW LOGIC FOR HANDLING NO BIDS ---
         if (empty($bids)) {
             // Check if we have already extended this trip once
             $extension_log = $db->fetch("SELECT id FROM trip_history WHERE trip_id = ? AND event_type = 'bidding_extended'", [$tripId]);
@@ -32,6 +32,11 @@ foreach ($tripsToProcess as $trip) {
                 // If it has been extended before, log and cancel it.
                 $tripService->logTripHistory($tripId, 'no_bids_after_extension', ['message' => 'No bids were received after a 20-minute extension. Cancelling trip.']);
                 $db->query("UPDATE trips SET status = 'cancelled' WHERE id = ?", [$tripId]);
+
+                // *** NEW NOTIFICATION LOGIC FOR CANCELLATION ***
+                $facilityId = $db->fetch("SELECT facility_id FROM trips WHERE id = ?", [$tripId])['facility_id'];
+                $message = "Trip ID: " . $tripId . " was canceled due to no bids after the extended bidding period.";
+                $tripService->sendFacilityNotification($facilityId, $message);
             } else {
                 // If this is the first time with no bids, extend the bidding time by 20 minutes.
                 $newBiddingClosesAt = new DateTime('now', new DateTimeZone('UTC'));
@@ -44,6 +49,11 @@ foreach ($tripsToProcess as $trip) {
                     'message' => 'No bids received. Bidding automatically extended by 20 minutes.',
                     'new_bidding_closes_at' => $newBiddingClosesAtTimestamp
                 ]);
+
+                // *** NEW NOTIFICATION LOGIC FOR EXTENDED BIDDING ***
+                $facilityId = $db->fetch("SELECT facility_id FROM trips WHERE id = ?", [$tripId])['facility_id'];
+                $message = "Trip ID: " . $tripId . " has not received any bids. Bidding has been automatically extended to " . $newBiddingClosesAt->format('Y-m-d H:i:s') . ".";
+                $tripService->sendFacilityNotification($facilityId, $message);
             }
             continue; // Skip to the next trip
         }
