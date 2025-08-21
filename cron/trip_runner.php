@@ -7,7 +7,7 @@ if (php_sapi_name() !== 'cli') {
     die("Access Denied");
 }
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../../app/init.php';
 
 $tripService = new TripService();
 $configService = new ConfigService();
