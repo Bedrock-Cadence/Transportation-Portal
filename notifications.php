@@ -14,8 +14,16 @@ $notifications = []; // Initialize to prevent errors
 echo "HI!";
 echo $_SESSION["user_id"];
 
+$user = Auth::user();
+
 // Assuming $notificationService is an instance of your NotificationService class
-$notifications = $notificationService->getAllNotificationsForUser();
+if ($user) {
+    $notifications = $notificationService->getAllNotificationsForUser($user->id);
+} else {
+    // This part should technically never be reached due to the redirect
+    // but it's good practice to handle it just in case.
+    $notifications = [];
+}
 
 require_once 'header.php';
 ?>
