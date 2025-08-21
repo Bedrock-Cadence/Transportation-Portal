@@ -8,6 +8,9 @@ if (!Auth::isLoggedIn() || !isset($_GET['uuid'])) {
     Utils::redirect('index.php');
 }
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 $page_title = 'Trip Details';
 $page_message = $_GET['status'] ?? ''; // For success messages on redirect
 $page_error = '';
