@@ -82,14 +82,14 @@ if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
     }
 }
 
-die('DEBUG: Checkpoint Passed');
-
 // Decrypt common fields only if they exist
 $phi['diagnosis'] = !empty($trip['diagnosis_encrypted']) ? $encryption->decrypt($trip['diagnosis_encrypted']) : null;
 $phi['equipment'] = !empty($trip['special_equipment_encrypted']) ? $encryption->decrypt($trip['special_equipment_encrypted']) : null;
 $phi['isolation'] = !empty($trip['isolation_precautions_encrypted']) ? $encryption->decrypt($trip['isolation_precautions_encrypted']) : null;
 $decrypted_weight_kg = !empty($trip['patient_weight_kg_encrypted']) ? $encryption->decrypt($trip['patient_weight_kg_encrypted']) : null;
 $decrypted_height_in = !empty($trip['patient_height_in_encrypted']) ? $encryption->decrypt($trip['patient_height_in_encrypted']) : null;
+
+die('DEBUG: Checkpoint Passed');
 
 // Perform calculations only on valid, numeric data
 $phi['weight_lbs'] = is_numeric($decrypted_weight_kg) ? round($decrypted_weight_kg * 2.20462) : 'N/A';
