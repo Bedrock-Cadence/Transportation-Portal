@@ -15,7 +15,7 @@ $notifications = []; // Initialize to prevent errors
 $userDataForJs = json_encode([
     'entityType' => Auth::user('entity_type'),
     'entityId' => Auth::user('entity_id'),
-    'userId' => Auth::user('id'),
+    'userId' => Auth::user('user_id'),
     'apiBaseUrl' => 'https://www.bedrockcadence.com/api' 
 ]);
 
