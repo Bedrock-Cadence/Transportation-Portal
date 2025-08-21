@@ -11,12 +11,26 @@ $page_title = 'My Notifications';
 $notificationService = new NotificationService(); // Using the service
 $notifications = []; // Initialize to prevent errors
 
-// Assuming $notificationService is an instance of your NotificationService class
+$user = Auth::user();
+
+// Prepare the user data for JavaScript, fixing the syntax error
+$userDataForJs = json_encode([
+    'userRole' => $user->user_role ?? null,
+    'entityType' => $user->entity_type ?? null,
+    'entityId' => $user->entity_id ?? null,
+    'userId' => $user->id ?? null,
+    'apiBaseUrl' => 'https://www.bedrockcadence.com/api' 
+]);
+
+// Call the service with the user ID
 if ($user) {
-    $notifications = $notificationService->getAllNotificationsForUser($user->id);
+    $notifications = $notificationService->getAllNotificationsForUser(
+        $user->id,
+        $user->entity_id,
+        $user->entity_type
+    );
 } else {
-    // This part should technically never be reached due to the redirect
-    // but it's good practice to handle it just in case.
+    // This part should not be reached due to the redirect
     $notifications = [];
 }
 
