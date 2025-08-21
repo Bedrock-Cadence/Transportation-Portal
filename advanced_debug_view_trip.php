@@ -97,17 +97,26 @@ if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = 'N/A';
 }
 
-die('DEBUG: Checkpoint Passed');
-
 // Fetch user-specific data
-if ($viewMode === 'carrier_unawarded') {
-    $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
+try {
+    if ($viewMode === 'carrier_unawarded') {
+        $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
+    }
+    if ($viewMode === 'carrier_awarded') {
+        $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
+    }
+} catch (Exception $e) {
+    // If a database call fails, this prevents a white screen.
+    // Log the detailed, technical error for the administrator.
+    LoggingService::log(null, null, 'database_error', 'Failed during user-specific trip data fetch: ' . $e->getMessage());
+    
+    // Set a user-friendly error message to display on the page.
+    $page_error = "A database error occurred while trying to load all trip details. Our technical team has been notified.";
+    
+    // Ensure related variables are in a safe, predictable state.
+    $myBid = null;
+    $hasUpdatedEta = false;
 }
-if ($viewMode === 'carrier_awarded') {
-    $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
-}
-
-
 
 require_once 'header.php';
 ?>
