@@ -190,7 +190,7 @@ require_once 'header.php';
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Drop-off Address</dt>
-                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['destination_street']); ?></dd>
+                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['destination_street']); ?>, <?= Utils::e($trip['destination_city']); ?>, <?= Utils::e($trip['destination_state']); ?> <?= Utils::e($trip['destination_zip']); ?></dd>
                     </div>
                      <div>
                         <dt class="text-sm font-medium text-gray-500">Appointment Time</dt>
