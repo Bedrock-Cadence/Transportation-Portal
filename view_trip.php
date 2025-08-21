@@ -18,7 +18,7 @@ $trip = $tripService->getTripByUuid($_GET['uuid']);
 
 if (!$trip) {
     LoggingService::log(Auth::user('user_id'), null, 'trip_not_found', 'User attempted to view non-existent UUID: ' . $_GET['uuid']);
-    Utils::redirect('dashboard.php?error=notfound');
+    Utils::redirect('index.php?error=notfound');
 }
 
 $viewMode = $tripService->determineViewMode($trip);
@@ -28,7 +28,7 @@ LoggingService::log(Auth::user('user_id'), null, 'trip_viewed', "User viewed Tri
 
 if ($viewMode === 'unauthorized') {
     LoggingService::log(Auth::user('user_id'), null, 'unauthorized_trip_view', "User denied access to Trip ID: {$trip['id']}.");
-    Utils::redirect('dashboard.php?error=unauthorized');
+    Utils::redirect('index.php?error=unauthorized');
 }
 
 // --- 2. POST REQUEST HANDLING (ACTIONS) ---
@@ -43,7 +43,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         switch ($action) {
             case 'cancel_trip':
                 if ($viewMode === 'facility') $tripService->cancelTrip($trip['id']);
-                Utils::redirect("dashboard.php?status=trip_cancelled");
+                Utils::redirect("index.php?status=trip_cancelled");
                 break;
             case 'place_or_update_bid':
                 if ($viewMode === 'carrier_unawarded') $tripService->placeOrUpdateBid($trip['id'], $trip['bidding_closes_at'], $_POST['eta']);
@@ -59,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 break;
             case 'retract_awarded_trip':
                 if ($viewMode === 'carrier_awarded') $tripService->retractAwardedTrip($trip['id'], $_POST['retraction_reason']);
-                Utils::redirect("dashboard.php?status=trip_retracted");
+                Utils::redirect("index.php?status=trip_retracted");
                 break;
         }
     } catch (Exception $e) {
