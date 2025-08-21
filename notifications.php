@@ -3,23 +3,24 @@
 
 require_once __DIR__ . '/../../app/init.php';
 
-if (!Auth::isLoggedIn()) {
+// Assuming $notificationService is an instance of your NotificationService class
+if (Auth::isLoggedIn()) {
+    $userId = Auth::user('user_id');
+    $entityId = Auth::user('entity_id');
+    $entityType = Auth::user('entity_type');
+    
+} else {
+    // This block handles the case where the user is not logged in.
+    // Since you have a redirect, it's a good fail-safe.
     Utils::redirect('login.php');
+    $notifications = [];
 }
 
 $page_title = 'My Notifications';
 $notificationService = new NotificationService(); // Using the service
 $notifications = []; // Initialize to prevent errors
 
-// Prepare the user data for JavaScript, fixing the syntax error
-$userDataForJs = json_encode([
-    'entityType' => Auth::user('entity_type'),
-    'entityId' => Auth::user('entity_id'),
-    'userId' => Auth::user('user_id'),
-    'apiBaseUrl' => 'https://www.bedrockcadence.com/api' 
-]);
-
-// Call the service with the user ID
+$notifications = $notificationService->getAllNotificationsForUser($userId, $entityId, $entityType);
 
 echo $userDataForJs;
 
