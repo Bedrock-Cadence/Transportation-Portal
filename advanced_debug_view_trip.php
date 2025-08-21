@@ -16,6 +16,8 @@ $encryption = new EncryptionService(ENCRYPTION_KEY);
 
 $trip = $tripService->getTripByUuid($_GET['uuid']);
 
+die('DEBUG: Checkpoint Passed');
+
 if (!$trip) {
     LoggingService::log(Auth::user('user_id'), null, 'trip_not_found', 'User attempted to view non-existent UUID: ' . $_GET['uuid']);
     Utils::redirect('index.php?error=notfound');
@@ -62,7 +64,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 }
 
 // --- 3. DATA PREPARATION FOR DISPLAY (Hardened Version) ---
-die('DEBUG: Checkpoint Passed');
 $phi = [];
 $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
 $myBid = null;
