@@ -11,9 +11,6 @@ $page_title = 'My Notifications';
 $notificationService = new NotificationService(); // Using the service
 $notifications = []; // Initialize to prevent errors
 
-echo "HI!";
-echo $_SESSION["user_id"];
-
 //$user = Auth::user();
 
 // Assuming $notificationService is an instance of your NotificationService class
