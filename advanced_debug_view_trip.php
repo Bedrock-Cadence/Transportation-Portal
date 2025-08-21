@@ -19,8 +19,6 @@ if (!$trip) {
     Utils::redirect('index.php?error=notfound');
 }
 
-echo "I made it here!";
-
 // Determine the user's role and view mode
 $user = Auth::user();
 $viewMode = 'unauthorized';
@@ -40,6 +38,8 @@ if ($user['entity_type'] === 'facility' && $trip['facility_id'] == $user['entity
 if ($viewMode === 'unauthorized') {
     Utils::redirect('index.php?error=unauthorized');
 }
+
+echo "I made it here!";
 
 // --- 2. DATA PREPARATION FOR DISPLAY ---
 $phi = [];
