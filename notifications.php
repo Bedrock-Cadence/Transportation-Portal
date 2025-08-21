@@ -20,6 +20,8 @@ if ($user) {
     $notifications = [];
 }
 
+echo $user->id;
+
 require_once 'header.php';
 ?>
 
