@@ -76,6 +76,8 @@ $hasUpdatedEta = false; // Default value
 
 // --- Start of Corrected Block ---
 
+echo $viewMode;
+
 // Decrypt sensitive PHI fields based on view mode.
 if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
     // Full PHI for authorized viewers
