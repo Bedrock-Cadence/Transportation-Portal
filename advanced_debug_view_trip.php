@@ -89,8 +89,6 @@ $phi['isolation'] = !empty($trip['isolation_precautions_encrypted']) ? $encrypti
 $decrypted_weight_kg = !empty($trip['patient_weight_kg_encrypted']) ? $encryption->decrypt($trip['patient_weight_kg_encrypted']) : null;
 $decrypted_height_in = !empty($trip['patient_height_in_encrypted']) ? $encryption->decrypt($trip['patient_height_in_encrypted']) : null;
 
-die('DEBUG: Checkpoint Passed');
-
 // Perform calculations only on valid, numeric data
 $phi['weight_lbs'] = is_numeric($decrypted_weight_kg) ? round($decrypted_weight_kg * 2.20462) : 'N/A';
 if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
@@ -106,6 +104,8 @@ if ($viewMode === 'carrier_unawarded') {
 if ($viewMode === 'carrier_awarded') {
     $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
 }
+
+die('DEBUG: Checkpoint Passed');
 
 
 require_once 'header.php';
