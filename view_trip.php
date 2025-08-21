@@ -227,7 +227,7 @@ require_once 'header.php';
                     <div class="sm:flex sm:items-end sm:space-x-3">
                         <div class="w-full sm:w-auto flex-grow">
                             <label for="eta" class="sr-only">Submit Your ETA (Local Time)</label>
-                            <input type="datetime-local" id="eta" name="eta" value="<?= $myBid ? Utils::formatUtcToUserTime($myBid['eta'], 'Y-m-d\TH:i') : '' ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="datetime-local" id="eta" name="eta" value="<?= (!empty($myBid) && !empty($myBid['eta'])) ? Utils::formatUtcToUserTime($myBid['eta'], 'Y-m-d\TH:i') : '' ?>" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                         <input type="hidden" name="action" value="place_or_update_bid">
                         <button type="submit" class="mt-2 sm:mt-0 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"><?= $myBid ? 'Update Bid' : 'Submit Bid' ?></button>
