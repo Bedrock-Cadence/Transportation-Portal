@@ -23,6 +23,8 @@ if (!$trip) {
 $user = Auth::user();
 $viewMode = 'unauthorized';
 
+echo $trip;
+
 if ($user['entity_type'] === 'facility' && $trip['facility_id'] == $user['entity_id']) {
     $viewMode = 'facility';
 } elseif ($user['entity_type'] === 'carrier') {
