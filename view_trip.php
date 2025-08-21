@@ -76,8 +76,8 @@ $hasUpdatedEta = false; // Default value
 
 // --- Start of Corrected Block ---
 
-echo $viewMode;
-
+// --- A. Decrypt Sensitive PHI Fields ---
+$phi = [];
 // Decrypt sensitive PHI fields based on view mode.
 if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
     // Full PHI for authorized viewers
@@ -109,19 +109,46 @@ if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
     $phi['height_formatted'] = 'N/A';
 }
 
-echo $phi['weight_lbs'];
 
-// --- End of Corrected Block ---
+// --- B. Fetch Carrier-Specific Information with Error Handling ---
 
+// Initialize variables to their default states to ensure they exist.
+$myBid = null;
+$hasUpdatedEta = false;
 
-// Fetch existing bid for the current carrier
-if ($viewMode === 'carrier_unawarded') {
-    $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
-}
+try {
+    // Fetch existing bid for the current carrier if they are viewing an unawarded trip.
+    if ($viewMode === 'carrier_unawarded') {
+        $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
+        if ($userCarrierId) {
+            $myBid = $tripService->getBidByCarrier($trip['id'], $userCarrierId);
+        }
+    }
 
-// Check if the awarded carrier has already updated their ETA
-if ($viewMode === 'carrier_awarded') {
-    $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
+    // Check if the awarded carrier has already updated their ETA.
+    if ($viewMode === 'carrier_awarded') {
+        $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id') : null;
+        if ($userCarrierId) {
+            $hasUpdatedEta = $tripService->hasCarrierUpdatedEta($trip['id'], $userCarrierId);
+        }
+    }
+
+} catch (Exception $e) {
+    // Gracefully handle any unexpected database failures from the calls above.
+    $page_error = "We couldn't load all the trip details at this time. Please try again later.";
+    
+    // Log the detailed technical error for your own debugging purposes.
+    LoggingService::log(
+        Auth::user('user_id'), 
+        null, 
+        'trip_data_fetch_failure', 
+        'Failed to fetch carrier bid or ETA status for Trip ID: ' . ($trip['id'] ?? 'Unknown'),
+        ['error_message' => $e->getMessage()]
+    );
+
+    // Ensure variables are in a safe, predictable state for the UI.
+    $myBid = null;
+    $hasUpdatedEta = false;
 }
 
 
