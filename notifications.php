@@ -17,13 +17,13 @@ echo $_SESSION["user_id"];
 $user = Auth::user();
 
 // Assuming $notificationService is an instance of your NotificationService class
-if ($user) {
-    $notifications = $notificationService->getAllNotificationsForUser($user->id);
-} else {
+//if ($user) {
+    //$notifications = $notificationService->getAllNotificationsForUser($user->id);
+//} else {
     // This part should technically never be reached due to the redirect
     // but it's good practice to handle it just in case.
-    $notifications = [];
-}
+    //$notifications = [];
+//}
 
 require_once 'header.php';
 ?>
