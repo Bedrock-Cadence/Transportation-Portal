@@ -16,8 +16,8 @@ const TRIP_UUID_TO_TEST = '3c66605c-7e2a-11f0-9e50-04e3655061f8'; // <--- IMPORT
 const MOCK_USER_PROFILE = [
     'is_logged_in'    => true,
     'user_id'         => 1, // A fake user ID for logging
-    'entity_type'     => 'facility', // 'carrier', 'facility', or 'bedrock'
-    'entity_id'       => 1,     // The ID of the carrier/facility to test
+    'entity_type'     => 'carrier', // 'carrier', 'facility', or 'bedrock'
+    'entity_id'       => 4235432543,     // The ID of the carrier/facility to test
 ];
 
 // --- END OF CONFIGURATION ---
