@@ -9,6 +9,7 @@ if (!Auth::isLoggedIn() || !isset($_GET['uuid'])) {
 }
 
 $page_title = 'Trip Details';
+$page_message = $_GET['status'] ?? '';
 $page_error = '';
 $tripService = new TripService();
 $encryption = new EncryptionService(ENCRYPTION_KEY);
