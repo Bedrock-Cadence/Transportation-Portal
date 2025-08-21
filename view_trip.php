@@ -186,11 +186,11 @@ require_once 'header.php';
                 <dl class="space-y-4">
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Pick-up Address</dt>
-                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['origin_street']); ?><br><?= Utils::e($trip['origin_city'] . ', ' . $trip['origin_state'] . ' ' . $trip['origin_zip']); ?></dd>
+                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['origin_street']); ?></dd>
                     </div>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Drop-off Address</dt>
-                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['destination_street']); ?><br><?= Utils::e($trip['destination_city'] . ', ' . $trip['destination_state'] . ' ' . $trip['destination_zip']); ?></dd>
+                        <dd class="mt-1 text-base text-gray-900"><?= Utils::e($trip['destination_street']); ?></dd>
                     </div>
                      <div>
                         <dt class="text-sm font-medium text-gray-500">Appointment Time</dt>
