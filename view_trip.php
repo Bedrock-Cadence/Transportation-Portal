@@ -75,40 +75,52 @@ $myBid = null;
 $hasUpdatedEta = false; // Default value
 $tripHistory = []; // Initialize history array
 
-// --- Start of Corrected Block ---
+// --- START OF MODIFICATION ---
+// Check if PHI data exists. The LEFT JOIN in getTripByUuid will result in NULL for these 
+// fields if the trips_phi row has been deleted for a completed trip.
+if (isset($trip['patient_first_name_encrypted'])) {
+    // PHI exists, so we decrypt it based on view mode.
+    if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
+        $phi['first_name'] = $encryption->decrypt($trip['patient_first_name_encrypted']);
+        $phi['last_name'] = $encryption->decrypt($trip['patient_last_name_encrypted']);
+        $decrypted_dob = $encryption->decrypt($trip['patient_dob_encrypted']);
+        $phi['ssn_last4'] = $encryption->decrypt($trip['patient_ssn_last4_encrypted']);
 
-// Decrypt sensitive PHI fields based on view mode.
-if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
-    // Full PHI for authorized viewers
-    $phi['first_name'] = $encryption->decrypt($trip['patient_first_name_encrypted']);
-    $phi['last_name'] = $encryption->decrypt($trip['patient_last_name_encrypted']);
-    $decrypted_dob = $encryption->decrypt($trip['patient_dob_encrypted']);
-    $phi['ssn_last4'] = $encryption->decrypt($trip['patient_ssn_last4_encrypted']);
-
-    // DEFENSIVE CHECK: Ensure the decrypted DOB is a valid date before trying to format it.
-    if (!empty($decrypted_dob) && ($timestamp = strtotime($decrypted_dob)) !== false) {
-        $phi['dob_formatted'] = date('m/d/Y', $timestamp);
-    } else {
-        $phi['dob_formatted'] = '[N/A]';
+        if (!empty($decrypted_dob) && ($timestamp = strtotime($decrypted_dob)) !== false) {
+            $phi['dob_formatted'] = date('m/d/Y', $timestamp);
+        } else {
+            $phi['dob_formatted'] = '[N/A]';
+        }
     }
-}
 
-// Common, less-sensitive fields for all authorized viewers
-$phi['diagnosis'] = $encryption->decrypt($trip['diagnosis_encrypted']);
-$phi['equipment'] = $encryption->decrypt($trip['special_equipment_encrypted']);
-$phi['isolation'] = $encryption->decrypt($trip['isolation_precautions_encrypted']);
-$decrypted_weight_kg = $encryption->decrypt($trip['patient_weight_kg_encrypted']);
-$decrypted_height_in = $encryption->decrypt($trip['patient_height_in_encrypted']);
+    // Common fields for all authorized viewers
+    $phi['diagnosis'] = $encryption->decrypt($trip['diagnosis_encrypted']);
+    $phi['equipment'] = $encryption->decrypt($trip['special_equipment_encrypted']);
+    $phi['isolation'] = $encryption->decrypt($trip['isolation_precautions_encrypted']);
+    $decrypted_weight_kg = $encryption->decrypt($trip['patient_weight_kg_encrypted']);
+    $decrypted_height_in = $encryption->decrypt($trip['patient_height_in_encrypted']);
 
-// DEFENSIVE CHECK: Ensure weight and height are numeric before doing calculations.
-$phi['weight_lbs'] = is_numeric($decrypted_weight_kg) ? round($decrypted_weight_kg * 2.20462) : 'N/A';
-if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
-    $phi['height_formatted'] = floor($decrypted_height_in / 12) . "' " . ($decrypted_height_in % 12) . '"';
+    $phi['weight_lbs'] = is_numeric($decrypted_weight_kg) ? round($decrypted_weight_kg * 2.20462) : 'N/A';
+    if (is_numeric($decrypted_height_in) && $decrypted_height_in > 0) {
+        $phi['height_formatted'] = floor($decrypted_height_in / 12) . "' " . ($decrypted_height_in % 12) . '"';
+    } else {
+        $phi['height_formatted'] = 'N/A';
+    }
 } else {
-    $phi['height_formatted'] = 'N/A';
+    // PHI has been purged. Set default values for display.
+    $phi = [
+        'first_name' => '[PHI',
+        'last_name' => 'Purged]',
+        'dob_formatted' => '[Purged]',
+        'ssn_last4' => '[Purged]',
+        'diagnosis' => 'Not Available',
+        'equipment' => 'Not Available',
+        'isolation' => 'Not Available',
+        'height_formatted' => 'N/A',
+        'weight_lbs' => 'N/A'
+    ];
 }
-
-// --- End of Corrected Block ---
+// --- END OF MODIFICATION ---
 
 
 // Fetch existing bid for the current carrier
