@@ -17,6 +17,7 @@ $notifications = []; // Initialize to prevent errors
 $notifications = $notificationService->getUnreadNotificationsForUser(Auth::user('user_id'));
 
 require_once 'header.php';
+echo "HI!";
 ?>
 
 <div class="max-w-4xl mx-auto">
