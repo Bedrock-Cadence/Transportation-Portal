@@ -23,7 +23,8 @@ if (!$trip) {
 $user = Auth::user();
 $viewMode = 'unauthorized';
 
-echo $viewMode;
+echo "I made it here!";
+
 
 if ($user['entity_type'] === 'facility' && $trip['facility_id'] == $user['entity_id']) {
     $viewMode = 'facility';
@@ -40,8 +41,6 @@ if ($user['entity_type'] === 'facility' && $trip['facility_id'] == $user['entity
 if ($viewMode === 'unauthorized') {
     Utils::redirect('index.php?error=unauthorized');
 }
-
-echo "I made it here!";
 
 // --- 2. DATA PREPARATION FOR DISPLAY ---
 $phi = [];
