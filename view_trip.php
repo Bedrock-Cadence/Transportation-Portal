@@ -21,15 +21,16 @@ if (!$trip) {
     Utils::redirect('index.php?error=notfound');
 }
 
+// --- CORRECTED LOGIC ---
 $viewMode = $tripService->determineViewMode($trip);
 
-// Log the view event after authorization is confirmed
-LoggingService::log(Auth::user('user_id'), null, 'trip_viewed', "User viewed Trip ID: {$trip['id']}.", ['trip_id' => $trip['id']]);
-
 if ($viewMode === 'unauthorized') {
-    LoggingService::log(Auth::user('user_id'), null, 'unauthorized_trip_view', "User denied access to Trip ID: {$trip['id']}.");
-    Utils::redirect('index.php?error=unauthorized');
+LoggingService::log(Auth::user('user_id'), null, 'unauthorized_trip_view', "User denied access to Trip ID: {$trip['id']}.");
+Utils::redirect('index.php?error=unauthorized');
 }
+
+// Now that we know the user is authorized, log the successful view.
+LoggingService::log(Auth::user('user_id'), null, 'trip_viewed', "User viewed Trip ID: {$trip['id']}.", ['trip_id' => $trip['id']]);
 
 // --- 2. POST REQUEST HANDLING (ACTIONS) ---
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
