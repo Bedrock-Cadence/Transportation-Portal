@@ -16,8 +16,6 @@ $encryption = new EncryptionService(ENCRYPTION_KEY);
 
 $trip = $tripService->getTripByUuid($_GET['uuid']);
 
-die('DEBUG: Checkpoint Passed');
-
 if (!$trip) {
     LoggingService::log(Auth::user('user_id'), null, 'trip_not_found', 'User attempted to view non-existent UUID: ' . $_GET['uuid']);
     Utils::redirect('index.php?error=notfound');
@@ -62,6 +60,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $page_error = $e->getMessage();
     }
 }
+
+die('DEBUG: Checkpoint Passed');
 
 // --- 3. DATA PREPARATION FOR DISPLAY (Hardened Version) ---
 $phi = [];
