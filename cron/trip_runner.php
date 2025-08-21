@@ -91,6 +91,17 @@ foreach ($tripsToProcess as $trip) {
 
         if ($winningBid) {
             $tripService->awardTrip($tripId, $winningBid['carrier_id'], $winningBid['eta']);
+                        // --- NEW BILLING TABLE LOGIC ---
+            // After awarding the trip, add an entry to the billing table.
+            $billingSql = "INSERT INTO billing (trip_id, trip_uuid, winning_user_id, carrier_eta) VALUES (?, ?, ?, ?)";
+            $db->query($billingSql, [
+                $tripId,
+                $trip['uuid'], // Assuming the UUID is in the $trip array
+                $winningBid['carrier_id'],
+                $winningBid['eta']
+            ]);
+            // --- END NEW BILLING TABLE LOGIC ---
+            
             $historyDetails['winning_bid'] = $winningBid;
             $tripService->logTripHistory($tripId, 'trip_awarded', $historyDetails);
         }
