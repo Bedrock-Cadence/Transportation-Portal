@@ -8,9 +8,6 @@ if (!Auth::isLoggedIn() || !isset($_GET['uuid'])) {
     Utils::redirect('index.php');
 }
 
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 $page_title = 'Trip Details';
 $page_message = $_GET['status'] ?? ''; // For success messages on redirect
 $page_error = '';
@@ -76,8 +73,8 @@ $userCarrierId = Auth::user('entity_type') === 'carrier' ? Auth::user('entity_id
 $myBid = null;
 $hasUpdatedEta = false; // Default value
 
-// Decrypt all PHI fields based on view mode
-if (in_array($viewMode, ['admin', 'facility', 'carrier_awarded'])) {
+// Decrypt sensitive PHI fields based on view mode. Admins are now excluded.
+if (in_array($viewMode, ['facility', 'carrier_awarded'])) {
     // Full PHI for authorized viewers
     $phi['first_name'] = $encryption->decrypt($trip['patient_first_name_encrypted']);
     $phi['last_name'] = $encryption->decrypt($trip['patient_last_name_encrypted']);
@@ -85,7 +82,7 @@ if (in_array($viewMode, ['admin', 'facility', 'carrier_awarded'])) {
     $phi['ssn_last4'] = $encryption->decrypt($trip['patient_ssn_last4_encrypted']);
 }
 
-// Common fields for all authorized viewers (including unawarded carriers)
+// Common, less-sensitive fields for all authorized viewers (including admins)
 $phi['diagnosis'] = $encryption->decrypt($trip['diagnosis_encrypted']);
 $phi['equipment'] = $encryption->decrypt($trip['special_equipment_encrypted']);
 $phi['isolation'] = $encryption->decrypt($trip['isolation_precautions_encrypted']);
@@ -150,7 +147,7 @@ require_once 'header.php';
             <div class="space-y-6">
                 <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Patient & Trip Information</h3>
                 <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
-                    <?php if (in_array($viewMode, ['facility', 'carrier_awarded', 'admin'])): ?>
+                    <?php if (in_array($viewMode, ['facility', 'carrier_awarded'])): ?>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Patient Name</dt>
                             <dd class="mt-1 text-base text-gray-900"><?= Utils::e($phi['first_name'] . ' ' . $phi['last_name']); ?></dd>
@@ -165,7 +162,7 @@ require_once 'header.php';
                         </div>
                     <?php endif; ?>
 
-                    <?php // Unawarded carriers see limited info ?>
+                    <?php // All authorized viewers can see this information ?>
                     <div>
                         <dt class="text-sm font-medium text-gray-500">Primary Diagnosis</dt>
                         <dd class="mt-1 text-base text-gray-900"><?= Utils::e($phi['diagnosis'] ?: 'Not Provided'); ?></dd>
