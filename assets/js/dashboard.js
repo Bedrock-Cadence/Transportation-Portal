@@ -141,40 +141,42 @@ function renderCarrierDashboard(data) {
 
         function renderAdminDashboard(data) {
         const kpiHtml = `
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Total Trips -->
-                <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <div class="flex items-center justify-center bg-indigo-100 rounded-full h-12 w-12 mb-4">
-                        <i class="fa-solid fa-road text-indigo-600 text-xl"></i>
-                    </div>
-                    <p class="text-sm font-medium text-gray-500">Total Trips</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_trips.toString())}</p>
-                </div>
-                <!-- Active Trips -->
-                <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <div class="flex items-center justify-center bg-blue-100 rounded-full h-12 w-12 mb-4">
-                        <i class="fa-solid fa-truck-fast text-blue-600 text-xl"></i>
-                    </div>
-                    <p class="text-sm font-medium text-gray-500">Active Trips</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.active_trips.toString())}</p>
-                </div>
-                <!-- Total Facilities -->
-                <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <div class="flex items-center justify-center bg-green-100 rounded-full h-12 w-12 mb-4">
-                        <i class="fa-solid fa-hospital text-green-600 text-xl"></i>
-                    </div>
-                    <p class="text-sm font-medium text-gray-500">Total Facilities</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_facilities.toString())}</p>
-                </div>
-                <!-- Total Carriers -->
-                <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
-                    <div class="flex items-center justify-center bg-yellow-100 rounded-full h-12 w-12 mb-4">
-                        <i class="fa-solid fa-building text-yellow-600 text-xl"></i>
-                    </div>
-                    <p class="text-sm font-medium text-gray-500">Total Carriers</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_carriers.toString())}</p>
-                </div>
+            <div class="space-y-6">
+    <!-- KPI Section -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Total Trips -->
+        <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+            <div class="flex items-center justify-center bg-[--brand-primary]/10 rounded-full h-12 w-12 mb-4">
+                <i class="fa-solid fa-road text-[--brand-primary] text-xl"></i>
             </div>
+            <p class="text-sm font-medium text-gray-500">Total Trips</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_trips.toString())}</p>
+        </div>
+        <!-- Active Trips -->
+        <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+            <div class="flex items-center justify-center bg-[--brand-primary]/10 rounded-full h-12 w-12 mb-4">
+                <i class="fa-solid fa-truck-fast text-[--brand-primary] text-xl"></i>
+            </div>
+            <p class="text-sm font-medium text-gray-500">Active Trips</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.active_trips.toString())}</p>
+        </div>
+        <!-- Total Facilities -->
+        <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+            <div class="flex items-center justify-center bg-[--brand-primary]/10 rounded-full h-12 w-12 mb-4">
+                <i class="fa-solid fa-hospital text-[--brand-primary] text-xl"></i>
+            </div>
+            <p class="text-sm font-medium text-gray-500">Total Facilities</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_facilities.toString())}</p>
+        </div>
+        <!-- Total Carriers -->
+        <div class="bg-white rounded-2xl shadow-md p-6 flex flex-col items-start transition-transform duration-300 hover:scale-105 hover:shadow-xl">
+            <div class="flex items-center justify-center bg-[--brand-primary]/10 rounded-full h-12 w-12 mb-4">
+                <i class="fa-solid fa-building text-[--brand-primary] text-xl"></i>
+            </div>
+            <p class="text-sm font-medium text-gray-500">Total Carriers</p>
+            <p class="text-3xl font-bold text-gray-900 mt-1">${escapeHTML(data.stats.total_carriers.toString())}</p>
+        </div>
+    </div>
         `;
 
         const errorsTableHtml = `
