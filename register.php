@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Log the user in immediately
             SessionManager::establish($activatedUser, $user['entity_name'] ?? '');
 
-            Utils::redirect('index.php?status=registration_complete');
+            Utils::redirect('logout.php');
 
         } catch (Exception $e) {
             $page_error = $e->getMessage();
