@@ -15,7 +15,7 @@ $userService = new UserService();
 $db = Database::getInstance(); // Database instance for activity log
 $targetUser = null;
 $userActivityLogs = []; // Initialize for admin view
-$currentUser = Auth::user();
+$currentUser = Auth::all(); // CORRECTED: Use the new all() method
 
 $targetUuid = $_GET['uuid'] ?? Auth::user('user_uuid');
 
