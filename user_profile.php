@@ -52,16 +52,19 @@ try {
     }
 
     // --- POST REQUEST HANDLING ---
-    if ($_SERVER["REQUEST_METHOD"] === "POST" && $canEdit) {
+    // User can reset their own password, OR an authorized user can edit/manage another user.
+    if ($_SERVER["REQUEST_METHOD"] === "POST" && ($canEdit || $isSelf)) {
         $action = $_POST['action'] ?? '';
         $targetUserId = $targetUser['id'];
 
         switch ($action) {
             case 'update_profile':
-                $newEmail = trim($_POST['email']);
-                $userService->updateUserEmail($targetUserId, $newEmail);
-                LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_email_updated', 'User email updated.', ['new_email' => $newEmail]);
-                $page_message = 'User email updated successfully.';
+                if ($canEdit) { // Only editors can change the email
+                    $newEmail = trim($_POST['email']);
+                    $userService->updateUserEmail($targetUserId, $newEmail);
+                    LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_email_updated', 'User email updated.', ['new_email' => $newEmail]);
+                    $page_message = 'User email updated successfully.';
+                }
                 break;
 
             case 'send_password_reset':
@@ -72,15 +75,19 @@ try {
                 break;
 
             case 'deactivate_user':
-                $userService->deactivateUser($targetUserId);
-                LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_deactivated', 'User account deactivated.');
-                Utils::redirect("user_profile.php?uuid={$targetUuid}&status=deactivated");
+                if ($canEdit) {
+                    $userService->deactivateUser($targetUserId);
+                    LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_deactivated', 'User account deactivated.');
+                    Utils::redirect("user_profile.php?uuid={$targetUuid}&status=deactivated");
+                }
                 break;
                 
             case 'activate_user':
-                $userService->activateUser($targetUserId);
-                LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_activated', 'User account reactivated.');
-                Utils::redirect("user_profile.php?uuid={$targetUuid}&status=activated");
+                if ($canEdit) {
+                    $userService->activateUser($targetUserId);
+                    LoggingService::log(Auth::user('user_id'), $targetUserId, 'user_activated', 'User account reactivated.');
+                    Utils::redirect("user_profile.php?uuid={$targetUuid}&status=activated");
+                }
                 break;
         }
         // Re-fetch user data to show the latest changes
@@ -151,10 +158,11 @@ require_once 'header.php';
         </div>
     </div>
     
+    <?php // Section for Admins/Superusers to manage OTHER users ?>
     <?php if ($canEdit): ?>
     <div class="mt-8 bg-white shadow-md rounded-lg border border-gray-200">
         <div class="p-6 space-y-4">
-            <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">User Actions</h2>
+            <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">Manage User</h2>
             <div class="flex flex-wrap gap-4">
                 <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>">
                     <input type="hidden" name="action" value="send_password_reset">
@@ -176,6 +184,22 @@ require_once 'header.php';
         </div>
     </div>
     <?php endif; ?>
+
+    <?php // Section for a user to manage THEIR OWN account ?>
+    <?php if ($isSelf && !$canEdit): ?>
+    <div class="mt-8 bg-white shadow-md rounded-lg border border-gray-200">
+        <div class="p-6 space-y-4">
+            <h2 class="text-xl font-semibold text-gray-800 border-b pb-2">My Account</h2>
+            <div class="flex flex-wrap gap-4">
+                <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>">
+                    <input type="hidden" name="action" value="send_password_reset">
+                    <button type="submit" class="btn btn-primary">Reset My Password</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
 
     <?php if (Auth::hasRole('admin') && !empty($userActivityLogs)): ?>
     <div class="mt-8 bg-white shadow-md rounded-lg border border-gray-200">
