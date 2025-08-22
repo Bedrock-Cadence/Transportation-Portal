@@ -21,36 +21,28 @@ foreach ($tripsToProcess as $trip) {
     $historyDetails = [];
 
     try {
+        // Fetch bids, now including the user_id of the bidder
         $bids = $db->fetchAll("SELECT * FROM bids WHERE trip_id = ? ORDER BY eta ASC", [$tripId]);
 
-// --- NEW LOGIC FOR HANDLING NO BIDS ---
         if (empty($bids)) {
-            // Check if we have already extended this trip once
+            // Logic for handling no bids (remains unchanged)
             $extension_log = $db->fetch("SELECT id FROM trip_history WHERE trip_id = ? AND event_type = 'bidding_extended'", [$tripId]);
 
             if ($extension_log) {
-                // If it has been extended before, log and cancel it.
                 $tripService->logTripHistory($tripId, 'no_bids_after_extension', ['message' => 'No bids were received after a 20-minute extension. Cancelling trip.']);
                 $db->query("UPDATE trips SET status = 'cancelled' WHERE id = ?", [$tripId]);
-
-                // *** NEW NOTIFICATION LOGIC FOR CANCELLATION ***
                 $facilityId = $db->fetch("SELECT facility_id FROM trips WHERE id = ?", [$tripId])['facility_id'];
                 $message = "Trip ID: " . $tripId . " was canceled due to no bids after the extended bidding period.";
                 $tripService->sendFacilityNotification($facilityId, $message);
             } else {
-                // If this is the first time with no bids, extend the bidding time by 20 minutes.
                 $newBiddingClosesAt = new DateTime('now', new DateTimeZone('UTC'));
                 $newBiddingClosesAt->add(new DateInterval('PT20M'));
                 $newBiddingClosesAtTimestamp = $newBiddingClosesAt->format('Y-m-d H:i:s');
-
                 $db->query("UPDATE trips SET bidding_closes_at = ? WHERE id = ?", [$newBiddingClosesAtTimestamp, $tripId]);
-
                 $tripService->logTripHistory($tripId, 'bidding_extended', [
                     'message' => 'No bids received. Bidding automatically extended by 20 minutes.',
                     'new_bidding_closes_at' => $newBiddingClosesAtTimestamp
                 ]);
-
-                // *** NEW NOTIFICATION LOGIC FOR EXTENDED BIDDING ***
                 $facilityId = $db->fetch("SELECT facility_id FROM trips WHERE id = ?", [$tripId])['facility_id'];
                 $message = "Trip ID: " . $tripId . " has not received any bids. Bidding has been automatically extended to " . $newBiddingClosesAt->format('Y-m-d H:i:s') . ".";
                 $tripService->sendFacilityNotification($facilityId, $message);
@@ -58,7 +50,6 @@ foreach ($tripsToProcess as $trip) {
             continue; // Skip to the next trip
         }
         
-        // --- Original Awarding Logic ---
         $tripService->logTripHistory($tripId, 'processing_started', ['message' => 'Bidding closed. Starting automatic awarding process.']);
         $historyDetails['bids_considered'] = $bids;
 
@@ -91,17 +82,19 @@ foreach ($tripsToProcess as $trip) {
 
         if ($winningBid) {
             $tripService->awardTrip($tripId, $winningBid['carrier_id'], $winningBid['eta']);
-                        // --- NEW BILLING TABLE LOGIC ---
-            // After awarding the trip, add an entry to the billing table.
-            $billingSql = "INSERT INTO billing (trip_id, trip_uuid, winning_user_id, item, carrier_eta) VALUES (?, ?, ?, ?, ?)";
+            
+            // --- CORRECTED BILLING TABLE LOGIC ---
+            // Inserts into the modified billing table with both entity and user IDs.
+            $billingSql = "INSERT INTO billing (trip_id, trip_uuid, winning_entity_id, incurred_by_user_id, item, carrier_eta) VALUES (?, ?, ?, ?, ?, ?)";
             $db->query($billingSql, [
                 $tripId,
-                $trip['uuid'], // Assuming the UUID is in the $trip array
-                $winningBid['carrier_id'],
-                '6829207000000202051',
+                $trip['uuid'],
+                $winningBid['carrier_id'],      // This is the winning_entity_id
+                $winningBid['user_id'],         // This is the new incurred_by_user_id
+                '6829207000000202051',          // The item ID from Zoho
                 $winningBid['eta']
             ]);
-            // --- END NEW BILLING TABLE LOGIC ---
+            // --- END CORRECTION ---
             
             $historyDetails['winning_bid'] = $winningBid;
             $tripService->logTripHistory($tripId, 'trip_awarded', $historyDetails);
