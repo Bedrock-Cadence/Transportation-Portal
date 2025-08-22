@@ -15,7 +15,7 @@ $userService = new UserService();
 $db = Database::getInstance(); // Database instance for activity log
 $targetUser = null;
 $userActivityLogs = []; // Initialize for admin view
-$currentUser = Auth::all(); // CORRECTED: Use the new all() method
+$currentUser = Auth::all();
 
 $targetUuid = $_GET['uuid'] ?? Auth::user('user_uuid');
 
@@ -142,7 +142,7 @@ require_once 'header.php';
                 
                 <?php if ($canEdit): ?>
                     <div class="flex justify-end pt-4">
-                        <button type="submit" class="inline-flex justify-center py-2 px-4 border shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                        <button type="submit" class="btn btn-primary">
                             Update Email
                         </button>
                     </div>
@@ -158,18 +158,18 @@ require_once 'header.php';
             <div class="flex flex-wrap gap-4">
                 <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>">
                     <input type="hidden" name="action" value="send_password_reset">
-                    <button type="submit" class="btn-primary">Send Password Reset</button>
+                    <button type="submit" class="btn btn-primary">Send Password Reset</button>
                 </form>
 
                 <?php if ($targetUser['is_active']): ?>
                     <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>" onsubmit="return confirm('Are you sure you want to deactivate this user?');">
                         <input type="hidden" name="action" value="deactivate_user">
-                        <button type="submit" class="btn-danger">Deactivate User</button>
+                        <button type="submit" class="btn btn-danger">Deactivate User</button>
                     </form>
                 <?php else: ?>
                     <form method="POST" action="user_profile.php?uuid=<?= Utils::e($targetUser['uuid']); ?>">
                         <input type="hidden" name="action" value="activate_user">
-                        <button type="submit" class="btn-success">Re-activate User</button>
+                        <button type="submit" class="btn btn-success">Re-activate User</button>
                     </form>
                 <?php endif; ?>
             </div>
