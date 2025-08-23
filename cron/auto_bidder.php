@@ -37,9 +37,7 @@ try {
         $tripId = $trip['id'];
         echo "\nProcessing Trip ID: {$tripId}\n";
 
-        // --- CORRECTED QUERY START ---
         // Find all active carriers who are NOT blacklisted, locked out, or have already bid.
-        // This version uses LEFT JOINs and checks for NULL on a join key instead of a non-existent 'id' column.
         $eligibleCarriersSql = "
             SELECT
                 u.id AS user_id,
@@ -60,7 +58,6 @@ try {
                 AND tblo.carrier_id IS NULL -- Ensures the carrier is NOT locked out for this trip
                 AND b.carrier_id IS NULL    -- Ensures the carrier has NOT already bid
         ";
-        // --- CORRECTED QUERY END ---
 
         $eligibleCarriers = $db->fetchAll($eligibleCarriersSql, [
             ':facility_id' => $trip['facility_id'],
@@ -82,11 +79,14 @@ try {
                 continue;
             }
 
-            // Generate a random ETA between 20 and 120 minutes from now
+            // --- MODIFICATION START ---
+            // Generate a random ETA between 20 and 120 minutes from now.
+            // Use a hardcoded timezone ('UTC') to avoid issues with undefined constants in the cron environment.
             $etaMinutes = rand(20, 120);
-            $etaDateTime = new DateTime("now", new DateTimeZone(USER_TIMEZONE)); // Assumes USER_TIMEZONE is defined
+            $etaDateTime = new DateTime("now", new DateTimeZone('UTC'));
             $etaDateTime->modify("+{$etaMinutes} minutes");
-            $localEtaString = $etaDateTime->format('Y-m-d H:i:s');
+            $utcEtaString = $etaDateTime->format('Y-m-d H:i:s');
+            // --- MODIFICATION END ---
 
             try {
                 // Call the dedicated service method to place the bid
@@ -95,9 +95,9 @@ try {
                     $trip['bidding_closes_at'],
                     $carrier['carrier_id'],
                     $carrier['user_id'],
-                    $localEtaString
+                    $utcEtaString // Pass the reliable UTC time string
                 );
-                echo " -> SUCCESS: Carrier ID {$carrier['carrier_id']} bid with ETA: {$localEtaString}\n";
+                echo " -> SUCCESS: Carrier ID {$carrier['carrier_id']} bid with ETA: {$utcEtaString} (UTC)\n";
             } catch (Exception $e) {
                 echo " -> ERROR placing bid for Carrier ID {$carrier['carrier_id']}: " . $e->getMessage() . "\n";
             }
