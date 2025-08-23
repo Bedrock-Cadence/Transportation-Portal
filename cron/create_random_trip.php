@@ -96,7 +96,7 @@ try {
     $mockData = generateMockTripData();
 
     // Pass the random facility ID to the service method
-    $tripUuid = $tripService->createTripForCron($mockData, SYSTEM_USER_ID, $facilityId);
+    $tripUuid = $tripService->createTripForCron($mockData, $systemUserId, $facilityId);
 
     echo "Successfully created trip with UUID: {$tripUuid}\n";
 
