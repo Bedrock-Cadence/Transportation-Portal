@@ -89,18 +89,18 @@ function generateMockTripData(): array {
     ];
 }
 
-echo "Attempting to create a new trip for Facility ID: {$facilityId}...\n";
+echo "Attempting to create a new trip for Facility ID: {$facilityId} by User ID: {$systemUserId}...\n";
 
 try {
     $tripService = new TripService();
     $mockData = generateMockTripData();
 
-    print_r($mockData);
-    prinr_r($systemUserId);
-    print_r($facilityId);
+    // *** NEW: Add the creator and facility IDs directly to the data payload ***
+    $mockData['cron_user_id'] = $systemUserId;
+    $mockData['cron_facility_id'] = $facilityId;
 
-    // Pass the random facility ID to the service method
-    $tripUuid = $tripService->createTripForCron($mockData, $systemUserId, $facilityId);
+    // Call the simplified service method with just the data array
+    $tripUuid = $tripService->createTripForCron($mockData);
 
     echo "Successfully created trip with UUID: {$tripUuid}\n";
 
