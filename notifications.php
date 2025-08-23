@@ -17,7 +17,7 @@ $page_title = 'My Notifications';
 $notificationService = new NotificationService();
 $notifications = [];
 
-// This will now include notifications that have been dismissed because we've updated the query
+// Fetch all notifications, including dismissed ones
 $notifications = $notificationService->getAllNotificationsForUser($userId, $entityId, $entityType);
 
 require_once 'header.php';
@@ -33,9 +33,9 @@ require_once 'header.php';
             <?php else: ?>
                 <?php foreach ($notifications as $notification): ?>
                     <?php
-                        $is_dismissed = !empty($notification['dismissed_at']);
+                        $is_acknowledged = !empty($notification['dismissed_at']);
                         $item_classes = 'notification-item border-b border-gray-200 pb-4';
-                        if ($is_dismissed) {
+                        if ($is_acknowledged) {
                             $item_classes .= ' opacity-50 italic';
                         }
                     ?>
@@ -44,20 +44,16 @@ require_once 'header.php';
                         <div class="flex justify-between items-center mt-2">
                             <div>
                                 <span class="text-xs text-gray-400">Created: <?= Utils::formatUtcToUserTime($notification['created_at']); ?></span>
-                                <?php if ($is_dismissed): ?>
-                                    <span class="text-xs text-gray-400 ml-4">Dismissed: <?= Utils::formatUtcToUserTime($notification['dismissed_at']); ?></span>
+                                <?php if ($is_acknowledged): ?>
+                                    <span class="text-xs text-gray-400 ml-4">Acknowledged: <?= Utils::formatUtcToUserTime($notification['dismissed_at']); ?></span>
                                 <?php endif; ?>
                             </div>
                             <div>
                                 <?php if (!empty($notification['link'])): ?>
                                     <a href="<?= Utils::e($notification['link']); ?>" class="text-sm text-blue-600 hover:underline mr-4">View Details</a>
                                 <?php endif; ?>
-                                <?php if (!$is_dismissed && !$notification['is_read']): ?>
-                                    <?php if (!empty($notification['user_id'])): ?>
-                                        <button onclick="updateNotificationStatus(<?= Utils::e($notification['id']); ?>, 'read')" class="text-sm text-blue-600 hover:underline focus:outline-none">Mark as Read</button>
-                                    <?php elseif (!empty($notification['entity_id'])): ?>
-                                        <button onclick="updateNotificationStatus(<?= Utils::e($notification['id']); ?>, 'dismiss')" class="text-sm text-blue-600 hover:underline focus:outline-none">Dismiss</button>
-                                    <?php endif; ?>
+                                <?php if (!$is_acknowledged): ?>
+                                    <button onclick="acknowledgeNotification(<?= Utils::e($notification['id']); ?>)" class="text-sm text-blue-600 hover:underline focus:outline-none">Acknowledge</button>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -69,39 +65,31 @@ require_once 'header.php';
 </div>
 
 <script>
-    function updateNotificationStatus(notificationId, action) {
+    function acknowledgeNotification(notificationId) {
         fetch('update_notification.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ notification_id: notificationId, action: action })
+            body: JSON.stringify({ notification_id: notificationId })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const notificationElement = document.getElementById(`notification-${notificationId}`);
                 if (notificationElement) {
-                    if (action === 'read') {
-                        // Visually mark as read
-                        notificationElement.classList.add('opacity-50', 'italic');
-                        const button = notificationElement.querySelector('button');
-                        if (button) button.remove();
-                    } else if (action === 'dismiss') {
-                        // Mark as dismissed and show timestamp
-                        notificationElement.classList.add('opacity-50', 'italic');
-                        const dismissedAtSpan = document.createElement('span');
-                        dismissedAtSpan.classList.add('text-xs', 'text-gray-400', 'ml-4');
-                        dismissedAtSpan.textContent = 'Dismissed: Just now';
-                        const containerDiv = notificationElement.querySelector('.flex.justify-between.items-center.mt-2 > div');
-                        containerDiv.appendChild(dismissedAtSpan);
-                        
-                        const button = notificationElement.querySelector('button');
-                        if (button) button.remove();
-                    }
+                    notificationElement.classList.add('opacity-50', 'italic');
+                    const button = notificationElement.querySelector('button');
+                    if (button) button.remove();
+                    
+                    const acknowledgedAtSpan = document.createElement('span');
+                    acknowledgedAtSpan.classList.add('text-xs', 'text-gray-400', 'ml-4');
+                    acknowledgedAtSpan.textContent = 'Acknowledged: Just now';
+                    const containerDiv = notificationElement.querySelector('.flex.justify-between.items-center.mt-2 > div');
+                    containerDiv.appendChild(acknowledgedAtSpan);
                 }
             } else {
-                console.error('Failed to update notification:', data.message);
+                console.error('Failed to acknowledge notification:', data.message);
                 alert('Oops! Something went wrong. Please try again.');
             }
         })
