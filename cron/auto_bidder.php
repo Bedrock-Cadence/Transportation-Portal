@@ -37,9 +37,9 @@ try {
         $tripId = $trip['id'];
         echo "\nProcessing Trip ID: {$tripId}\n";
 
-        // --- MODIFIED QUERY START ---
+        // --- CORRECTED QUERY START ---
         // Find all active carriers who are NOT blacklisted, locked out, or have already bid.
-        // This version uses LEFT JOINs, which is generally more performant than multiple NOT EXISTS subqueries.
+        // This version uses LEFT JOINs and checks for NULL on a join key instead of a non-existent 'id' column.
         $eligibleCarriersSql = "
             SELECT
                 u.id AS user_id,
@@ -56,11 +56,11 @@ try {
             WHERE
                 u.entity_type = 'carrier'
                 AND u.is_active = 1
-                AND fcp.id IS NULL -- Ensures the carrier is NOT blacklisted
-                AND tblo.id IS NULL -- Ensures the carrier is NOT locked out for this trip
-                AND b.id IS NULL    -- Ensures the carrier has NOT already bid
+                AND fcp.carrier_id IS NULL -- Ensures the carrier is NOT blacklisted
+                AND tblo.carrier_id IS NULL -- Ensures the carrier is NOT locked out for this trip
+                AND b.carrier_id IS NULL    -- Ensures the carrier has NOT already bid
         ";
-        // --- MODIFIED QUERY END ---
+        // --- CORRECTED QUERY END ---
 
         $eligibleCarriers = $db->fetchAll($eligibleCarriersSql, [
             ':facility_id' => $trip['facility_id'],
