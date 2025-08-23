@@ -142,6 +142,12 @@ body {
     --focus-ring-color: rgb(59 130 246);
 }
 
+.btn-secondary {
+    /* Uses a light gray to complement the dark theme */
+    background-image: linear-gradient(to top, black, #6B7280 50%);
+    --focus-ring-color: #6B7280;
+}
+
 .btn-success {
     background-image: linear-gradient(to top, black, rgb(22 163 74) 50%);
     --focus-ring-color: rgb(22 163 74);
