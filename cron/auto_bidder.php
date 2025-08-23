@@ -37,34 +37,38 @@ try {
         $tripId = $trip['id'];
         echo "\nProcessing Trip ID: {$tripId}\n";
 
-        // Find all active carriers who are NOT blacklisted, locked out, or have already bid.
+        // --- OPTIMIZED QUERY START ---
+        // This query is optimized to start from the `carriers` table first, which is a much smaller dataset
+        // than the `users` table. It finds eligible carriers and then gets ONE active user for each.
         $eligibleCarriersSql = "
             SELECT
-                u.id AS user_id,
-                u.entity_id AS carrier_id
+                c.id AS carrier_id,
+                (SELECT u.id FROM users u WHERE u.entity_id = c.id AND u.entity_type = 'carrier' AND u.is_active = 1 LIMIT 1) AS user_id
             FROM
-                users u
-            LEFT JOIN facility_carrier_preferences fcp ON u.entity_id = fcp.carrier_id
+                carriers c
+            LEFT JOIN facility_carrier_preferences fcp ON c.id = fcp.carrier_id
                 AND fcp.facility_id = :facility_id
                 AND fcp.preference_type = 'blacklisted'
-            LEFT JOIN trip_bidding_lockouts tblo ON u.entity_id = tblo.carrier_id
+            LEFT JOIN trip_bidding_lockouts tblo ON c.id = tblo.carrier_id
                 AND tblo.trip_id = :trip_id
-            LEFT JOIN bids b ON u.entity_id = b.carrier_id
+            LEFT JOIN bids b ON c.id = b.carrier_id
                 AND b.trip_id = :trip_id
             WHERE
-                u.entity_type = 'carrier'
-                AND u.is_active = 1
+                c.is_active = 1
                 AND fcp.carrier_id IS NULL -- Ensures the carrier is NOT blacklisted
                 AND tblo.carrier_id IS NULL -- Ensures the carrier is NOT locked out for this trip
                 AND b.carrier_id IS NULL    -- Ensures the carrier has NOT already bid
+            GROUP BY
+                c.id
+            HAVING
+                user_id IS NOT NULL -- Ensures we only get carriers that have at least one active user
         ";
+        // --- OPTIMIZED QUERY END ---
 
         $eligibleCarriers = $db->fetchAll($eligibleCarriersSql, [
             ':facility_id' => $trip['facility_id'],
             ':trip_id' => $tripId
         ]);
-
-        echo $eligibleCarriersSql;
 
         if (empty($eligibleCarriers)) {
             echo " -> No eligible carriers found for this trip.\n";
