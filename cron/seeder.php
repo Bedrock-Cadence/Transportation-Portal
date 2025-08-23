@@ -15,16 +15,20 @@
  * 3. Click the "Seed Database" button.
  */
 
-// --- DEBUGGING: Force display of errors ---
-// These lines will make PHP display any errors on the screen instead of showing a blank white page.
-// This is crucial for troubleshooting.
+// --- DEBUGGING & EXECUTION CONTROL ---
+// Force display of errors to prevent a blank white screen.
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
+// Prevent the script from timing out during database operations.
+set_time_limit(0);
+// Start output buffering to capture all script output and send it at the end.
+// This can prevent issues with premature script termination from included files.
+ob_start();
 
 
 // --- Bootstrap Application ---
 // Initializes your application's environment, including the database connection and class autoloaders.
-// CRITICAL: This path must be correct. It assumes this file is in the same directory as the 'app' folder.
+// Using the path you provided that is correct for your environment.
 require_once __DIR__ . '/../../../app/init.php';
 
 /**
@@ -68,7 +72,7 @@ function generateRandomEntityData(string $type): array {
         'address_state'  => $location['state'],
         'address_zip'    => $location['zip'],
         'phone_number'   => mt_rand(200, 999) . '-' . mt_rand(200, 999) . '-' . mt_rand(1000, 9999),
-        'is_active'      => true, // Using a boolean as the EntityService expects it
+        'is_active'      => '1', // Using a string '1' as you had in your working file.
         'type'           => $type
     ];
 }
@@ -216,3 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 </body>
 </html>
+<?php
+// Send the complete output buffer to the browser and turn off buffering.
+ob_end_flush();
+?>
