@@ -38,62 +38,76 @@ try {
         $tripId = $trip['id'];
         echo "\nAttempting to place a bid for Trip ID: {$tripId}\n";
 
-        // --- NEW LOGIC: AVOID `ORDER BY RAND()` ---
+        // --- NEW EFFICIENT LOGIC ---
 
-        // Step 2a: Get all active carrier IDs. This is a fast query.
+        // Step 2a: Get all active carrier IDs and shuffle them in PHP.
         $allCarriers = $db->fetchAll("SELECT id FROM carriers WHERE is_active = 1");
         if (empty($allCarriers)) {
             echo " -> No active carriers in the system. Trying next trip...\n";
             continue;
         }
-        $carrierIds = array_column($allCarriers, 'id');
-        shuffle($carrierIds); // Randomize the carriers in PHP, which is very fast.
+        $shuffledCarrierIds = array_column($allCarriers, 'id');
+        shuffle($shuffledCarrierIds);
 
-        // Step 2b: Loop through the shuffled carrier IDs and check eligibility one by one.
-        echo " -> Checking " . count($carrierIds) . " randomized carriers for eligibility...\n";
-        foreach ($carrierIds as $carrierId) {
-            // This is a very fast, targeted query for a single carrier.
-            $checkSql = "
-                SELECT
-                    (SELECT 1 FROM facility_carrier_preferences WHERE carrier_id = :cid AND facility_id = :fid AND preference_type = 'blacklisted' LIMIT 1) as is_blacklisted,
-                    (SELECT 1 FROM trip_bidding_lockouts WHERE carrier_id = :cid AND trip_id = :tid LIMIT 1) as is_locked_out,
-                    (SELECT 1 FROM bids WHERE carrier_id = :cid AND trip_id = :tid LIMIT 1) as has_bid,
-                    (SELECT id FROM users WHERE entity_id = :cid AND entity_type = 'carrier' AND is_active = 1 LIMIT 1) as user_id
-            ";
-            $eligibility = $db->fetch($checkSql, [
-                ':cid' => $carrierId,
-                ':fid' => $trip['facility_id'],
-                ':tid' => $tripId
-            ]);
+        // Step 2b: Fetch all ineligible carrier IDs for this trip in a few simple queries.
+        $blacklisted = $db->fetchAll("SELECT carrier_id FROM facility_carrier_preferences WHERE facility_id = ? AND preference_type = 'blacklisted'", [$trip['facility_id']]);
+        $locked_out = $db->fetchAll("SELECT carrier_id FROM trip_bidding_lockouts WHERE trip_id = ?", [$tripId]);
+        $has_bid = $db->fetchAll("SELECT carrier_id FROM bids WHERE trip_id = ?", [$tripId]);
 
-            // If the carrier is eligible, place the bid and exit.
-            if ($eligibility && !$eligibility['is_blacklisted'] && !$eligibility['is_locked_out'] && !$eligibility['has_bid'] && $eligibility['user_id']) {
-                echo " -> Found eligible carrier ID: {$carrierId}. Placing bid...\n";
+        // Combine all ineligible IDs into a single lookup array for performance.
+        $ineligibleIds = array_flip(array_merge(
+            array_column($blacklisted, 'carrier_id'),
+            array_column($locked_out, 'carrier_id'),
+            array_column($has_bid, 'carrier_id')
+        ));
+        
+        echo " -> Found " . count($ineligibleIds) . " ineligible carrier(s) for this trip.\n";
 
-                $etaMinutes = rand(20, 120);
-                $etaDateTime = new DateTime("now", new DateTimeZone('UTC'));
-                $etaDateTime->modify("+{$etaMinutes} minutes");
-                $utcEtaString = $etaDateTime->format('Y-m-d H:i:s');
+        // Step 2c: Loop through the shuffled carriers and find the first eligible one.
+        $eligibleCarrierId = null;
+        $eligibleUserId = null;
 
-                try {
-                    $tripService->placeBidForSystem(
-                        $tripId,
-                        $trip['bidding_closes_at'],
-                        $carrierId,
-                        $eligibility['user_id'],
-                        $utcEtaString
-                    );
-                    echo "    -> SUCCESS: Carrier ID {$carrierId} bid on Trip ID {$tripId}.\n";
-                    echo "    -> Single bid placed. Script will now exit.\n";
-                    exit(0); // --- EXIT SCRIPT AFTER ONE SUCCESSFUL BID ---
-
-                } catch (Exception $e) {
-                    echo "    -> ERROR placing bid for Carrier ID {$carrierId}: " . $e->getMessage() . "\n";
-                    // Continue to the next trip to try again
+        foreach ($shuffledCarrierIds as $carrierId) {
+            // Check eligibility in PHP, which is extremely fast.
+            if (!isset($ineligibleIds[$carrierId])) {
+                // This carrier is not ineligible. Do one final quick check for an active user.
+                $user = $db->fetch("SELECT id FROM users WHERE entity_id = ? AND entity_type = 'carrier' AND is_active = 1 LIMIT 1", [$carrierId]);
+                if ($user) {
+                    $eligibleCarrierId = $carrierId;
+                    $eligibleUserId = $user['id'];
+                    break; // Found one, stop searching.
                 }
             }
         }
-        echo " -> No eligible carriers found for this trip. Trying next trip...\n";
+
+        // Step 3: If an eligible carrier was found, place the bid and exit.
+        if ($eligibleCarrierId) {
+            echo " -> Found eligible carrier ID: {$eligibleCarrierId}. Placing bid...\n";
+
+            $etaMinutes = rand(20, 120);
+            $etaDateTime = new DateTime("now", new DateTimeZone('UTC'));
+            $etaDateTime->modify("+{$etaMinutes} minutes");
+            $utcEtaString = $etaDateTime->format('Y-m-d H:i:s');
+
+            try {
+                $tripService->placeBidForSystem(
+                    $tripId,
+                    $trip['bidding_closes_at'],
+                    $eligibleCarrierId,
+                    $eligibleUserId,
+                    $utcEtaString
+                );
+                echo "    -> SUCCESS: Carrier ID {$eligibleCarrierId} bid on Trip ID {$tripId}.\n";
+                echo "    -> Single bid placed. Script will now exit.\n";
+                exit(0); // --- EXIT SCRIPT AFTER ONE SUCCESSFUL BID ---
+
+            } catch (Exception $e) {
+                echo "    -> ERROR placing bid for Carrier ID {$eligibleCarrierId}: " . $e->getMessage() . "\n";
+                // Continue to the next trip to try again
+            }
+        } else {
+            echo " -> No eligible carriers found for this trip. Trying next trip...\n";
+        }
     }
 
     echo "\nLooped through all available trips but could not place a bid.\n";
