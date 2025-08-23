@@ -96,7 +96,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // Check for new, unread notifications
                 if (data.success) {
-                    const unreadNotifications = data.notifications.filter(notification => notification.is_read === 0);
+                    // Use a loose equality check (==) to handle potential type differences
+                    const unreadNotifications = data.notifications.filter(notification => notification.is_read == 0);
                     return unreadNotifications.length > 0;
                 }
                 return false;
