@@ -27,7 +27,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             // Adjust the query based on the search type.
             switch ($searchType) {
                 case 'uuid':
-                    $sql = "SELECT t.*, p.*, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
                             LEFT JOIN trips_phi p ON t.id = p.trip_id
                             LEFT JOIN carriers c ON t.carrier_id = c.id
@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     break;
 
                 case 'carrier':
-                    $sql = "SELECT t.*, p.*, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
                             JOIN carriers c ON t.carrier_id = c.id
                             LEFT JOIN trips_phi p ON t.id = p.trip_id
@@ -50,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     break;
                 
                 case 'facility':
-                    $sql = "SELECT t.*, p.*, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
                             JOIN facilities f ON t.facility_id = f.id
                             LEFT JOIN trips_phi p ON t.id = p.trip_id
@@ -128,7 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <?php foreach ($results as $trip): ?>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <a href="view_trip.php?uuid=<?= urlencode($trip['uuid']) ?>" class="text-indigo-600 hover:text-indigo-900"><?= Utils::e($trip['uuid']); ?></a>
+                                    <a href="view_trip.php?uuid=<?= urlencode($trip['trip_uuid']) ?>" class="text-indigo-600 hover:text-indigo-900"><?= Utils::e($trip['trip_uuid']); ?></a>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= Utils::formatTripStatus($trip['status']); ?>
