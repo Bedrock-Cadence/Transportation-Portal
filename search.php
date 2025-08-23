@@ -27,9 +27,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             // Adjust the query based on the search type.
             switch ($searchType) {
                 case 'uuid':
-                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
-                            LEFT JOIN trips_phi p ON t.id = p.trip_id
                             LEFT JOIN carriers c ON t.carrier_id = c.id
                             LEFT JOIN facilities f ON t.facility_id = f.id
                             WHERE t.uuid = :search_term
@@ -39,10 +38,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     break;
 
                 case 'carrier':
-                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
                             JOIN carriers c ON t.carrier_id = c.id
-                            LEFT JOIN trips_phi p ON t.id = p.trip_id
                             LEFT JOIN facilities f ON t.facility_id = f.id
                             WHERE c.name LIKE :search_term";
                     $params[':search_term'] = "%" . $searchTerm . "%";
@@ -50,10 +48,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     break;
                 
                 case 'facility':
-                    $sql = "SELECT t.*, t.uuid AS trip_uuid, p.*, p.uuid AS phi_uuid, c.name AS carrier_name, f.name AS facility_name
+                    $sql = "SELECT t.*, t.uuid AS trip_uuid, c.name AS carrier_name, f.name AS facility_name
                             FROM trips t
                             JOIN facilities f ON t.facility_id = f.id
-                            LEFT JOIN trips_phi p ON t.id = p.trip_id
                             LEFT JOIN carriers c ON t.carrier_id = c.id
                             WHERE f.name LIKE :search_term";
                     $params[':search_term'] = "%" . $searchTerm . "%";
@@ -136,16 +133,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= Utils::e($trip['facility_name'] ?? 'N/A'); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= Utils::e($trip['carrier_name'] ?? 'Not Awarded'); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    <?php
-                                    $phiExists = !empty($trip['patient_first_name_encrypted']);
-                                    if ($phiExists) {
-                                        $firstName = (new EncryptionService(ENCRYPTION_KEY))->decrypt($trip['patient_first_name_encrypted']);
-                                        $lastName = (new EncryptionService(ENCRYPTION_KEY))->decrypt($trip['patient_last_name_encrypted']);
-                                        echo Utils::e($firstName . ' ' . $lastName);
-                                    } else {
-                                        echo '[PHI Purged]';
-                                    }
-                                    ?>
+                                    [PHI Data Not Displayed]
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= Utils::e($trip['origin_city'] ?? 'N/A') . ', ' . Utils::e($trip['origin_state'] ?? 'N/A'); ?></td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><?= Utils::e($trip['destination_city'] ?? 'N/A') . ', ' . Utils::e($trip['destination_state'] ?? 'N/A'); ?></td>
