@@ -2,6 +2,15 @@
 // FILE: /public_html/portal/cron/auto_bidder.php
 // PURPOSE: This script automatically places bids on behalf of carriers for development purposes.
 
+// --- SCRIPT INITIALIZATION & ERROR REPORTING ---
+// Force display of all errors for robust debugging in the cron environment.
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Prevent the script from timing out on long-running queries.
+set_time_limit(0);
+
 // This script is intended to be run from the command line by a cron job.
 //if (php_sapi_name() !== 'cli') {
     //die("Access Denied: This script can only be run from the command line.");
@@ -10,8 +19,6 @@
 require_once __DIR__ . '/../../../app/init.php';
 
 // --- CONFIGURATION ---
-// This number controls the probability of a carrier placing a bid.
-// A value of 2 means a carrier has a 1 in 2 (50%) chance of bidding on an available trip.
 const BIDDING_CHANCE_FACTOR = 2;
 // --- END CONFIGURATION ---
 
@@ -22,6 +29,7 @@ try {
     $tripService = new TripService();
 
     // --- Step 1: Find all trips that are currently open for bidding ---
+    echo "Step 1: Finding open trips...\n";
     $openTripsSql = "SELECT id, facility_id, bidding_closes_at FROM trips WHERE status = 'bidding' AND bidding_closes_at > NOW()";
     $openTrips = $db->fetchAll($openTripsSql);
 
@@ -30,16 +38,18 @@ try {
         exit(0);
     }
 
-    echo "Found " . count($openTrips) . " open trip(s) for bidding.\n";
+    echo " -> Found " . count($openTrips) . " open trip(s) for bidding.\n";
 
     // --- Step 2: Loop through each open trip and find eligible carriers ---
     foreach ($openTrips as $trip) {
         $tripId = $trip['id'];
         echo "\nProcessing Trip ID: {$tripId}\n";
 
-        // --- OPTIMIZED QUERY START ---
-        // This query is optimized to start from the `carriers` table first, which is a much smaller dataset
-        // than the `users` table. It finds eligible carriers and then gets ONE active user for each.
+        // --- MODIFICATION: PREVENT DATABASE LOCKS ---
+        // By setting the isolation level to READ UNCOMMITTED, this query will not wait for other
+        // transactions to finish, preventing it from hanging on locked tables.
+        $db->execute("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
+
         $eligibleCarriersSql = "
             SELECT
                 c.id AS carrier_id,
@@ -55,20 +65,25 @@ try {
                 AND b.trip_id = :trip_id
             WHERE
                 c.is_active = 1
-                AND fcp.carrier_id IS NULL -- Ensures the carrier is NOT blacklisted
-                AND tblo.carrier_id IS NULL -- Ensures the carrier is NOT locked out for this trip
-                AND b.carrier_id IS NULL    -- Ensures the carrier has NOT already bid
+                AND fcp.carrier_id IS NULL
+                AND tblo.carrier_id IS NULL
+                AND b.carrier_id IS NULL
             GROUP BY
                 c.id
             HAVING
-                user_id IS NOT NULL -- Ensures we only get carriers that have at least one active user
+                user_id IS NOT NULL
         ";
-        // --- OPTIMIZED QUERY END ---
 
+        echo " -> Step 2a: Preparing to fetch eligible carriers...\n";
         $eligibleCarriers = $db->fetchAll($eligibleCarriersSql, [
             ':facility_id' => $trip['facility_id'],
             ':trip_id' => $tripId
         ]);
+        echo " -> Step 2b: Finished fetching carriers.\n";
+
+        // It's good practice to reset the isolation level after the query.
+        $db->execute("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
+
 
         if (empty($eligibleCarriers)) {
             echo " -> No eligible carriers found for this trip.\n";
@@ -79,29 +94,23 @@ try {
 
         // --- Step 3: Loop through eligible carriers and randomly place bids ---
         foreach ($eligibleCarriers as $carrier) {
-            // Use the chance factor to decide if this carrier will bid
             if (rand(1, BIDDING_CHANCE_FACTOR) !== 1) {
-                echo " -> Carrier ID {$carrier['carrier_id']} will not bid this time.\n";
+                // echo " -> Carrier ID {$carrier['carrier_id']} will not bid this time.\n"; // Optional: uncomment for very verbose logging
                 continue;
             }
 
-            // --- MODIFICATION START ---
-            // Generate a random ETA between 20 and 120 minutes from now.
-            // Use a hardcoded timezone ('UTC') to avoid issues with undefined constants in the cron environment.
             $etaMinutes = rand(20, 120);
             $etaDateTime = new DateTime("now", new DateTimeZone('UTC'));
             $etaDateTime->modify("+{$etaMinutes} minutes");
             $utcEtaString = $etaDateTime->format('Y-m-d H:i:s');
-            // --- MODIFICATION END ---
 
             try {
-                // Call the dedicated service method to place the bid
                 $tripService->placeBidForSystem(
                     $tripId,
                     $trip['bidding_closes_at'],
                     $carrier['carrier_id'],
                     $carrier['user_id'],
-                    $utcEtaString // Pass the reliable UTC time string
+                    $utcEtaString
                 );
                 echo " -> SUCCESS: Carrier ID {$carrier['carrier_id']} bid with ETA: {$utcEtaString} (UTC)\n";
             } catch (Exception $e) {
@@ -112,8 +121,8 @@ try {
 
 } catch (Exception $e) {
     file_put_contents('php://stderr', "Auto Bidder Script Failed: " . $e->getMessage() . "\n");
-    exit(1); // Exit with an error code
+    exit(1);
 }
 
 echo "\nAuto Bidder Cron Job Finished.\n";
-exit(0); // Success
+exit(0);
