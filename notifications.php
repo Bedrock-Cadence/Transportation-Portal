@@ -10,12 +10,10 @@ if (Auth::isLoggedIn()) {
     
 } else {
     Utils::redirect('login.php');
-    $notifications = [];
 }
 
 $page_title = 'My Notifications';
 $notificationService = new NotificationService();
-$notifications = [];
 
 // Fetch all notifications, including dismissed ones
 $notifications = $notificationService->getAllNotificationsForUser($userId, $entityId, $entityType);
@@ -66,21 +64,16 @@ require_once 'header.php';
 
 <script>
     function acknowledgeNotification(notificationId) {
-        // --- FIX: Create form data to send in the request body.
-        // This ensures the data is available in the $_POST superglobal in PHP.
         const formData = new URLSearchParams();
         formData.append('notification_id', notificationId);
 
-        // --- FIX: Changed the URL to the correct API endpoint.
-        fetch('api/notifications_api.php?action=acknowledge', {
+        // --- FIX: Changed the URL to use the notification_proxy.php script.
+        fetch('notification_proxy.php?action=acknowledge', {
             method: 'POST',
-            // --- FIX: Removed JSON content type header. Browser will set it correctly.
-            // --- FIX: Set the body to the form data object.
             body: formData
         })
         .then(response => {
             if (!response.ok) {
-                // Handle HTTP errors like 400, 401, 500
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
@@ -96,11 +89,13 @@ require_once 'header.php';
                     const acknowledgedAtSpan = document.createElement('span');
                     acknowledgedAtSpan.classList.add('text-xs', 'text-gray-400', 'ml-4');
                     acknowledgedAtSpan.textContent = 'Acknowledged: Just now';
+
                     const containerDiv = notificationElement.querySelector('.flex.justify-between.items-center.mt-2 > div');
-                    containerDiv.appendChild(acknowledgedAtSpan);
+                    if(containerDiv) {
+                        containerDiv.appendChild(acknowledgedAtSpan);
+                    }
                 }
             } else {
-                // Use the error message from the API if available
                 const errorMessage = data.error || 'Oops! Something went wrong. Please try again.';
                 console.error('Failed to acknowledge notification:', errorMessage);
                 alert(errorMessage);

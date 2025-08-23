@@ -84,28 +84,23 @@ document.addEventListener('DOMContentLoaded', function () {
      * Initializes the automated notification pop-up.
      */
     function initializeNotificationPopUp() {
-        // Function to fetch unread notifications
-            if (window.location.pathname.includes('/notifications.php')) { 
-                return; // Exit the function immediately
-            }
+        // Do not run this check if we are already on the notifications page.
+        if (window.location.pathname.includes('/notifications.php')) { 
+            return;
+        }
+
         async function fetchNotifications() {
             try {
-                // --- FIX STARTS HERE ---
-                // Change the URL to point to the new local proxy script.
-                // This is now a same-origin request, so authentication cookies will be sent automatically.
-                const response = await fetch('/notification_proxy.php?action=get_all');
-                // --- FIX ENDS HERE ---
+                // Use the proxy for the request
+                const response = await fetch('/notification_proxy.php?action=get_unacknowledged');
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
 
-                // Check for new, unread notifications
-                if (data.success) {
-                    // Use a loose equality check (==) to handle potential type differences
-                    const unreadNotifications = data.notifications.filter(notification => notification.is_read == 0);
-                    return unreadNotifications.length > 0;
+                if (data.success && data.notifications.length > 0) {
+                    return true;
                 }
                 return false;
             } catch (error) {
@@ -118,11 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
         function showModal() {
             const modal = document.getElementById('notificationModal');
             if (modal) {
-                // --- FIX STARTS HERE ---
-                // Remove the inline 'display' style set by hideModal().
-                // This ensures the CSS 'is-active' class can make the modal visible again.
                 modal.style.display = ''; 
-                // --- FIX ENDS HERE ---
                 modal.classList.add('is-active');
             }
         }
@@ -132,9 +123,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('notificationModal');
             if (modal) {
                 modal.classList.remove('is-active');
+                // Use a timeout to hide the modal after the fade-out animation completes
                 setTimeout(() => {
                     modal.style.display = 'none';
-                }, 300); // Wait for the transition to finish
+                }, 300);
             }
         }
 
@@ -155,17 +147,13 @@ document.addEventListener('DOMContentLoaded', function () {
         // Run the check every 60 seconds (60000 milliseconds)
         setInterval(checkForNewNotifications, 60000);
 
-        // Run an initial check on page load
-        checkForNewNotifications();
+        // Run an initial check 3 seconds after page load
+        setTimeout(checkForNewNotifications, 3000);
     }
 
-    // Initialize all components if the user is logged in.
-    // This check is duplicated from PHP to ensure JS only runs when the elements exist.
-    if (document.querySelectorAll('[data-dropdown-toggle]').length > 0) {
-        initializeDropdowns();
-        initializeLiveClock();
-        initializeMobileMenu();
-        // Add the new function here
-        initializeNotificationPopUp();
-    }
+    // Initialize all components
+    initializeDropdowns();
+    initializeLiveClock();
+    initializeMobileMenu();
+    initializeNotificationPopUp();
 });
