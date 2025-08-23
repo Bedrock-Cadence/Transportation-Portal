@@ -43,7 +43,11 @@ require_once 'header.php';
                                     <a href="<?= Utils::e($notification['link']); ?>" class="text-sm text-blue-600 hover:underline mr-4">View Details</a>
                                 <?php endif; ?>
                                 <?php if (!$notification['is_read']): ?>
-                                    <button onclick="markAsRead(<?= Utils::e($notification['id']); ?>)" class="text-sm text-blue-600 hover:underline focus:outline-none">Mark as Read</button>
+                                    <?php if (!empty($notification['user_id'])): ?>
+                                        <button onclick="updateNotificationStatus(<?= Utils::e($notification['id']); ?>, 'read')" class="text-sm text-blue-600 hover:underline focus:outline-none">Mark as Read</button>
+                                    <?php elseif (!empty($notification['entity_id'])): ?>
+                                        <button onclick="updateNotificationStatus(<?= Utils::e($notification['id']); ?>, 'dismiss')" class="text-sm text-blue-600 hover:underline focus:outline-none">Dismiss</button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -55,28 +59,31 @@ require_once 'header.php';
 </div>
 
 <script>
-    function markAsRead(notificationId) {
-        fetch('mark_as_read.php', {
+    function updateNotificationStatus(notificationId, action) {
+        fetch('update_notification.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ notification_id: notificationId })
+            body: JSON.stringify({ notification_id: notificationId, action: action })
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Find the notification element and visually update it
                 const notificationElement = document.getElementById(`notification-${notificationId}`);
                 if (notificationElement) {
-                    notificationElement.classList.add('opacity-50', 'italic');
-                    const markAsReadButton = notificationElement.querySelector('button');
-                    if (markAsReadButton) {
-                        markAsReadButton.remove();
+                    if (action === 'read') {
+                        // Visually mark as read
+                        notificationElement.classList.add('opacity-50', 'italic');
+                        const button = notificationElement.querySelector('button');
+                        if (button) button.remove();
+                    } else if (action === 'dismiss') {
+                        // Remove from view for all users in the entity
+                        notificationElement.remove();
                     }
                 }
             } else {
-                console.error('Failed to mark notification as read:', data.message);
+                console.error('Failed to update notification:', data.message);
                 alert('Oops! Something went wrong. Please try again.');
             }
         })
