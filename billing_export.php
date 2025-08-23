@@ -22,8 +22,6 @@ $message = '';
 $messageType = '';
 
 // Handle the form submission
-// Handle the form submission
-// Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startDate = $_POST['start_date'] ?? null;
     $endDate = $_POST['end_date'] ?? null;
@@ -33,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $messageType = 'danger';
     } else {
         try {
+            echo "Step 1!";
             $exportService = new BillingExportService();
             $records = $exportService->getBillingDataForExport($startDate, $endDate);
 
