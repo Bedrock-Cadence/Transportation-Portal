@@ -19,10 +19,10 @@ const CHANCE_FACTOR = 10;
 // --- END CONFIGURATION ---
 
 // Decide if we should create a trip this time
-if (rand(1, CHANCE_FACTOR) !== 1) {
-    echo "Not creating a trip this time.\n";
-    exit;
-}
+//if (rand(1, CHANCE_FACTOR) !== 1) {
+    //echo "Not creating a trip this time.\n";
+    //exit;
+//}
 
 // *** NEW: Get a random facility from the database ***
 try {
