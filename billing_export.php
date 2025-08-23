@@ -22,93 +22,84 @@ $message = '';
 $messageType = '';
 
 // Handle the form submission
+// Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    echo '<pre>DEBUG: Form was submitted via POST.</pre>';
     $startDate = $_POST['start_date'] ?? null;
     $endDate = $_POST['end_date'] ?? null;
-    echo '<pre>DEBUG: Form data received: '; var_dump($_POST); echo '</pre>';
 
     if (empty($startDate) || empty($endDate)) {
         $message = "Please select both a start and end date.";
         $messageType = 'danger';
-        echo '<pre>DEBUG: Validation failed: Missing dates.</pre>';
     } else {
-        echo '<pre>DEBUG: Validation passed. Dates are present.</pre>';
         try {
             $exportService = new BillingExportService();
-            echo '<pre>DEBUG: BillingExportService instance created.</pre>';
             $records = $exportService->getBillingDataForExport($startDate, $endDate);
-            echo '<pre>DEBUG: Returned records from service: '; var_dump($records); echo '</pre>';
-
 
             if (empty($records)) {
                 $message = "No un-exported billing records were found for the selected date range.";
                 $messageType = 'warning';
-                echo '<pre>DEBUG: No records found for the given date range.</pre>';
             } else {
-                echo '<pre>DEBUG: Records found. Starting CSV generation.</pre>';
-                // --- CSV Generation and Download ---
+                // Get the IDs before generating the download
                 $billingIdsToMark = array_column($records, 'billing_id_internal');
-                echo '<pre>DEBUG: Extracted billing IDs to mark: '; var_dump($billingIdsToMark); echo '</pre>';
 
-                // To prevent the debugging output from being part of the CSV, we'll comment out the headers and the exit.
-                // header('Content-Type: text/csv');
-                // header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
+                // Set headers to trigger the file download. This MUST be before any other output.
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
 
-                // $output = fopen('php://output', 'w');
+                // Open a stream to the browser output
+                $output = fopen('php://output', 'w');
 
-                // Add the header row from your sample file
-                // fputcsv($output, [
-                //     "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", 
-                //     "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", 
-                //     "Item Name", "SKU", "Item Desc", "Quantity", "Item Price", "Discount(%)", 
-                //     "Item Tax", "Item Tax %", "Item Tax Authority", "Item Tax Exemption Reason", 
-                //     "Notes", "Terms & Conditions"
-                // ]);
+                // Add the header row to the CSV
+                fputcsv($output, [
+                    "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", 
+                    "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", 
+                    "Item Name", "SKU", "Item Desc", "Quantity", "Item Price", "Discount(%)", 
+                    "Item Tax", "Item Tax %", "Item Tax Authority", "Item Tax Exemption Reason", 
+                    "Notes", "Terms & Conditions"
+                ]);
 
-                // Loop through the data and map it to the CSV format
-                echo '<pre>DEBUG: Mapping records to CSV format. (CSV headers and content will not be outputted to screen)</pre>';
-                // foreach ($records as $record) {
-                //     fputcsv($output, [
-                //         date('Y-m-d', strtotime($record['invoice_date'])), // Invoice Date
-                //         'INV-' . $record['invoice_number'], // Invoice Number
-                //         '', // Estimate Number
-                //         'Draft', // Invoice Status
-                //         $record['customer_name'], // Customer Name
-                //         date('Y-m-d', strtotime($record['invoice_date'])), // Due Date
-                //         $record['purchase_order'], // PurchaseOrder
-                //         'Classic', // Template Name
-                //         'USD', // Currency Code
-                //         '1.00', // Exchange Rate
-                //         $record['item_name'], // Item Name
-                //         $record['sku'], // SKU
-                //         'Trip Service - ID: ' . $record['purchase_order'], // Item Desc
-                //         '1', // Quantity
-                //         '0.00', // Item Price (NOTE: Price is not in the DB, placeholder used)
-                //         '0', // Discount(%)
-                //         '', // Item Tax
-                //         '', // Item Tax %
-                //         '', // Item Tax Authority
-                //         '', // Item Tax Exemption Reason
-                //         'Thank you for your business.', // Notes
-                //         'Please pay within 30 days.' // Terms & Conditions
-                //     ]);
-                // }
+                // Loop through the data and write each record to the CSV
+                foreach ($records as $record) {
+                    fputcsv($output, [
+                        date('Y-m-d', strtotime($record['invoice_date'])),
+                        'INV-' . $record['invoice_number'],
+                        '', // Estimate Number
+                        'Draft', // Invoice Status
+                        $record['customer_name'],
+                        date('Y-m-d', strtotime($record['invoice_date'])),
+                        $record['purchase_order'],
+                        'Classic', // Template Name
+                        'USD', // Currency Code
+                        '1.00', // Exchange Rate
+                        $record['item_name'],
+                        $record['sku'],
+                        'Trip Service - ID: ' . $record['purchase_order'],
+                        '1', // Quantity
+                        '0.00', // Item Price (Placeholder)
+                        '0', // Discount(%)
+                        '', // Item Tax
+                        '', // Item Tax %
+                        '', // Item Tax Authority
+                        '', // Item Tax Exemption Reason
+                        'Thank you for your business.',
+                        'Please pay within 30 days.'
+                    ]);
+                }
 
-                // fclose($output);
+                fclose($output);
 
-                // --- Mark records as exported AFTER successful download ---
+                // --- CRITICAL STEP ---
+                // Only mark records as exported AFTER the file has been successfully generated.
                 $exportService->markAsExported($billingIdsToMark);
-                echo '<pre>DEBUG: Attempting to mark records as exported.</pre>';
 
-                // Stop script execution to prevent rendering the HTML below
-                // exit;
+                // Stop the script. This prevents the HTML below from being appended to your CSV file.
+                exit;
             }
         } catch (Exception $e) {
-            $message = "An error occurred: " . $e->getMessage();
+            $message = "An error occurred during the export process. Please contact support.";
             $messageType = 'danger';
-            echo '<pre>DEBUG: Caught an exception: ' . $e->getMessage() . '</pre>';
-            LoggingService::log($_SESSION['user_id'], null, 'billing_export_failed', $e->getMessage());
+            // Log the detailed error for your own records
+            LoggingService::log($_SESSION['user_id'] ?? null, null, 'billing_export_failed', $e->getMessage());
         }
     }
 }
