@@ -80,6 +80,84 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+        /**
+     * Initializes the automated notification pop-up.
+     */
+    function initializeNotificationPopUp() {
+        // Function to fetch unread notifications
+        async function fetchNotifications() {
+            try {
+                // Make a fetch call to your notifications API endpoint
+                const response = await fetch('/portal/api/notifications_api.php?action=get_all');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                // Check for new, unread notifications
+                if (data.success) {
+                    // Use a loose equality check (==) to handle potential type differences
+                    const unreadNotifications = data.notifications.filter(notification => notification.is_read == 0);
+                    return unreadNotifications.length > 0;
+                }
+                return false;
+            } catch (error) {
+                console.error('Error fetching notifications:', error);
+                return false;
+            }
+        }
+
+        // Function to show the modal
+        function showModal() {
+            const modal = document.getElementById('notificationModal');
+            if (modal) {
+                modal.classList.add('is-active');
+            }
+        }
+
+        // Function to hide the modal
+        function hideModal() {
+            const modal = document.getElementById('notificationModal');
+            if (modal) {
+                modal.classList.remove('is-active');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300); // Wait for the transition to finish
+            }
+        }
+
+        // Event listener for the close button
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', hideModal);
+        }
+
+        // Function to run the check
+        async function checkForNewNotifications() {
+            const hasNew = await fetchNotifications();
+            if (hasNew) {
+                showModal();
+            }
+        }
+
+        // Run the check every 60 seconds (60000 milliseconds)
+        setInterval(checkForNewNotifications, 60000);
+
+        // Run an initial check on page load
+        checkForNewNotifications();
+    }
+
+    // Initialize all components if the user is logged in.
+    // This check is duplicated from PHP to ensure JS only runs when the elements exist.
+    if (document.querySelectorAll('[data-dropdown-toggle]').length > 0) {
+        initializeDropdowns();
+        initializeLiveClock();
+        initializeMobileMenu();
+        // Add the new function here
+        initializeNotificationPopUp();
+    }
+
+
     // Initialize all components if the user is logged in.
     // This check is duplicated from PHP to ensure JS only runs when the elements exist.
     if (document.querySelectorAll('[data-dropdown-toggle]').length > 0) {
