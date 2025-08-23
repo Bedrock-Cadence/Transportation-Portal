@@ -22,8 +22,6 @@ $notifications = []; // Initialize to prevent errors
 
 $notifications = $notificationService->getAllNotificationsForUser($userId, $entityId, $entityType);
 
-echo $userDataForJs;
-
 require_once 'header.php';
 ?>
 
