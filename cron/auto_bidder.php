@@ -64,6 +64,8 @@ try {
             ':trip_id' => $tripId
         ]);
 
+        print_r($eligibleCarriers);
+
         if (empty($eligibleCarriers)) {
             echo " -> No eligible carriers found for this trip.\n";
             continue;
