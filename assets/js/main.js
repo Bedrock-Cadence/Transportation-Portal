@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // --- FIX STARTS HERE ---
                 // Change the URL to point to the new local proxy script.
                 // This is now a same-origin request, so authentication cookies will be sent automatically.
-                const response = await fetch('/portal/notification_proxy.php?action=get_all');
+                const response = await fetch('/notification_proxy.php?action=get_all');
                 // --- FIX ENDS HERE ---
 
                 if (!response.ok) {
