@@ -3,23 +3,21 @@
 
 require_once __DIR__ . '/../../app/init.php';
 
-// Assuming $notificationService is an instance of your NotificationService class
 if (Auth::isLoggedIn()) {
     $userId = Auth::user('user_id');
     $entityId = Auth::user('entity_id');
     $entityType = Auth::user('entity_type');
     
 } else {
-    // This block handles the case where the user is not logged in.
-    // Since you have a redirect, it's a good fail-safe.
     Utils::redirect('login.php');
     $notifications = [];
 }
 
 $page_title = 'My Notifications';
-$notificationService = new NotificationService(); // Using the service
-$notifications = []; // Initialize to prevent errors
+$notificationService = new NotificationService();
+$notifications = [];
 
+// This will now include notifications that have been dismissed because we've updated the query
 $notifications = $notificationService->getAllNotificationsForUser($userId, $entityId, $entityType);
 
 require_once 'header.php';
@@ -34,15 +32,27 @@ require_once 'header.php';
                 <p class="text-center text-gray-500 py-8">You have no new notifications.</p>
             <?php else: ?>
                 <?php foreach ($notifications as $notification): ?>
-                    <div class="notification-item border-b border-gray-200 pb-4" id="notification-<?= Utils::e($notification['id']); ?>">
+                    <?php
+                        $is_dismissed = !empty($notification['dismissed_at']);
+                        $item_classes = 'notification-item border-b border-gray-200 pb-4';
+                        if ($is_dismissed) {
+                            $item_classes .= ' opacity-50 italic';
+                        }
+                    ?>
+                    <div class="<?= Utils::e($item_classes); ?>" id="notification-<?= Utils::e($notification['id']); ?>">
                         <p class="text-gray-800"><?= Utils::e($notification['message']); ?></p>
                         <div class="flex justify-between items-center mt-2">
-                            <span class="text-xs text-gray-400"><?= Utils::formatUtcToUserTime($notification['created_at']); ?></span>
+                            <div>
+                                <span class="text-xs text-gray-400">Created: <?= Utils::formatUtcToUserTime($notification['created_at']); ?></span>
+                                <?php if ($is_dismissed): ?>
+                                    <span class="text-xs text-gray-400 ml-4">Dismissed: <?= Utils::formatUtcToUserTime($notification['dismissed_at']); ?></span>
+                                <?php endif; ?>
+                            </div>
                             <div>
                                 <?php if (!empty($notification['link'])): ?>
                                     <a href="<?= Utils::e($notification['link']); ?>" class="text-sm text-blue-600 hover:underline mr-4">View Details</a>
                                 <?php endif; ?>
-                                <?php if (!$notification['is_read']): ?>
+                                <?php if (!$is_dismissed && !$notification['is_read']): ?>
                                     <?php if (!empty($notification['user_id'])): ?>
                                         <button onclick="updateNotificationStatus(<?= Utils::e($notification['id']); ?>, 'read')" class="text-sm text-blue-600 hover:underline focus:outline-none">Mark as Read</button>
                                     <?php elseif (!empty($notification['entity_id'])): ?>
@@ -78,8 +88,16 @@ require_once 'header.php';
                         const button = notificationElement.querySelector('button');
                         if (button) button.remove();
                     } else if (action === 'dismiss') {
-                        // Remove from view for all users in the entity
-                        notificationElement.remove();
+                        // Mark as dismissed and show timestamp
+                        notificationElement.classList.add('opacity-50', 'italic');
+                        const dismissedAtSpan = document.createElement('span');
+                        dismissedAtSpan.classList.add('text-xs', 'text-gray-400', 'ml-4');
+                        dismissedAtSpan.textContent = 'Dismissed: Just now';
+                        const containerDiv = notificationElement.querySelector('.flex.justify-between.items-center.mt-2 > div');
+                        containerDiv.appendChild(dismissedAtSpan);
+                        
+                        const button = notificationElement.querySelector('button');
+                        if (button) button.remove();
                     }
                 }
             } else {
