@@ -2,12 +2,6 @@
 // FILE: /public_html/portal/cron/auto_bidder.php
 // PURPOSE: This script automatically places bids on behalf of carriers for development purposes.
 
-// --- SCRIPT INITIALIZATION & ERROR REPORTING ---
-// Force display of all errors for robust debugging in the cron environment.
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 // Prevent the script from timing out on long-running queries.
 set_time_limit(0);
 
@@ -17,6 +11,12 @@ set_time_limit(0);
 //}
 
 require_once __DIR__ . '/../../../app/init.php';
+
+// --- SCRIPT INITIALIZATION & ERROR REPORTING ---
+// Force display of all errors for robust debugging in the cron environment.
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // --- CONFIGURATION ---
 const BIDDING_CHANCE_FACTOR = 2;
