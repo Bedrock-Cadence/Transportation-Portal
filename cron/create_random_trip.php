@@ -50,6 +50,33 @@ try {
 // *** END NEW SECTION ***
 
 
+function getRandomAddress(): array {
+    $addresses = [
+        ['street' => '110 E 2nd St', 'city' => 'Austin', 'state' => 'TX', 'zip' => '78701'],
+        ['street' => '601 N Lamar Blvd', 'city' => 'Austin', 'state' => 'TX', 'zip' => '78703'],
+        ['street' => '300 W Martin Luther King Jr Blvd', 'city' => 'Austin', 'state' => 'TX', 'zip' => '78701'],
+        ['street' => '231 W 3rd St', 'city' => 'Dallas', 'state' => 'TX', 'zip' => '75208'],
+        ['street' => '2200 N Lamar St', 'city' => 'Dallas', 'state' => 'TX', 'zip' => '75202'],
+        ['street' => '1300 Robert B Cullum Blvd', 'city' => 'Dallas', 'state' => 'TX', 'zip' => '75210'],
+        ['street' => '1 AT&T Way', 'city' => 'Arlington', 'state' => 'TX', 'zip' => '76011'],
+        ['street' => '1201 Houston St', 'city' => 'Fort Worth', 'state' => 'TX', 'zip' => '76102'],
+        ['street' => '301 W Bagdad Ave', 'city' => 'Round Rock', 'state' => 'TX', 'zip' => '78664'],
+        ['street' => '500 Crawford St', 'city' => 'Houston', 'state' => 'TX', 'zip' => '77002'],
+        ['street' => '1515 Hermann Dr', 'city' => 'Houston', 'state' => 'TX', 'zip' => '77004'],
+        ['street' => '301 E Crockett St', 'city' => 'San Antonio', 'state' => 'TX', 'zip' => '78205'],
+        ['street' => '100 Montana St', 'city' => 'San Antonio', 'state' => 'TX', 'zip' => '78203'],
+        ['street' => '200 E Grayson St', 'city' => 'San Antonio', 'state' => 'TX', 'zip' => '78215'],
+        ['street' => '1001 E Oklahoma Ave', 'city' => 'Norman', 'state' => 'OK', 'zip' => '73071'],
+        ['street' => '100 W Reno Ave', 'city' => 'Oklahoma City', 'state' => 'OK', 'zip' => '73102'],
+        ['street' => '200 S Denver Ave W', 'city' => 'Tulsa', 'state' => 'OK', 'zip' => '74103'],
+        ['street' => '1501 Dave Dixon Dr', 'city' => 'New Orleans', 'state' => 'LA', 'zip' => '70113'],
+        ['street' => '701 N Rampart St', 'city' => 'New Orleans', 'state' => 'LA', 'zip' => '70116'],
+        ['street' => 'N Stadium Rd', 'city' => 'Baton Rouge', 'state' => 'LA', 'zip' => '70802'],
+    ];
+
+    return $addresses[array_rand($addresses)];
+}
+
 /**
  * Generates a random set of valid trip data.
  * @return array
@@ -83,64 +110,7 @@ $lastNames = [
     'Watson', 'Sanders', 'Bennett', 'Russell', 'Hayes', 'Powell', 'Barnes', 'Ross', 'Henderson', 'Coleman',
     'Simmons', 'Patterson', 'Brooks', 'Reed', 'Morgan', 'Hughes', 'Price', 'Bell', 'Coleman', 'Bailey',
     'Edwards', 'Stewart', 'Flores', 'Cooper', 'Ramirez', 'Cox', 'Howard', 'Ward', 'Torres', 'Peterson',
-    'Gray', 'Ramirez', 'Cook', 'Brooks', 'Phillips', 'Watson', 'Sanders', 'Bennett', 'Russell', 'Hayes'];    
-    $streets = ['123 Lone Star Blvd', '456 Bluebonnet Dr', '789 Alamo Rd', '101 Longhorn Way', '212 Oil Rig Ave',
-    '323 Pecan Tree Ln', '545 Brazos River Rd', '767 Cowboy St', '989 Mesquite Blvd', '111 Armadillo Alley',
-    '222 Big Bend Way', '333 Cattle Dr', '444 Chisholm Trail', '555 Cypress Creek Rd', '666 Frio River Dr',
-    '777 Goliad Pl', '888 Hill Country Rd', '999 Juniper Creek Ct', '100 Live Oak St', '102 Magnolia Blvd',
-    '104 Maverick Trail', '106 Mockingbird Ln', '108 Palo Duro Pl', '110 Panhandle Rd', '112 Pine Forest Way',
-    '114 Ranchero Dr', '116 Rio Grande Dr', '118 San Jacinto Ct', '120 Shiner Bock Ln', '122 Southfork Ranch Rd',
-    '124 Star Spangled Banner St', '126 Sunflower Dr', '128 Texas Bluebonnet St', '130 The Riverwalk', '132 Trinity River Rd',
-    '134 Guadalupe River Way', '136 Comal Springs Cir', '138 Fiesta Dr', '140 Pecan St', '142 Cypress Ave',
-    '144 Cactus Loop', '146 Mesquite St', '148 Cedar Bend', '150 Oak Creek Rd', '152 Sagebrush Ct',
-    '154 Prairie Dog Pl', '156 Longhorn Ave', '158 San Jacinto St', '160 Red River Rd', '162 Cowboy Ct',  '123 Bayou St', '456 Mardi Gras Blvd', '789 Cajun Ct', '101 Gumbo Ln', '212 Riverboat Rd',
-    '323 Creole Rd', '545 Alligator Alley', '767 Voodoo Dr', '989 Bourbon St', '111 Atchafalaya Way',
-    '222 Cypress Swamp Ln', '333 Delta Dr', '444 French Quarter Rd', '555 Jazz Fest Ave', '666 King Cake Ct',
-    '777 Magnolia Pl', '888 Pelican Point', '999 Praline St', '100 Red Stick Blvd', '102 Saint Charles Ave',
-    '104 Shrimp Boat Ln', '106 Swamp Fox Trail', '108 Tabasco Ct', '110 Cane River Way', '112 Zydeco Dr',
-    '114 Bayou Teche Rd', '116 Plantation Dr', '118 Cane Field Ln', '120 Alligator Bayou Rd', '122 Turtle Bayou Rd',
-    '124 St. Tammany Pkwy', '126 Sabine River Dr', '128 Lake Pontchartrain Blvd', '130 Evangeline Blvd', '132 Jean Lafitte Pkwy',
-    '134 Cajun Coast Ct', '136 Vacherie Plantation Rd', '138 Swamp Fox Ct', '140 Cypress Tree Dr', '142 Acadiana St',
-    '144 Tiger Dr', '146 Creole Blvd', '148 Pelican Point Dr', '150 Red River Ct', '152 French Market Pl',
-    '154 Jazz Alley', '156 Bourbon St', '158 Gator Trail', '160 Cajun Rd', '162 River Road', '123 Sooner Blvd', '456 Tornado Ave', '789 Cowboy St', '101 Red Earth Dr', '212 Cherokee Pl',
-    '323 Thunder Blvd', '545 Prairie Dog Ln', '767 Oil Field Rd', '989 Boomer Sooner Dr', '111 Oklahoma River Ct',
-    '222 Native Way', '333 Cowboy Way', '444 Sooner Trail', '555 Red Dirt Rd', '666 Black Mesa Ln',
-    '777 Pioneer Blvd', '888 Dust Bowl Dr', '999 Indian Hills Rd', '100 Sooner Rd', '102 Bricktown St',
-    '104 Route 66', '106 Keystone Ct', '108 Wichita Mountain Dr', '110 Arbuckle Pl', '112 Blue Jay Blvd',
-    '114 Crimson Way', '116 Diamondback Dr', '118 Frontier Pl', '120 Great Plains Blvd', '122 Heartland Dr',
-    '124 Mistletoe Ln', '126 Osage Trail', '128 Redbud Way', '130 Seminole St', '132 Thunder Alley',
-    '134 Thunderbird Cir', '136 Tornado Ln', '138 Wagon Wheel Dr', '140 Western Ave', '142 Wildcat Way',
-    '144 Yaupon Way', '146 Zenobia Dr', '148 Cottonwood Pl', '150 Cimarron Rd', '152 Chickasaw Blvd',
-    '154 Cherokee Ln', '156 Okmulgee St', '158 Choctaw Dr', '160 Pawnee Trail', '162 Creek St'];
-    $cities = ['Austin', 'Dallas', 'San Antonio', 'College Station', 'Houston',
-    'Corpus Christi', 'Waco', 'Fort Worth', 'El Paso', 'Amarillo',
-    'Alpine', 'Lubbock', 'Denton', 'San Marcos', 'Uvalde',
-    'Victoria', 'Fredericksburg', 'Junction', 'Galveston', 'Laredo',
-    'Abilene', 'Midland', 'Canyon', 'Pampa', 'Conroe',
-    'Odessa', 'Del Rio', 'Pasadena', 'Shiner', 'Plano',
-    'Fort Hood', 'Wichita Falls', 'Ennis', 'San Antonio', 'Arlington',
-    'New Braunfels', 'New Braunfels', 'El Paso', 'Sherman', 'McAllen',
-    'San Angelo', 'Grand Prairie', 'Denton', 'Kerrville', 'Plano',
-    'Lubbock', 'Austin', 'Houston', 'Paris', 'Amarillo', 'New Orleans', 'Baton Rouge', 'Lafayette', 'Shreveport', 'Lake Charles',
-    'Metairie', 'Alexandria', 'Slidell', 'New Orleans', 'Morgan City',
-    'Hammond', 'Monroe', 'Gretna', 'New Orleans', 'Kenner',
-    'Bossier City', 'Mandeville', 'Covington', 'Baton Rouge', 'New Orleans',
-    'Houma', 'Thibodaux', 'Avery Island', 'Natchitoches', 'Opelousas',
-    'St. Martinville', 'Plaquemine', 'Lafayette', 'St. Amant', 'Pierre Part',
-    'Covington', 'Many', 'Slidell', 'New Iberia', 'Jean Lafitte',
-    'Morgan City', 'Vacherie', 'Kenner', 'Minden', 'Crowley',
-    'Baton Rouge', 'Lake Charles', 'Prairieville', 'Shreveport', 'New Orleans',
-    'Baton Rouge', 'New Orleans', 'Hammond', 'Lafayette', 'St. Francisville', 'Norman', 'Oklahoma City', 'Stillwater', 'Tulsa', 'Lawton',
-    'Edmond', 'Enid', 'Midwest City', 'Norman', 'Oklahoma City',
-    'Bartlesville', 'Stillwater', 'Tulsa', 'Ada', 'Boise City',
-    'Ardmore', 'Guymon', 'Norman', 'Tulsa', 'Oklahoma City',
-    'El Reno', 'Sand Springs', 'Lawton', 'Davis', 'Jenks',
-    'Norman', 'Enid', 'Elk City', 'Woodward', 'Mustang',
-    'Broken Arrow', 'Pawhuska', 'Edmond', 'Seminole', 'Oklahoma City',
-    'Norman', 'Moore', 'Claremore', 'Oklahoma City', 'Stillwater',
-    'Yukon', 'Tulsa', 'Ponca City', 'Cushing', 'Chickasha',
-    'Tahlequah', 'Okmulgee', 'Shawnee', 'Pawnee', 'Muskogee'];
-    $states = ['TX', 'LA', 'OK'];
+    'Gray', 'Ramirez', 'Cook', 'Brooks', 'Phillips', 'Watson', 'Sanders', 'Bennett', 'Russell', 'Hayes'];
     $primary_dx = [
     'Hypertension', 'Diabetes Mellitus', 'Coronary Artery Disease', 'Asthma', 'Chronic Obstructive Pulmonary Disease',
     'Depression', 'Anxiety Disorder', 'Arthritis', 'Hyperlipidemia', 'Obesity',
