@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
         async function fetchNotifications() {
             try {
                 // Make a fetch call to your notifications API endpoint
-                const response = await fetch('/portal/api/notifications_api.php?action=get_all');
+                const response = await fetch('https://bedrockcadence.com/api/notifications_api.php?action=get_all');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
