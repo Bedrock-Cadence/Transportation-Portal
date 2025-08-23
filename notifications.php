@@ -34,13 +34,18 @@ require_once 'header.php';
                 <p class="text-center text-gray-500 py-8">You have no new notifications.</p>
             <?php else: ?>
                 <?php foreach ($notifications as $notification): ?>
-                    <div class="notification-item border-b border-gray-200 pb-4">
+                    <div class="notification-item border-b border-gray-200 pb-4" id="notification-<?= Utils::e($notification['id']); ?>">
                         <p class="text-gray-800"><?= Utils::e($notification['message']); ?></p>
                         <div class="flex justify-between items-center mt-2">
                             <span class="text-xs text-gray-400"><?= Utils::formatUtcToUserTime($notification['created_at']); ?></span>
-                            <?php if (!empty($notification['link'])): ?>
-                                <a href="<?= Utils::e($notification['link']); ?>" class="text-sm text-blue-600 hover:underline">View Details</a>
-                            <?php endif; ?>
+                            <div>
+                                <?php if (!empty($notification['link'])): ?>
+                                    <a href="<?= Utils::e($notification['link']); ?>" class="text-sm text-blue-600 hover:underline mr-4">View Details</a>
+                                <?php endif; ?>
+                                <?php if (!$notification['is_read']): ?>
+                                    <button onclick="markAsRead(<?= Utils::e($notification['id']); ?>)" class="text-sm text-blue-600 hover:underline focus:outline-none">Mark as Read</button>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -48,5 +53,38 @@ require_once 'header.php';
         </div>
     </div>
 </div>
+
+<script>
+    function markAsRead(notificationId) {
+        fetch('mark_as_read.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ notification_id: notificationId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Find the notification element and visually update it
+                const notificationElement = document.getElementById(`notification-${notificationId}`);
+                if (notificationElement) {
+                    notificationElement.classList.add('opacity-50', 'italic');
+                    const markAsReadButton = notificationElement.querySelector('button');
+                    if (markAsReadButton) {
+                        markAsReadButton.remove();
+                    }
+                }
+            } else {
+                console.error('Failed to mark notification as read:', data.message);
+                alert('Oops! Something went wrong. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Something went wrong with the network request. Please try again.');
+        });
+    }
+</script>
 
 <?php require_once 'footer.php'; ?>
