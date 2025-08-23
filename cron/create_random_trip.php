@@ -2,9 +2,9 @@
 // FILE: /public_html/portal/cron/create_random_trip.php
 
 // This script is intended to be run from the command line by a cron job.
-//if (php_sapi_name() !== 'cli') {
-    //die("Access Denied: This script can only be run from the command line.");
-//}
+if (php_sapi_name() !== 'cli') {
+    die("Access Denied: This script can only be run from the command line.");
+}
 
 require_once __DIR__ . '/../../../app/init.php';
 
