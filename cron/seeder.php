@@ -25,7 +25,7 @@ error_reporting(E_ALL);
 // --- Bootstrap Application ---
 // Initializes your application's environment, including the database connection and class autoloaders.
 // CRITICAL: This path must be correct. It assumes this file is in the same directory as the 'app' folder.
-require_once __DIR__ . '/app/init.php';
+require_once __DIR__ . '/../../../app/init.php';
 
 /**
  * Generates a random entity record.
