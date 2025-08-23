@@ -66,14 +66,25 @@ require_once 'header.php';
 
 <script>
     function acknowledgeNotification(notificationId) {
-        fetch('update_notification.php', {
+        // --- FIX: Create form data to send in the request body.
+        // This ensures the data is available in the $_POST superglobal in PHP.
+        const formData = new URLSearchParams();
+        formData.append('notification_id', notificationId);
+
+        // --- FIX: Changed the URL to the correct API endpoint.
+        fetch('api/notifications_api.php?action=acknowledge', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ notification_id: notificationId })
+            // --- FIX: Removed JSON content type header. Browser will set it correctly.
+            // --- FIX: Set the body to the form data object.
+            body: formData
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                // Handle HTTP errors like 400, 401, 500
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
                 const notificationElement = document.getElementById(`notification-${notificationId}`);
@@ -89,8 +100,10 @@ require_once 'header.php';
                     containerDiv.appendChild(acknowledgedAtSpan);
                 }
             } else {
-                console.error('Failed to acknowledge notification:', data.message);
-                alert('Oops! Something went wrong. Please try again.');
+                // Use the error message from the API if available
+                const errorMessage = data.error || 'Oops! Something went wrong. Please try again.';
+                console.error('Failed to acknowledge notification:', errorMessage);
+                alert(errorMessage);
             }
         })
         .catch(error => {
