@@ -15,9 +15,17 @@
  * 3. Click the "Seed Database" button.
  */
 
+// --- DEBUGGING: Force display of errors ---
+// These lines will make PHP display any errors on the screen instead of showing a blank white page.
+// This is crucial for troubleshooting.
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+
 // --- Bootstrap Application ---
 // Initializes your application's environment, including the database connection and class autoloaders.
-require_once __DIR__ . '/../../../app/init.php';
+// CRITICAL: This path must be correct. It assumes this file is in the same directory as the 'app' folder.
+require_once __DIR__ . '/app/init.php';
 
 /**
  * Generates a random entity record.
@@ -60,7 +68,7 @@ function generateRandomEntityData(string $type): array {
         'address_state'  => $location['state'],
         'address_zip'    => $location['zip'],
         'phone_number'   => mt_rand(200, 999) . '-' . mt_rand(200, 999) . '-' . mt_rand(1000, 9999),
-        'is_active'      => '1',
+        'is_active'      => true, // Using a boolean as the EntityService expects it
         'type'           => $type
     ];
 }
