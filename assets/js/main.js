@@ -85,18 +85,15 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function initializeNotificationPopUp() {
         // Function to fetch unread notifications
-        async function fetchNotifications() {
-            try {
-                // --- FIX STARTS HERE ---
-                // Change the URL to point to the new local proxy script.
-                // This is now a same-origin request, so authentication cookies will be sent automatically.
-                const response = await fetch('/notification_proxy.php?action=get_all');
-                // --- FIX ENDS HERE ---
+async function fetchNotifications() {
+    try {
+        // Fetch from the local proxy. The browser will automatically send the correct login cookie.
+        const response = await fetch('/portal/notification_proxy.php?action=get_all');
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const data = await response.json();
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
 
                 // Check for new, unread notifications
                 if (data.success) {
