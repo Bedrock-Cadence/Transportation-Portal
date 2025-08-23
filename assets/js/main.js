@@ -80,20 +80,24 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+        /**
+     * Initializes the automated notification pop-up.
+     */
     function initializeNotificationPopUp() {
         // Function to fetch unread notifications
         async function fetchNotifications() {
             try {
                 // Make a fetch call to your notifications API endpoint
-                const response = await fetch('/portal/api/notifications_api.php?action=get_unread');
+                const response = await fetch('/portal/api/notifications_api.php?action=get_all');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const data = await response.json();
 
                 // Check for new, unread notifications
-                if (data.success && data.notifications.length > 0) {
-                    return true;
+                if (data.success) {
+                    const unreadNotifications = data.notifications.filter(notification => notification.is_read === 0);
+                    return unreadNotifications.length > 0;
                 }
                 return false;
             } catch (error) {
@@ -115,6 +119,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const modal = document.getElementById('notificationModal');
             if (modal) {
                 modal.classList.remove('is-active');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300); // Wait for the transition to finish
             }
         }
 
@@ -148,6 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Add the new function here
         initializeNotificationPopUp();
     }
+
 
     // Initialize all components if the user is logged in.
     // This check is duplicated from PHP to ensure JS only runs when the elements exist.
