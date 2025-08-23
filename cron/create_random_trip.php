@@ -127,6 +127,13 @@ $lastNames = [
     'Sleep Apnea', 'Narcolepsy', 'Anemia', 'Appendicitis', 'Hypoglycemia',
     'Hyperglycemia', 'Sepsis', 'Anaphylaxis', 'Osteoporosis', 'Heart Failure'];
 
+
+    // 1. Get two different random addresses
+    $pickup = getRandomAddress();
+    do {
+        $dropoff = getRandomAddress();
+    } while ($pickup === $dropoff);
+
     // Generate a valid random DOB between 20 and 80 years ago
     $dobTimestamp = time() - rand(1 * 365 * 24 * 60 * 60, 106 * 365 * 24 * 60 * 60);
 
@@ -134,25 +141,27 @@ $lastNames = [
         'patient_first_name' => $firstNames[array_rand($firstNames)],
         'patient_last_name' => $lastNames[array_rand($lastNames)],
         'patient_dob' => date('Y-m-d', $dobTimestamp),
-        'patient_ssn' => sprintf('%04d', rand(1000, 9999)),
+        'patient_ssn' => sprintf('%04d', rand(1001, 9999)),
         'patient_weight' => rand(120, 350),
         'patient_height' => rand(60, 78),
         'primary_diagnosis' => $primary_dx[array_rand($primary_dx)],
         'isolation_precautions' => 'None',
-        'asap_checkbox' => 1, // Make it an ASAP trip for simplicity
+        'asap_checkbox' => 1,
         'pickup_time' => null,
         'appointment_time' => null,
 
-        'pickup_address_street' => $streets[array_rand($streets)],
-        'pickup_address_city' => $cities[array_rand($cities)],
-        'pickup_address_state' => $states[array_rand($states)],
-        'pickup_address_zip' => sprintf('%05d', rand(10000, 99999)),
+        // 2. Use the complete, valid address data
+        'pickup_address_street' => $pickup['street'],
+        'pickup_address_city' => $pickup['city'],
+        'pickup_address_state' => $pickup['state'],
+        'pickup_address_zip' => $pickup['zip'],
 
-        'dropoff_address_street' => $streets[array_rand($streets)],
-        'dropoff_address_city' => $cities[array_rand($cities)],
-        'dropoff_address_state' => $states[array_rand($states)],
-        'dropoff_address_zip' => sprintf('%05d', rand(10000, 99999)),
+        'dropoff_address_street' => $dropoff['street'],
+        'dropoff_address_city' => $dropoff['city'],
+        'dropoff_address_state' => $dropoff['state'],
+        'dropoff_address_zip' => $dropoff['zip'],
     ];
+    // --- END OF FIX ---
 }
 
 echo "Attempting to create a new trip for Facility ID: {$facilityId} by User ID: {$systemUserId}...\n";
