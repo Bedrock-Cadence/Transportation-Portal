@@ -128,7 +128,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         <?php foreach ($results as $trip): ?>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    <a href="view_trip.php?uuid=<?= Utils::e($trip['uuid']) ?>" class="text-indigo-600 hover:text-indigo-900"><?= Utils::e($trip['uuid']); ?></a>
+                                    <a href="view_trip.php?uuid=<?= urlencode($trip['uuid']) ?>" class="text-indigo-600 hover:text-indigo-900"><?= Utils::e($trip['uuid']); ?></a>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= Utils::formatTripStatus($trip['status']); ?>
