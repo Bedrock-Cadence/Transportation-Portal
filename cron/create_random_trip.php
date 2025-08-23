@@ -27,17 +27,25 @@ const CHANCE_FACTOR = 10;
 // *** NEW: Get a random facility from the database ***
 try {
     $db = Database::getInstance();
-    // Fetches the ID of one random, active facility.
-    $facility = $db->fetch("SELECT id FROM facilities WHERE is_active = 1 ORDER BY RAND() LIMIT 1");
+    // This query finds a random, active user whose entity_type is 'facility'
+    // and returns both their ID and their facility's ID (entity_id).
+    $sql = "SELECT id AS user_id, entity_id AS facility_id 
+            FROM users 
+            WHERE entity_type = 'facility' AND is_active = 1 
+            ORDER BY RAND() 
+            LIMIT 1";
+            
+    $creator = $db->fetch($sql);
 
-    if (!$facility || empty($facility['id'])) {
-        throw new Exception("No active facilities found in the database.");
+    if (!$creator || empty($creator['user_id']) || empty($creator['facility_id'])) {
+        throw new Exception("No active facility users found in the database to create a trip.");
     }
 
-    $facilityId = (int)$facility['id'];
+    $systemUserId = (int)$creator['user_id'];
+    $facilityId = (int)$creator['facility_id'];
 
 } catch (Exception $e) {
-    file_put_contents('php://stderr', "Database Error: Could not fetch a random facility. " . $e->getMessage() . "\n");
+    file_put_contents('php://stderr', "Database Error: Could not fetch a random facility user. " . $e->getMessage() . "\n");
     exit(1); // Exit with an error code
 }
 // *** END NEW SECTION ***
