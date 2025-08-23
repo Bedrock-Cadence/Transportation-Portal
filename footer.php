@@ -36,7 +36,7 @@
                 <button id="closeModalBtn" class="bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-full hover:bg-gray-400 transition-colors duration-300 shadow-md">
                     Close
                 </button>
-                <a href="/portal/notifications.php" class="bg-brand-primary text-white font-semibold py-2 px-6 rounded-full hover:bg-red-800 transition-colors duration-300 shadow-md">
+                <a href="/notifications.php" class="bg-brand-primary text-white font-semibold py-2 px-6 rounded-full hover:bg-red-800 transition-colors duration-300 shadow-md">
                     Go to Notifications
                 </a>
             </div>
