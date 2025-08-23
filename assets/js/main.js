@@ -87,8 +87,12 @@ document.addEventListener('DOMContentLoaded', function () {
         // Function to fetch unread notifications
         async function fetchNotifications() {
             try {
-                // Make a fetch call to your notifications API endpoint
-                const response = await fetch('https://bedrockcadence.com/api/notifications_api.php?action=get_all');
+                // --- FIX STARTS HERE ---
+                // Change the URL to point to the new local proxy script.
+                // This is now a same-origin request, so authentication cookies will be sent automatically.
+                const response = await fetch('/portal/notification_proxy.php?action=get_all');
+                // --- FIX ENDS HERE ---
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
