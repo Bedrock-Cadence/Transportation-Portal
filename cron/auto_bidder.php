@@ -64,7 +64,7 @@ try {
             ':trip_id' => $tripId
         ]);
 
-        echo $eligibleCarriers;
+        echo $eligibleCarriersSql;
 
         if (empty($eligibleCarriers)) {
             echo " -> No eligible carriers found for this trip.\n";
