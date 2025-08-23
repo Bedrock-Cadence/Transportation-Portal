@@ -32,40 +32,6 @@ try {
 
     echo "Found " . count($openTrips) . " open trip(s) for bidding.\n";
 
-    <?php
-// FILE: /public_html/portal/cron/auto_bidder.php
-// PURPOSE: This script automatically places bids on behalf of carriers for development purposes.
-
-// This script is intended to be run from the command line by a cron job.
-if (php_sapi_name() !== 'cli') {
-    die("Access Denied: This script can only be run from the command line.");
-}
-
-require_once __DIR__ . '/../../../app/init.php';
-
-// --- CONFIGURATION ---
-// This number controls the probability of a carrier placing a bid.
-// A value of 2 means a carrier has a 1 in 2 (50%) chance of bidding on an available trip.
-const BIDDING_CHANCE_FACTOR = 2;
-// --- END CONFIGURATION ---
-
-echo "Auto Bidder Cron Job Started: " . date('Y-m-d H:i:s') . "\n";
-
-try {
-    $db = Database::getInstance();
-    $tripService = new TripService();
-
-    // --- Step 1: Find all trips that are currently open for bidding ---
-    $openTripsSql = "SELECT id, facility_id, bidding_closes_at FROM trips WHERE status = 'bidding' AND bidding_closes_at > NOW()";
-    $openTrips = $db->fetchAll($openTripsSql);
-
-    if (empty($openTrips)) {
-        echo "No open trips found for bidding.\n";
-        exit(0);
-    }
-
-    echo "Found " . count($openTrips) . " open trip(s) for bidding.\n";
-
     // --- Step 2: Loop through each open trip and find eligible carriers ---
     foreach ($openTrips as $trip) {
         $tripId = $trip['id'];
