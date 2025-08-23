@@ -85,7 +85,9 @@ document.addEventListener('DOMContentLoaded', function () {
      */
     function initializeNotificationPopUp() {
         // Function to fetch unread notifications
-            if (window.location.pathname.includes('/notifications.php')) { }
+            if (window.location.pathname.includes('/notifications.php')) { 
+                return; // Exit the function immediately
+            }
         async function fetchNotifications() {
             try {
                 // --- FIX STARTS HERE ---
