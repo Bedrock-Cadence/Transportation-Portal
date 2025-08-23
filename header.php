@@ -78,6 +78,9 @@ if ($entityType === 'carrier') {
                                             <?php if (Auth::can('manage_licensure')): ?>
                                                 <a href="/licensure.php" class="dropdown-item-custom">Licensure</a>
                                             <?php endif; ?>
+                                            <?php if (Auth::can('billing')): ?>
+                                                <a href="/billing_export.php" class="dropdown-item-custom">Billing Export</a>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>
