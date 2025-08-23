@@ -95,7 +95,8 @@ try {
     $tripService = new TripService();
     $mockData = generateMockTripData();
 
-    echo $mockData;
+    print_r($mockData);
+
     // Pass the random facility ID to the service method
     $tripUuid = $tripService->createTripForCron($mockData, $systemUserId, $facilityId);
 
