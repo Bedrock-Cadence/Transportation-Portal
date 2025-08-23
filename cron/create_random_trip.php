@@ -14,7 +14,7 @@ require_once __DIR__ . '/../../../app/init.php';
 // This number controls the probability.
 // On average, a trip will be created 1 out of every CHANCE_FACTOR runs.
 // If the cron runs every minute, a value of 10 means about 1 trip every 10 minutes.
-const CHANCE_FACTOR = 5;
+const CHANCE_FACTOR = 7;
 // --- END CONFIGURATION ---
 
 // Decide if we should create a trip this time
