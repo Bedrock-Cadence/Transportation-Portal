@@ -111,6 +111,11 @@ document.addEventListener('DOMContentLoaded', function () {
         function showModal() {
             const modal = document.getElementById('notificationModal');
             if (modal) {
+                // --- FIX STARTS HERE ---
+                // Remove the inline 'display' style set by hideModal().
+                // This ensures the CSS 'is-active' class can make the modal visible again.
+                modal.style.display = ''; 
+                // --- FIX ENDS HERE ---
                 modal.classList.add('is-active');
             }
         }
