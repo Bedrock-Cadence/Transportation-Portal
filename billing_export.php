@@ -3,15 +3,19 @@
 
 // Initialize the application and session
 require_once __DIR__ . '/../../app/init.php';
+echo '<pre>DEBUG: Application and session initialized.</pre>';
 
 // --- Security Check ---
 // Ensure the user is logged in and is an admin.
 // You might have a more robust role check in a central function.
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
+    echo '<pre>DEBUG: Security check failed. User not logged in or not admin.</pre>';
     // Redirect to login page or show an access denied message
     header('Location: /login.php');
     exit;
 }
+echo '<pre>DEBUG: Security check passed. User is an admin.</pre>';
+
 
 $pageTitle = "Billing Export";
 $message = '';
@@ -19,77 +23,91 @@ $messageType = '';
 
 // Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    echo '<pre>DEBUG: Form was submitted via POST.</pre>';
     $startDate = $_POST['start_date'] ?? null;
     $endDate = $_POST['end_date'] ?? null;
+    echo '<pre>DEBUG: Form data received: '; var_dump($_POST); echo '</pre>';
 
     if (empty($startDate) || empty($endDate)) {
         $message = "Please select both a start and end date.";
         $messageType = 'danger';
+        echo '<pre>DEBUG: Validation failed: Missing dates.</pre>';
     } else {
+        echo '<pre>DEBUG: Validation passed. Dates are present.</pre>';
         try {
             $exportService = new BillingExportService();
+            echo '<pre>DEBUG: BillingExportService instance created.</pre>';
             $records = $exportService->getBillingDataForExport($startDate, $endDate);
+            echo '<pre>DEBUG: Returned records from service: '; var_dump($records); echo '</pre>';
+
 
             if (empty($records)) {
                 $message = "No un-exported billing records were found for the selected date range.";
                 $messageType = 'warning';
+                echo '<pre>DEBUG: No records found for the given date range.</pre>';
             } else {
+                echo '<pre>DEBUG: Records found. Starting CSV generation.</pre>';
                 // --- CSV Generation and Download ---
                 $billingIdsToMark = array_column($records, 'billing_id_internal');
+                echo '<pre>DEBUG: Extracted billing IDs to mark: '; var_dump($billingIdsToMark); echo '</pre>';
 
-                header('Content-Type: text/csv');
-                header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
+                // To prevent the debugging output from being part of the CSV, we'll comment out the headers and the exit.
+                // header('Content-Type: text/csv');
+                // header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
 
-                $output = fopen('php://output', 'w');
+                // $output = fopen('php://output', 'w');
 
                 // Add the header row from your sample file
-                fputcsv($output, [
-                    "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", 
-                    "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", 
-                    "Item Name", "SKU", "Item Desc", "Quantity", "Item Price", "Discount(%)", 
-                    "Item Tax", "Item Tax %", "Item Tax Authority", "Item Tax Exemption Reason", 
-                    "Notes", "Terms & Conditions"
-                ]);
+                // fputcsv($output, [
+                //     "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", 
+                //     "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", 
+                //     "Item Name", "SKU", "Item Desc", "Quantity", "Item Price", "Discount(%)", 
+                //     "Item Tax", "Item Tax %", "Item Tax Authority", "Item Tax Exemption Reason", 
+                //     "Notes", "Terms & Conditions"
+                // ]);
 
                 // Loop through the data and map it to the CSV format
-                foreach ($records as $record) {
-                    fputcsv($output, [
-                        date('Y-m-d', strtotime($record['invoice_date'])), // Invoice Date
-                        'INV-' . $record['invoice_number'], // Invoice Number
-                        '', // Estimate Number
-                        'Draft', // Invoice Status
-                        $record['customer_name'], // Customer Name
-                        date('Y-m-d', strtotime($record['invoice_date'])), // Due Date
-                        $record['purchase_order'], // PurchaseOrder
-                        'Classic', // Template Name
-                        'USD', // Currency Code
-                        '1.00', // Exchange Rate
-                        $record['item_name'], // Item Name
-                        $record['sku'], // SKU
-                        'Trip Service - ID: ' . $record['purchase_order'], // Item Desc
-                        '1', // Quantity
-                        '0.00', // Item Price (NOTE: Price is not in the DB, placeholder used)
-                        '0', // Discount(%)
-                        '', // Item Tax
-                        '', // Item Tax %
-                        '', // Item Tax Authority
-                        '', // Item Tax Exemption Reason
-                        'Thank you for your business.', // Notes
-                        'Please pay within 30 days.' // Terms & Conditions
-                    ]);
-                }
+                echo '<pre>DEBUG: Mapping records to CSV format. (CSV headers and content will not be outputted to screen)</pre>';
+                // foreach ($records as $record) {
+                //     fputcsv($output, [
+                //         date('Y-m-d', strtotime($record['invoice_date'])), // Invoice Date
+                //         'INV-' . $record['invoice_number'], // Invoice Number
+                //         '', // Estimate Number
+                //         'Draft', // Invoice Status
+                //         $record['customer_name'], // Customer Name
+                //         date('Y-m-d', strtotime($record['invoice_date'])), // Due Date
+                //         $record['purchase_order'], // PurchaseOrder
+                //         'Classic', // Template Name
+                //         'USD', // Currency Code
+                //         '1.00', // Exchange Rate
+                //         $record['item_name'], // Item Name
+                //         $record['sku'], // SKU
+                //         'Trip Service - ID: ' . $record['purchase_order'], // Item Desc
+                //         '1', // Quantity
+                //         '0.00', // Item Price (NOTE: Price is not in the DB, placeholder used)
+                //         '0', // Discount(%)
+                //         '', // Item Tax
+                //         '', // Item Tax %
+                //         '', // Item Tax Authority
+                //         '', // Item Tax Exemption Reason
+                //         'Thank you for your business.', // Notes
+                //         'Please pay within 30 days.' // Terms & Conditions
+                //     ]);
+                // }
 
-                fclose($output);
+                // fclose($output);
 
                 // --- Mark records as exported AFTER successful download ---
                 $exportService->markAsExported($billingIdsToMark);
+                echo '<pre>DEBUG: Attempting to mark records as exported.</pre>';
 
                 // Stop script execution to prevent rendering the HTML below
-                exit;
+                // exit;
             }
         } catch (Exception $e) {
             $message = "An error occurred: " . $e->getMessage();
             $messageType = 'danger';
+            echo '<pre>DEBUG: Caught an exception: ' . $e->getMessage() . '</pre>';
             LoggingService::log($_SESSION['user_id'], null, 'billing_export_failed', $e->getMessage());
         }
     }
@@ -104,7 +122,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $pageTitle; ?></title>
-    <!-- Using Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
