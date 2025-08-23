@@ -8,9 +8,9 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 set_time_limit(0);
 
-//if (php_sapi_name() !== 'cli') {
-    //die("Access Denied: This script can only be run from the command line.");
-//}
+if (php_sapi_name() !== 'cli') {
+    die("Access Denied: This script can only be run from the command line.");
+}
 
 require_once __DIR__ . '/../../../app/init.php';
 
