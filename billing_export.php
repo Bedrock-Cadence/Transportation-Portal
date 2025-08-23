@@ -23,6 +23,7 @@ $messageType = '';
 
 // Handle the form submission
 // Handle the form submission
+// Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startDate = $_POST['start_date'] ?? null;
     $endDate = $_POST['end_date'] ?? null;
@@ -35,21 +36,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $exportService = new BillingExportService();
             $records = $exportService->getBillingDataForExport($startDate, $endDate);
 
+            // --- CHECKPOINT 1 ---
+            // Let's confirm we are still getting records correctly.
+            echo 'Checkpoint 1: Records fetched successfully. Dumping records:';
+            echo '<pre>';
+            var_dump($records);
+            echo '</pre>';
+            // Move the die() statement below to the next checkpoint to continue debugging.
+            die('Execution stopped at Checkpoint 1.');
+
+
             if (empty($records)) {
                 $message = "No un-exported billing records were found for the selected date range.";
                 $messageType = 'warning';
             } else {
+                // --- CHECKPOINT 2 ---
+                // We're inside the CSV generation block, right before we try to send headers.
+                // If you see CP1 but not this, the 'if (empty($records))' logic has a problem.
+                // die('Execution stopped at Checkpoint 2.');
+
                 // Get the IDs before generating the download
                 $billingIdsToMark = array_column($records, 'billing_id_internal');
-
-                // Set headers to trigger the file download. This MUST be before any other output.
+                
                 header('Content-Type: text/csv; charset=utf-8');
                 header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
 
-                // Open a stream to the browser output
+                // --- CHECKPOINT 3 ---
+                // If you saw CP2 but don't get a file download, the header() calls may be failing.
+                // This is less likely to cause a WSOD, but good to check.
+                // A failure here would show up in the error log (if enabled).
+                // die('Execution stopped at Checkpoint 3.');
+
                 $output = fopen('php://output', 'w');
 
-                // Add the header row to the CSV
                 fputcsv($output, [
                     "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", 
                     "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", 
@@ -58,48 +77,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     "Notes", "Terms & Conditions"
                 ]);
 
-                // Loop through the data and write each record to the CSV
-                foreach ($records as $record) {
+                // --- CHECKPOINT 4 ---
+                // The most likely place for an error is in this loop if the data is bad.
+                // For example, a null value for 'invoice_date' could cause strtotime() to fail.
+                // die('Execution stopped at Checkpoint 4.');
+
+                foreach ($records as $index => $record) {
+                    // echo 'Processing record ' . $index . '<br>'; // Uncomment for deep debugging
                     fputcsv($output, [
                         date('Y-m-d', strtotime($record['invoice_date'])),
                         'INV-' . $record['invoice_number'],
-                        '', // Estimate Number
-                        'Draft', // Invoice Status
-                        $record['customer_name'],
-                        date('Y-m-d', strtotime($record['invoice_date'])),
-                        $record['purchase_order'],
-                        'Classic', // Template Name
-                        'USD', // Currency Code
-                        '1.00', // Exchange Rate
-                        $record['item_name'],
-                        $record['sku'],
-                        'Trip Service - ID: ' . $record['purchase_order'],
-                        '1', // Quantity
-                        '0.00', // Item Price (Placeholder)
-                        '0', // Discount(%)
-                        '', // Item Tax
-                        '', // Item Tax %
-                        '', // Item Tax Authority
-                        '', // Item Tax Exemption Reason
-                        'Thank you for your business.',
-                        'Please pay within 30 days.'
+                        '', 'Draft', $record['customer_name'], date('Y-m-d', strtotime($record['invoice_date'])),
+                        $record['purchase_order'], 'Classic', 'USD', '1.00', $record['item_name'], $record['sku'],
+                        'Trip Service - ID: ' . $record['purchase_order'], '1', '0.00', '0', '', '', '', '',
+                        'Thank you for your business.', 'Please pay within 30 days.'
                     ]);
                 }
 
                 fclose($output);
-
-                // --- CRITICAL STEP ---
-                // Only mark records as exported AFTER the file has been successfully generated.
+                
                 $exportService->markAsExported($billingIdsToMark);
-
-                // Stop the script. This prevents the HTML below from being appended to your CSV file.
+                
                 exit;
             }
         } catch (Exception $e) {
-            $message = "An error occurred during the export process. Please contact support.";
-            $messageType = 'danger';
-            // Log the detailed error for your own records
-            LoggingService::log($_SESSION['user_id'] ?? null, null, 'billing_export_failed', $e->getMessage());
+            // --- CHECKPOINT 5 ---
+            // If the script fails and jumps to the catch block, this will tell us.
+            // The error would likely be in the LoggingService class itself.
+            die('Execution stopped at Checkpoint 5. Exception caught: ' . $e->getMessage());
         }
     }
 }
