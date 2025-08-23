@@ -28,6 +28,20 @@
 
     <?php // This single script file will handle all custom behaviors like dropdowns and the live clock. ?>
     <?php // The `nonce` attribute makes this script compliant with our Content Security Policy. ?>
+        <div id="notificationModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-xl font-bold text-red-700 mb-2">New Notification</h2>
+            <p class="text-sm text-gray-700 mb-4">You've received a new notification. Would you like to check it out?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="closeModalBtn" class="bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-full hover:bg-gray-400 transition-colors duration-300 shadow-md">
+                    Close
+                </button>
+                <a href="/portal/notifications.php" class="bg-brand-primary text-white font-semibold py-2 px-6 rounded-full hover:bg-red-800 transition-colors duration-300 shadow-md">
+                    Go to Notifications
+                </a>
+            </div>
+        </div>
+    </div>
     <script nonce="<?= $cspNonce ?>" src="/assets/js/main.js" defer></script>
 
 </body>
