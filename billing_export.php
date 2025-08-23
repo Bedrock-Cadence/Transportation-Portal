@@ -1,27 +1,16 @@
 <?php
 // FILE: public_html/admin/billing_export.php
 
-// Initialize the application and session
 require_once __DIR__ . '/../../app/init.php';
-echo '<pre>DEBUG: Application and session initialized.</pre>';
 
-// --- Security Check ---
-// Ensure the user is logged in and is an admin.
-// You might have a more robust role check in a central function.
 if (!isset($_SESSION['user_id']) || $_SESSION['user_role'] !== 'admin') {
-    echo '<pre>DEBUG: Security check failed. User not logged in or not admin.</pre>';
-    // Redirect to login page or show an access denied message
     header('Location: /login.php');
     exit;
 }
-echo '<pre>DEBUG: Security check passed. User is an admin.</pre>';
 
-
-$pageTitle = "Billing Export";
 $message = '';
 $messageType = '';
 
-// Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $startDate = $_POST['start_date'] ?? null;
     $endDate = $_POST['end_date'] ?? null;
@@ -30,35 +19,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = "Please select both a start and end date.";
         $messageType = 'danger';
     } else {
-try {
-            echo 'Checkpoint 1: Inside the try block.';
-
-            echo '<br>Checkpoint 2: About to create new BillingExportService() instance...';
+        try {
             $exportService = new BillingExportService();
-            echo '<br>Checkpoint 3: BillingExportService instance CREATED SUCCESSFULLY.';
-
-            echo '<br>Checkpoint 4: About to call getBillingDataForExport() method...';
             $records = $exportService->getBillingDataForExport($startDate, $endDate);
-            echo '<br>Checkpoint 5: getBillingDataForExport() method EXECUTED SUCCESSFULLY.';
-            
-            // For now, we stop here to see the debug output clearly.
-            die('<br><br>--- DEBUGGING COMPLETE ---<br>All steps passed. The issue is further down.');
 
-            // The rest of your script logic would go here...
+            if (empty($records)) {
+                $message = "No un-exported billing records were found for the selected date range.";
+                $messageType = 'warning';
+            } else {
+                $billingIdsToMark = array_column($records, 'billing_id_internal');
 
-        } catch (PDOException $e) {
-            // This will catch database-specific errors (like connection failed)
-            die("<br><br><strong>DATABASE ERROR CAUGHT:</strong> " . $e->getMessage());
+                header('Content-Type: text/csv; charset=utf-8');
+                header('Content-Disposition: attachment; filename="billing_export_' . date('Y-m-d') . '.csv"');
 
+                $output = fopen('php://output', 'w');
+
+                fputcsv($output, [ "Invoice Date", "Invoice Number", "Estimate Number", "Invoice Status", "Customer Name", "Due Date", "PurchaseOrder", "Template Name", "Currency Code", "Exchange Rate", "Item Name", "SKU", "Item Desc", "Quantity", "Item Price", "Discount(%)", "Item Tax", "Item Tax %", "Item Tax Authority", "Item Tax Exemption Reason", "Notes", "Terms & Conditions"]);
+
+                foreach ($records as $record) {
+                    fputcsv($output, [
+                        date('Y-m-d', strtotime($record['invoice_date'])), 'INV-' . $record['invoice_number'], '', 'Draft', $record['customer_name'], date('Y-m-d', strtotime($record['invoice_date'])),
+                        $record['purchase_order'], 'Classic', 'USD', '1.00', $record['item_name'], $record['sku'], 'Trip Service - ID: ' . $record['purchase_order'], '1', '0.00', '0', '', '', '', '', 'Thank you for your business.', 'Please pay within 30 days.'
+                    ]);
+                }
+
+                fclose($output);
+                $exportService->markAsExported($billingIdsToMark);
+                exit;
+            }
         } catch (Exception $e) {
-            // This will catch other general PHP errors
-            die("<br><br><strong>GENERAL ERROR CAUGHT:</strong> " . $e->getMessage());
+            $message = "An error occurred: " . $e->getMessage();
+            $messageType = 'danger';
+            LoggingService::log($_SESSION['user_id'] ?? null, null, 'billing_export_failed', $e->getMessage());
         }
     }
 }
-
-// Include your standard header file
-// require_once __DIR__ . '/../_templates/header.php';
 ?>
 <!DOCTYPE html>
 <html lang="en">
