@@ -86,21 +86,6 @@ function runSeeder(): string {
     $output = "<h3>Seeding Process Started...</h3>";
     $entityService = new EntityService();
 
-    // --- Seed Facilities ---
-    $facilityCount = 15;
-    $output .= "<h4>Attempting to create {$facilityCount} random facilities...</h4>";
-    $output .= "<ul>";
-    for ($i = 0; $i < $facilityCount; $i++) {
-        $facilityData = generateRandomEntityData('facility');
-        try {
-            $result = $entityService->createEntity($facilityData);
-            $output .= "<li style='color: green;'><strong>SUCCESS:</strong> Created Facility '{$facilityData['name']}' with ID: {$result['id']}</li>";
-        } catch (Exception $e) {
-            $output .= "<li style='color: red;'><strong>ERROR:</strong> Could not create facility '{$facilityData['name']}'. Reason: " . $e->getMessage() . "</li>";
-        }
-    }
-    $output .= "</ul>";
-
     // --- Seed Carriers ---
     $carrierCount = 15;
     $output .= "<h4>Attempting to create {$carrierCount} random carriers...</h4>";
