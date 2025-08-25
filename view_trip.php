@@ -179,7 +179,7 @@ require_once 'header.php';
     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
         <div>
             <h2 class="text-xl font-semibold text-gray-800">Trip Details</h2>
-            <p class="text-sm text-gray-500 font-mono"><?= Utils::e($trip['uuid']); ?></p>
+            <p class="text-sm text-gray-500 font-mono"><?= Utils::e($trip['sid']); ?></p>
         </div>
         <?= Utils::formatTripStatus($trip['status']); ?>
     </div>
