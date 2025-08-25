@@ -108,7 +108,7 @@ function renderCarrierDashboard(data) {
                     <td class="p-4 text-sm text-gray-500 align-top">${trip.distance ? trip.distance + ' mi' : 'N/A'}</td>
                     <td class="p-4 text-sm text-gray-500 align-top">${formatTripTime(trip)}</td>
                     <td class="p-4 text-sm font-semibold text-gray-700 align-top">${formatDateTime(trip.awarded_eta)}</td>
-                    <td class="p-4 text-right align-top"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View Details</a><br><a href="complete_trip.php?uuid=${trip.uuid}" class="text-green-600 hover:underline">Mark as Complete</td>
+                    <td class="p-4 text-right align-top"><a href="view_trip.php?uuid=${trip.uuid}" class="text-indigo-600 hover:underline">View Details</a><br><a href="report_issue.php?uuid=${trip.uuid}" class="text-red-600 hover:underline">Report Issue</td>
                 </tr>`;
             }).join('');
         }
