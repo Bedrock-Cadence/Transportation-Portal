@@ -5,7 +5,6 @@ require_once __DIR__ . '/../../app/init.php';
 
 // --- Helper function to detect if the request is from our app ---
 function isApiRequest() {
-    // Checks if the request body is JSON, which our app sends.
     if (!empty($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
         return true;
     }
@@ -22,7 +21,6 @@ $email = '';
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     
-    // For API requests, data comes in as JSON, not a form post.
     $postData = $_POST;
     if (isApiRequest()) {
         $json = file_get_contents('php://input');
@@ -32,12 +30,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $email = trim($postData['email'] ?? '');
     try {
         $authService = new AuthService();
-        // We pass the potentially JSON-decoded data to the login service
-        $loginData = $authService->login($postData); 
+        // *** THIS IS THE CORRECTED LINE ***
+        // We now correctly pass the second argument to bypass the CAPTCHA
+        $loginData = $authService->login($postData, isApiRequest()); 
         
         SessionManager::establish($loginData['user'], $loginData['entity_name']);
 
-        // *** THIS IS THE NEW PART FOR THE APP ***
         if (isApiRequest()) {
             header('Content-Type: application/json');
             echo json_encode([
@@ -47,29 +45,23 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     'entity_name' => $loginData['entity_name']
                 ]
             ]);
-            exit; // Stop the script here for API calls
+            exit;
         }
-        // *** END OF NEW PART ***
 
-        // This part remains for the web browser login
         Utils::redirect('index.php');
 
     } catch (Exception $e) {
         $login_error = $e->getMessage();
 
-        // *** THIS IS THE NEW PART FOR THE APP ***
         if (isApiRequest()) {
             header('Content-Type: application/json');
-            http_response_code(401); // Use 'Unauthorized' status for login failures
+            http_response_code(401);
             echo json_encode(['success' => false, 'error' => $login_error]);
-            exit; // Stop the script here for API calls
+            exit;
         }
-        // *** END OF NEW PART ***
     }
 }
 
-// The rest of this file is the HTML for the web page. 
-// The 'exit' commands above ensure this part is never sent to the app.
 $cspNonce = bin2hex(random_bytes(16));
 header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$cspNonce}' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;");
 ?>
